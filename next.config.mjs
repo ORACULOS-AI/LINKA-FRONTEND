@@ -9,6 +9,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'linka-profile-images.s3.amazonaws.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'drive.google.com',
+      },
     ],
   },
   typescript: {
