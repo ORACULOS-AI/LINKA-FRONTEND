@@ -32,7 +32,7 @@ export function BusinessShowcase({ initialBusinesses }: BusinessShowcaseProps) {
     isLoading,
     error,
     refetch,
-  } = useListBusinesses("aprovado", {
+  } = useListBusinesses("aprovado", undefined, undefined, {
     initialData: initialBusinesses,
   })
 
@@ -200,16 +200,16 @@ export function BusinessShowcase({ initialBusinesses }: BusinessShowcaseProps) {
                 Todos
               </TabsTrigger>
               <TabsTrigger
-                value="incubado"
+                value="incubada"
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
               >
-                Incubados
+                Incubadas
               </TabsTrigger>
               <TabsTrigger
-                value="parceiro"
+                value="parceira"
                 className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
               >
-                Parceiros
+                Parceiras
               </TabsTrigger>
             </TabsList>
           </div>
@@ -225,10 +225,10 @@ export function BusinessShowcase({ initialBusinesses }: BusinessShowcaseProps) {
               loading={isLoading}
             />
           </TabsContent>
-          <TabsContent value="incubado">
+          <TabsContent value="incubada">
             <BusinessList
               businesses={visibleBusinesses}
-              filter="incubado"
+              filter="incubada"
               searchTerm={searchTerm}
               sortBy={sortBy}
               currentPage={currentPage}
@@ -237,10 +237,10 @@ export function BusinessShowcase({ initialBusinesses }: BusinessShowcaseProps) {
               loading={isLoading}
             />
           </TabsContent>
-          <TabsContent value="parceiro">
+          <TabsContent value="parceira">
             <BusinessList
               businesses={visibleBusinesses}
-              filter="parceiro"
+              filter="parceira"
               searchTerm={searchTerm}
               sortBy={sortBy}
               currentPage={currentPage}

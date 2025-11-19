@@ -22,6 +22,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import ImageDisplay from '@/app/ui/imageDisplay'
 import { VitrineItem } from '@/types/vitrine-items'
+import { formatImageSrc } from '@/lib/utils'
 
 interface VitrineCardProps {
   item: VitrineItem
@@ -79,7 +80,9 @@ export default function VitrineCard({
         <div className="flex items-center space-x-2">
           <Avatar className="h-8 w-8">
             <AvatarImage
-              src={typeof item.logo === 'string' ? item.logo : ''}
+              src={
+                typeof item.logo === 'string' ? formatImageSrc(item.logo) : ''
+              }
               alt={item.responsibleUser}
             />
             <AvatarFallback>

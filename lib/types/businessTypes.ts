@@ -1,6 +1,13 @@
 export enum NegocioType {
-  INCUBADO = 'incubado',
-  PARCEIRO = 'parceiro',
+  INCUBADA = 'incubada',
+  PARCEIRA = 'parceira',
+}
+
+export enum CategoriaNegocio {
+  STARTUP = 'STARTUP',
+  EMPRESA_JUNIOR = 'EMPRESA_JUNIOR',
+  SPIN_OFF = 'SPIN_OFF',
+  OUTRO = 'OUTRO',
 }
 
 export enum PapelNegocio {
@@ -73,6 +80,7 @@ export interface NegocioBase {
   email: string
   telefone: string
   tipo_negocio: NegocioType
+  categoria: CategoriaNegocio
   descricao_problema: string
   solucao_proposta: string
   area_atuacao: AreaAtuacao

@@ -1,4 +1,5 @@
 import React from 'react'
+import { formatImageSrc } from '@/lib/utils'
 
 interface ImageProps {
   image?:
@@ -32,7 +33,7 @@ const ImageDisplay: React.FC<ImageProps> = ({ image, className }) => {
 
   return (
     <img
-      src={imageUrl}
+      src={formatImageSrc(imageUrl)}
       alt="Imagem"
       className={className}
       style={{ maxWidth: '100%', height: 'auto' }}

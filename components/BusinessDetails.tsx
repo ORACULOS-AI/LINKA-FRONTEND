@@ -38,7 +38,7 @@ const BusinessDetails: React.FC<BusinessDetailsProps> = ({
         )}
       </section>
 
-      {business.tipo_negocio === NegocioType.INCUBADO && (
+      {business.tipo_negocio === NegocioType.INCUBADA && (
         <section>
           <h2 className="text-2xl font-semibold mb-4">Área Estratégica</h2>
           {isEditing ? (

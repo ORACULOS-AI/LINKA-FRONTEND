@@ -10,21 +10,21 @@ interface BusinessStatusProps {
 }
 
 export function BusinessStatus({ activeBusinesses, pendingBusinesses }: BusinessStatusProps) {
-  const incubadosCount = activeBusinesses.filter((b) => b.tipo_negocio === NegocioType.INCUBADO).length
-  const parceirosCount = activeBusinesses.filter((b) => b.tipo_negocio === NegocioType.PARCEIRO).length
+  const incubadasCount = activeBusinesses.filter((b) => b.tipo_negocio === NegocioType.INCUBADA).length
+  const parceirasCount = activeBusinesses.filter((b) => b.tipo_negocio === NegocioType.PARCEIRA).length
 
   const stats = [
     {
       icon: Building2,
-      label: "Incubados",
-      value: incubadosCount,
+      label: "Incubadas",
+      value: incubadasCount,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
     },
     {
       icon: Handshake,
-      label: "Parceiros",
-      value: parceirosCount,
+      label: "Parceiras",
+      value: parceirasCount,
       color: "text-green-600",
       bgColor: "bg-green-100",
     },

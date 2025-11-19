@@ -28,7 +28,7 @@ export default function RootLayout({
       <head>
         <Analytics />
         <SpeedInsights />
-        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+        <link rel="icon" href="/link@.svg" type="image/svg+xml" />
       </head>
       <body
         className={`${poppins.className} flex flex-col min-h-screen`}

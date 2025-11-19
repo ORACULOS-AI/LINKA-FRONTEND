@@ -245,11 +245,9 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
       )}
     >
       <SidebarHeader className="border-b border-purple-100 px-4 py-4 flex justify-between items-center bg-gradient-to-r from-purple-50 to-violet-50">
-        <Link href="/negocios" className="flex items-center space-x-2 group">
+        <Link href="/dashboard" className="flex items-center space-x-2 group">
           <div className="relative">
-            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 bg-clip-text text-transparent">
-              LINKA
-            </span>
+            <img src="/link@.svg" alt="LINK@ Logo" className="h-5 w-auto" />
           </div>
         </Link>
         {onClose && (
@@ -267,6 +265,30 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
       
       <SidebarContent className="flex-grow overflow-y-auto overflow-x-hidden py-4">
         <SidebarNav className="space-y-4 w-full px-2">
+          {/* Item Início no topo */}
+          <div className="px-2">
+            <Button
+              asChild
+              variant="ghost"
+              className={cn(
+                'w-full justify-start relative group transition-all duration-200',
+                pathname === '/dashboard' && 'bg-gradient-to-r from-purple-50 to-violet-50 text-purple-700 font-medium',
+                pathname !== '/dashboard' && 'hover:bg-purple-50/50 hover:text-purple-700'
+              )}
+            >
+              <Link href="/dashboard" className="flex items-center w-full">
+                <Home className={cn(
+                  "mr-3 h-4 w-4 transition-colors duration-200",
+                  pathname === '/dashboard' && "text-purple-600"
+                )} />
+                <span>Início</span>
+                {pathname === '/dashboard' && (
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-purple-500 to-violet-500 rounded-l-full" />
+                )}
+              </Link>
+            </Button>
+          </div>
+
           <SidebarNavItem title="Vitrines" items={vitrinesItems} />
           <SidebarNavItem title="Comunidade" items={comunidadeItems} />
           <SidebarNavItem title="Pessoal" items={personalItems} />
@@ -298,14 +320,14 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
             </Link>
           </Button>
         )}
-        <Button 
-          variant="outline" 
-          className="mt-2 w-full justify-start border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all duration-200" 
+        <Button
+          variant="outline"
+          className="mt-2 w-full justify-start border-purple-200 text-purple-700 hover:bg-purple-50 hover:border-purple-300 transition-all duration-200"
           asChild
         >
-          <Link href="/" rel="noopener noreferrer">
+          <Link href="/dashboard" rel="noopener noreferrer">
             <Home className="mr-2 h-4 w-4" />
-            Retornar ao Início
+            Dashboard
             <ChevronRight className="ml-auto h-4 w-4" />
           </Link>
         </Button>

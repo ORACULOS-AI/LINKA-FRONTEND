@@ -31,7 +31,7 @@ export function BusinessManagementFilter({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos</SelectItem>
-          <SelectItem value={NegocioType.INCUBADO}>Incubado</SelectItem>
+          <SelectItem value={NegocioType.INCUBADA}>Incubada</SelectItem>
           <SelectItem value={NegocioType.EXTERNO}>Externo</SelectItem>
         </SelectContent>
       </Select>

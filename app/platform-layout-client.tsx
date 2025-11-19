@@ -48,8 +48,8 @@ export default function PlatformLayoutClient({
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
 
-  // Memoizar verificação da landing page
-  const isLandingPage = useMemo(() => pathname === '/', [pathname])
+  // Memoizar verificação de rotas sem sidebar
+  const isNoSidebarRoute = useMemo(() => pathname === '/', [pathname])
 
   // Callback para fechar sidebar
   const handleClose = useCallback(() => setIsOpen(false), [])
@@ -59,8 +59,8 @@ export default function PlatformLayoutClient({
     setIsOpen(false)
   }, [pathname])
 
-  // Early return para landing page
-  if (isLandingPage) {
+  // Early return para rotas sem sidebar (landing page)
+  if (isNoSidebarRoute) {
     return (
       <Providers>
         <NotificationsProvider>{children}</NotificationsProvider>

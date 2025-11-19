@@ -44,13 +44,13 @@ export default function LandingPage() {
 
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
-                href="/negocios"
+                href="/dashboard"
                 className="group relative inline-flex h-12 items-center justify-center rounded-lg bg-gradient-to-r from-purple-600 to-violet-600 px-8 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-purple-500/25 hover:shadow-2xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 overflow-hidden"
                 prefetch={false}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-12"></div>
-                <span className="relative z-10">Explorar Vitrines</span>
+                <span className="relative z-10">Explorar Ecossistema</span>
               </Link>
 
               <Link

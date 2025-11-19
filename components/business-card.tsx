@@ -15,6 +15,7 @@ import { NegocioResponse } from '@/lib/types/businessTypes'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import { formatImageSrc } from '@/lib/utils'
 
 // Define a new interface for the component's props
 interface BusinessCardProps {
@@ -39,8 +40,8 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
   const getBusinessTypeBadge = (type: NegocioResponse['tipo_negocio']) => {
     const config = {
-      'incubado': { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'Incubado', icon: '🚀' },
-      'parceiro': { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'Parceiro', icon: '🤝' }
+      'incubada': { bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600', text: 'Incubada', icon: '🚀' },
+      'parceira': { bg: 'bg-gradient-to-r from-blue-500 to-blue-600', text: 'Parceira', icon: '🤝' }
     }
     
     const typeConfig = config[type] || { bg: 'bg-gradient-to-r from-purple-500 to-purple-600', text: type, icon: '🏢' }
@@ -89,7 +90,7 @@ export function BusinessCard({ business }: BusinessCardProps) {
                   <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-purple-100 bg-gradient-to-br from-purple-50 to-violet-50 flex items-center justify-center flex-shrink-0">
                     {business.foto_perfil ? (
                       <Image
-                        src={business.foto_perfil}
+                        src={formatImageSrc(business.foto_perfil)}
                         alt={`Logo de ${business.nome}`}
                         width={48}
                         height={48}

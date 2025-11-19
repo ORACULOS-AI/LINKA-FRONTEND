@@ -97,13 +97,16 @@ export const useBusinessApi = () => {
 
   const listBusinesses = async (
     status: string = 'aprovado',
+    categoria?: string,
+    tipo_negocio?: string,
   ): Promise<NegocioResponse[]> => {
-    const response = await fetchWithToken(
-      `${API_BASE_URL}/business/?status=${status}`,
-      {
-        requireAuth: false,
-      },
-    )
+    let url = `${API_BASE_URL}/business/?status=${status}`
+    if (categoria) url += `&categoria=${categoria}`
+    if (tipo_negocio) url += `&tipo_negocio=${tipo_negocio}`
+
+    const response = await fetchWithToken(url, {
+      requireAuth: false,
+    })
     const data = await response.json()
     return data.data
   }
@@ -301,10 +304,15 @@ export const useBusinessApi = () => {
       queryFn: () => getBusinessById(businessId),
     })
 
-  const useListBusinesses = (status: string = 'aprovado', options?: any) =>
+  const useListBusinesses = (
+    status: string = 'aprovado',
+    categoria?: string,
+    tipo_negocio?: string,
+    options?: any
+  ) =>
     useQuery({
-      queryKey: ['businesses', status],
-      queryFn: () => listBusinesses(status),
+      queryKey: ['businesses', status, categoria, tipo_negocio],
+      queryFn: () => listBusinesses(status, categoria, tipo_negocio),
       ...options,
     })
 
@@ -513,6 +521,21 @@ export const useBusinessApi = () => {
       },
     })
 
+  const getDashboardData = async (): Promise<any> => {
+    const response = await fetchWithToken(`${API_BASE_URL}/dashboard/`, {
+      requireAuth: false,
+    })
+    const data = await response.json()
+    return data.data
+  }
+
+  const useGetDashboardData = () =>
+    useQuery({
+      queryKey: ['dashboard-data'],
+      queryFn: getDashboardData,
+      staleTime: 1000 * 60 * 5, // 5 minutos
+    })
+
   return {
     useCreateBusiness,
     useGetBusinessById,
@@ -530,5 +553,6 @@ export const useBusinessApi = () => {
     useAcceptBusinessInvite,
     useRejectBusinessInvite,
     useRemoveBusinessMember,
+    useGetDashboardData,
   }
 }
