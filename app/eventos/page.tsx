@@ -1,20 +1,19 @@
 'use client'
 
-import { useState } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { useState, useMemo, useEffect } from 'react'
+import { Calendar, Users, Plus, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
-import type { EventStatus } from '@/lib/types/event'
-import EventList from './components/event-list'
-import EventSearch from './components/event-search'
-import EventSort from './components/event-sort'
-import EventRefresh from './components/event-refresh'
-import EventStatusFilter from './components/event-status-filter'
+import type { EventStatus, Event } from '@/lib/types/event'
 import { useEventsApi } from '@/lib/api/events'
+import { CommunityHero } from '@/components/comunidade/shared/CommunityHero'
+import { EventCard } from './components/EventCard'
+import { EventFilters } from './components/EventFilters'
+import PrivateRoute from '@/components/private_route'
+import { motion } from 'framer-motion'
 
-export default function EventosPage() {
+function EventosPageContent() {
   const router = useRouter()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState('')
@@ -22,80 +21,159 @@ export default function EventosPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
   const { useListEvents } = useEventsApi()
-  const { data: events, isLoading } = useListEvents(selectedStatus)
+  const { data: events, isLoading, refetch } = useListEvents(selectedStatus)
+
+  // Filter and sort events
+  const filteredEvents = useMemo(() => {
+    if (!events) return []
+
+    let filtered = [...events]
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (event) =>
+          event.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          event.descricao.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Sort by date
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.data_evento || a.data).getTime()
+      const dateB = new Date(b.data_evento || b.data).getTime()
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
+    })
+
+    return filtered
+  }, [events, searchTerm, sortOrder])
+
+  // Calculate stats for all events (not just filtered)
+  const stats = useMemo(() => {
+    const total = events?.length || 0
+    const ativos = events?.filter(e => e.status === 'ATIVO').length || 0
+
+    return {
+      total,
+      ativos,
+      participantes: total * 12, // Mock: average 12 participants per event
+    }
+  }, [events])
 
   const handleCreateEvent = () => {
     router.push('/eventos/novo')
   }
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term)
-  }
-
-  const handleStatusChange = (status: EventStatus) => {
-    setSelectedStatus(status)
-  }
-
-  const handleSortChange = (order: 'asc' | 'desc') => {
-    setSortOrder(order)
-  }
-
   const handleRefresh = () => {
+    refetch()
     toast({
-      title: 'Atualizando...',
-      description: 'Lista de eventos atualizada com sucesso!',
+      title: 'Atualizado!',
+      description: 'Lista de eventos atualizada com sucesso.',
     })
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <CommunityHero
+        icon={Calendar}
+        badge="Participe e Organize"
+        title="Eventos"
+        description="Descubra e participe de eventos acadêmicos, workshops e encontros da comunidade UFC"
+        stats={[
+          { icon: Calendar, value: stats.total, label: 'Eventos' },
+          { icon: Sparkles, value: stats.ativos, label: 'Ativos' },
+          { icon: Users, value: stats.participantes, label: 'Participantes' },
+        ]}
+      />
+
+      {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        {/* Cabeçalho e Controles */}
-        <div className="mb-8">
-          <div className="flex flex-col gap-6">
-            {/* Título e Botão */}
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">Eventos</h1>
-              <Button onClick={() => router.push('/eventos/novo')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Criar Evento
-              </Button>
-            </div>
-
-            {/* Barra de Pesquisa e Controles */}
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-              <div className="flex-1 w-full lg:max-w-2xl">
-                <EventSearch onSearch={handleSearch} />
-              </div>
-              <div className="flex flex-wrap gap-4 items-center">
-                <EventSort onSortChange={handleSortChange} />
-                <EventRefresh onRefresh={handleRefresh} />
-              </div>
-            </div>
-
-            {/* Status e Filtros */}
-            <div className="bg-white rounded-lg px-4 py-3 shadow-sm">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
-                Status dos Eventos
-              </h3>
-              <EventStatusFilter onStatusChange={handleStatusChange} />
-            </div>
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">
+              Todos os Eventos
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Gerencie e participe de eventos da comunidade
+            </p>
           </div>
+          <Button
+            onClick={handleCreateEvent}
+            className="bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-lg transition-all duration-300 hover:scale-105"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Criar Evento
+          </Button>
         </div>
 
-        {/* Lista de Eventos */}
-        <Card>
-          <CardContent className="p-6">
-            <EventList
-              searchTerm={searchTerm}
-              status={selectedStatus}
-              sortOrder={sortOrder}
-              events={events || []}
-              isLoading={isLoading}
-            />
-          </CardContent>
-        </Card>
+        {/* Unified Filters */}
+        <div className="mb-8">
+          <EventFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+            sortOrder={sortOrder}
+            onSortChange={setSortOrder}
+            onRefresh={handleRefresh}
+            totalCount={stats.total}
+            activeCount={stats.ativos}
+          />
+        </div>
+
+        {/* Events Grid */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="bg-gray-100 rounded-xl h-96 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : filteredEvents.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-center justify-center py-16 text-center"
+          >
+            <Calendar className="h-16 w-16 text-gray-300 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+              Nenhum evento encontrado
+            </h3>
+            <p className="text-gray-500 mb-6">
+              {searchTerm
+                ? "Tente ajustar sua busca ou filtros"
+                : "Seja o primeiro a criar um evento!"}
+            </p>
+            {!searchTerm && (
+              <Button
+                onClick={handleCreateEvent}
+                className="bg-gradient-to-r from-purple-600 to-violet-600"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Criar Primeiro Evento
+              </Button>
+            )}
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEvents.map((event) => (
+              <EventCard key={event.uid} event={event} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
+  )
+}
+
+export default function EventosPage() {
+  return (
+    <PrivateRoute>
+      <EventosPageContent />
+    </PrivateRoute>
   )
 }

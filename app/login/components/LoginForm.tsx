@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle, User, GraduationCap, Crown, Briefcase, KeyRound } from 'lucide-react'
+import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle, User, GraduationCap, Crown, Briefcase, KeyRound, UserCog } from 'lucide-react'
 import { UserType } from '@/lib/types/userTypes'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { motion } from 'framer-motion'
 
 interface LoginFormProps {
@@ -18,6 +19,7 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [detectedUserType, setDetectedUserType] = useState<UserType | null>(null)
+  const [selectedUserType, setSelectedUserType] = useState<UserType | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
   // Função para detectar o tipo de usuário baseado no email
@@ -38,6 +40,8 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
         return <GraduationCap className="h-4 w-4" />
       case UserType.PESQUISADOR:
         return <Crown className="h-4 w-4" />
+      case UserType.TECNICO_ADMIN:
+        return <UserCog className="h-4 w-4" />
       case UserType.EXTERNO:
         return <Briefcase className="h-4 w-4" />
       default:
@@ -52,6 +56,8 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
         return 'Estudante'
       case UserType.PESQUISADOR:
         return 'Pesquisador'
+      case UserType.TECNICO_ADMIN:
+        return 'Técnico Administrativo'
       case UserType.EXTERNO:
         return 'Externo'
       default:
@@ -59,23 +65,35 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
     }
   }
 
+  // Detectar se o email é @ufc.br (permite escolha entre Pesquisador e Técnico Admin)
+  const isUfcEmail = email.endsWith('@ufc.br') && !email.endsWith('@alu.ufc.br')
+
   // Detectar tipo de usuário quando o email muda
   useEffect(() => {
     if (email.includes('@')) {
       const userType = detectUserType(email)
       setDetectedUserType(userType)
+      // Se não for @ufc.br, setar automaticamente o tipo selecionado
+      if (!isUfcEmail) {
+        setSelectedUserType(userType)
+      } else if (!selectedUserType) {
+        // Para @ufc.br, defaultar para PESQUISADOR se nada foi selecionado
+        setSelectedUserType(UserType.PESQUISADOR)
+      }
     } else {
       setDetectedUserType(null)
+      setSelectedUserType(null)
     }
-  }, [email])
+  }, [email, isUfcEmail])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!detectedUserType) return
-    
+    const userTypeToUse = selectedUserType || detectedUserType
+    if (!userTypeToUse) return
+
     setIsLoading(true)
     try {
-      await onSubmit(email, password, detectedUserType)
+      await onSubmit(email, password, userTypeToUse)
     } finally {
       setIsLoading(false)
     }
@@ -135,10 +153,63 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
           className="text-xs text-gray-500 mt-2"
         >
           <p>
-          <strong>Detecção automática:</strong> Estudante • Pesquisador • Externo
+          <strong>Detecção automática:</strong> Estudante • Pesquisador • Técnico Administrativo • Externo
           </p>
         </motion.div>
       </motion.div>
+
+      {/* Seleção entre Pesquisador e Técnico Admin para emails @ufc.br */}
+      {isUfcEmail && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.4 }}
+          className="space-y-3"
+        >
+          <Label className="text-gray-700 font-medium">
+            Tipo de vínculo
+          </Label>
+          <RadioGroup
+            value={selectedUserType || ''}
+            onValueChange={(value) => setSelectedUserType(value as UserType)}
+            className="grid grid-cols-2 gap-3"
+          >
+            <div
+              className={`flex items-center space-x-3 rounded-lg border-2 p-3 cursor-pointer transition-all ${
+                selectedUserType === UserType.PESQUISADOR
+                  ? 'bg-purple-50 border-purple-500 shadow-sm'
+                  : 'border-gray-200 hover:border-purple-300'
+              }`}
+              onClick={() => setSelectedUserType(UserType.PESQUISADOR)}
+            >
+              <RadioGroupItem value={UserType.PESQUISADOR} id="login-pesquisador" />
+              <div className="flex items-center gap-2 flex-1">
+                <Crown className="h-4 w-4 text-purple-600" />
+                <Label htmlFor="login-pesquisador" className="cursor-pointer font-medium text-sm">
+                  Pesquisador
+                </Label>
+              </div>
+            </div>
+
+            <div
+              className={`flex items-center space-x-3 rounded-lg border-2 p-3 cursor-pointer transition-all ${
+                selectedUserType === UserType.TECNICO_ADMIN
+                  ? 'bg-purple-50 border-purple-500 shadow-sm'
+                  : 'border-gray-200 hover:border-purple-300'
+              }`}
+              onClick={() => setSelectedUserType(UserType.TECNICO_ADMIN)}
+            >
+              <RadioGroupItem value={UserType.TECNICO_ADMIN} id="login-tecnico" />
+              <div className="flex items-center gap-2 flex-1">
+                <UserCog className="h-4 w-4 text-purple-600" />
+                <Label htmlFor="login-tecnico" className="cursor-pointer font-medium text-sm">
+                  Técnico Administrativo
+                </Label>
+              </div>
+            </div>
+          </RadioGroup>
+        </motion.div>
+      )}
 
       <motion.div 
         className="space-y-2"
@@ -181,7 +252,7 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
         <Button
           className="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-purple-500/25 hover:shadow-lg transition-all duration-300 text-white font-medium py-3"
           type="submit"
-          disabled={isLoading || !detectedUserType}
+          disabled={isLoading || !selectedUserType}
         >
           {isLoading ? (
             <motion.div
@@ -196,9 +267,9 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
             <>
               <LogIn className="h-4 w-4" />
               Entrar
-              {detectedUserType && (
+              {selectedUserType && (
                 <span className="opacity-75">
-                  como {getUserTypeLabel(detectedUserType)}
+                  como {getUserTypeLabel(selectedUserType)}
                 </span>
               )}
             </>

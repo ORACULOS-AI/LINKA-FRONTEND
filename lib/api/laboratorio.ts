@@ -153,7 +153,21 @@ export const useLaboratorioApi = () => {
   }
 
   const getUserLaboratorios = async (): Promise<LaboratorioSummary[]> => {
-    const response = await fetchWithToken(`${API_BASE_URL}/laboratorios/me`)
+    const response = await fetchWithToken(`${API_BASE_URL}/laboratorios/me`, {
+      requireAuth: true,
+    })
+    const data = await response.json()
+    return data.data
+  }
+
+  const getAllLaboratoriosByAdmin = async (): Promise<{
+    pendentes: LaboratorioSummary[]
+    aprovados: LaboratorioSummary[]
+    recusados: LaboratorioSummary[]
+  }> => {
+    const response = await fetchWithToken(`${API_BASE_URL}/laboratorios/admin/all`, {
+      requireAuth: true,
+    })
     const data = await response.json()
     return data.data
   }
@@ -289,6 +303,14 @@ export const useLaboratorioApi = () => {
     })
   }
 
+  const useGetLaboratoriosByAdmin = () => {
+    return useQuery({
+      queryKey: ['laboratorios-admin-all'],
+      queryFn: getAllLaboratoriosByAdmin,
+      staleTime: 2 * 60 * 1000, // 2 minutes
+    })
+  }
+
   const useGetLaboratoriosStats = () => {
     return useQuery({
       queryKey: ['laboratorios-stats'],
@@ -337,6 +359,64 @@ export const useLaboratorioApi = () => {
     })
   }
 
+  const useApproveLaboratorio = () => {
+    return useMutation({
+      mutationFn: async (laboratorioId: string) => {
+        const response = await fetchWithToken(
+          `${API_BASE_URL}/laboratorios/${laboratorioId}/approve`,
+          {
+            method: 'PUT',
+          }
+        )
+        return await response.json()
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['laboratorios-admin-all'] })
+        queryClient.invalidateQueries({ queryKey: ['laboratorios'] })
+        toast({
+          title: 'Sucesso',
+          description: 'Laboratório aprovado com sucesso',
+        })
+      },
+      onError: (error: any) => {
+        toast({
+          title: 'Erro',
+          description: error?.message || 'Erro ao aprovar laboratório',
+          variant: 'destructive',
+        })
+      },
+    })
+  }
+
+  const useRejectLaboratorio = () => {
+    return useMutation({
+      mutationFn: async (laboratorioId: string) => {
+        const response = await fetchWithToken(
+          `${API_BASE_URL}/laboratorios/${laboratorioId}/reject`,
+          {
+            method: 'PUT',
+          }
+        )
+        return await response.json()
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['laboratorios-admin-all'] })
+        queryClient.invalidateQueries({ queryKey: ['laboratorios'] })
+        toast({
+          title: 'Laboratório recusado',
+          description: 'O laboratório foi recusado',
+        })
+      },
+      onError: (error: any) => {
+        toast({
+          title: 'Erro',
+          description: error?.message || 'Erro ao recusar laboratório',
+          variant: 'destructive',
+        })
+      },
+    })
+  }
+
   return {
     useCreateLaboratorio,
     useGetLaboratorio,
@@ -344,8 +424,11 @@ export const useLaboratorioApi = () => {
     useUpdateLaboratorio,
     useDeleteLaboratorio,
     useGetUserLaboratorios,
+    useGetLaboratoriosByAdmin,
     useGetLaboratoriosStats,
     useAddPesquisadorToLaboratorio,
     useRemovePesquisadorFromLaboratorio,
+    useApproveLaboratorio,
+    useRejectLaboratorio,
   }
 }

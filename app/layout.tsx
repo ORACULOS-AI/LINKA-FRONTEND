@@ -36,7 +36,26 @@ export default function RootLayout({
       >
         <PlatformLayoutClient>{children}</PlatformLayoutClient>
         <Toaster />
-        <SonnerToaster />
+        <SonnerToaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: 'white',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.75rem',
+              padding: '1rem',
+            },
+            classNames: {
+              toast: 'shadow-lg',
+              title: 'text-gray-900 font-semibold',
+              description: 'text-gray-600',
+              actionButton: 'bg-purple-600 text-white hover:bg-purple-700',
+              cancelButton: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+              closeButton: 'bg-white border-gray-200 hover:bg-gray-100',
+            },
+          }}
+          richColors
+        />
       </body>
     </html>
   )

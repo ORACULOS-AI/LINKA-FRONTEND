@@ -82,6 +82,11 @@ export function StepByStepRegister({
     if (email.endsWith('@alu.ufc.br')) {
       return PublicUserType.ESTUDANTE
     } else if (email.endsWith('@ufc.br')) {
+      // Para @ufc.br, manter o tipo atual se for PESQUISADOR ou TECNICO_ADMIN
+      // Caso contrário, defaultar para PESQUISADOR
+      if (formData.tipo_usuario === PublicUserType.TECNICO_ADMIN) {
+        return PublicUserType.TECNICO_ADMIN
+      }
       return PublicUserType.PESQUISADOR
     } else {
       return PublicUserType.EXTERNO
@@ -129,6 +134,8 @@ export function StepByStepRegister({
         palavras_chave: undefined,
         empresa: undefined,
         cargo: undefined,
+        setor: undefined,
+        telefone_ramal: undefined,
       }
     } else if (value === PublicUserType.PESQUISADOR) {
       newFormData = {
@@ -141,6 +148,22 @@ export function StepByStepRegister({
         matricula: undefined,
         empresa: undefined,
         cargo: undefined,
+        setor: undefined,
+        telefone_ramal: undefined,
+      }
+    } else if (value === PublicUserType.TECNICO_ADMIN) {
+      newFormData = {
+        ...newFormData,
+        setor: '',
+        cargo: '',
+        campus: CampusType.PICI,
+        siape: '',
+        telefone_ramal: '',
+        curso: undefined,
+        matricula: undefined,
+        lattes: undefined,
+        palavras_chave: undefined,
+        empresa: undefined,
       }
     } else if (value === PublicUserType.EXTERNO) {
       newFormData = {
@@ -153,6 +176,8 @@ export function StepByStepRegister({
         lattes: undefined,
         siape: undefined,
         palavras_chave: undefined,
+        setor: undefined,
+        telefone_ramal: undefined,
       }
     }
 
@@ -277,6 +302,7 @@ export function StepByStepRegister({
             userType={formData.tipo_usuario}
             errors={errors}
             onInputChange={handleInputChange}
+            onUserTypeChange={handleUserTypeChange}
           />
         )
       case 1:
@@ -362,10 +388,9 @@ export function StepByStepRegister({
 
       <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden">
         <div
-          className="h-full transition-all duration-300 ease-in-out"
+          className="h-full bg-gradient-to-r from-purple-600 to-violet-600 transition-all duration-300 ease-in-out"
           style={{
             width: `${((currentStep + 1) / steps.length) * 100}%`,
-            backgroundColor: '#000000',
           }}
         />
       </div>
@@ -387,16 +412,15 @@ export function StepByStepRegister({
           <Button
             variant="outline"
             onClick={() => setCurrentStep((prev) => prev - 1)}
-            style={{ borderColor: '#000000', color: '#000000' }}
+            className="border-purple-600 text-purple-600 hover:bg-purple-50"
           >
             Voltar
           </Button>
         )}
         <Button
-          className={currentStep === 0 ? 'w-full' : 'ml-auto'}
+          className={`${currentStep === 0 ? 'w-full' : 'ml-auto'} bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-lg hover:shadow-purple-500/25 transition-all duration-300 text-white`}
           onClick={handleNext}
           disabled={!canProceed()}
-          style={{ backgroundColor: '#000000', color: '#FFFFFF' }}
         >
           {currentStep === steps.length - 1 ? 'Concluir' : 'Continuar'}
         </Button>
@@ -436,7 +460,7 @@ function validatePassword(password: string): boolean {
 // Função para limpar dados undefined antes de enviar
 function cleanUserData(data: UserCreateData): UserCreateData {
   const cleaned: any = {}
-  
+
   // Campos base obrigatórios para todos os tipos
   cleaned.nome = data.nome
   cleaned.email = data.email
@@ -445,11 +469,11 @@ function cleanUserData(data: UserCreateData): UserCreateData {
   cleaned.tipo_usuario = data.tipo_usuario
   cleaned.conexoes = data.conexoes || []
   cleaned.negocios = data.negocios || []
-  
+
   // Campos opcionais comuns
   if (data.foto_url) cleaned.foto_url = data.foto_url
   if (data.redes_sociais) cleaned.redes_sociais = data.redes_sociais
-  
+
   if (data.tipo_usuario === PublicUserType.EXTERNO) {
     const externoData = data as any
     // Para usuários externos, apenas adicionar empresa e cargo se não estiverem vazios
@@ -472,7 +496,20 @@ function cleanUserData(data: UserCreateData): UserCreateData {
     cleaned.siape = pesquisadorData.siape
     cleaned.palavras_chave = pesquisadorData.palavras_chave || []
     cleaned.campus = pesquisadorData.campus
+  } else if (data.tipo_usuario === PublicUserType.TECNICO_ADMIN) {
+    const tecnicoData = data as any
+    // Campos obrigatórios para técnicos administrativos
+    cleaned.setor = tecnicoData.setor
+    cleaned.cargo = tecnicoData.cargo
+    cleaned.campus = tecnicoData.campus
+    // Campos opcionais
+    if (tecnicoData.siape && tecnicoData.siape.trim() !== '') {
+      cleaned.siape = tecnicoData.siape.trim()
+    }
+    if (tecnicoData.telefone_ramal && tecnicoData.telefone_ramal.trim() !== '') {
+      cleaned.telefone_ramal = tecnicoData.telefone_ramal.trim()
+    }
   }
-  
+
   return cleaned as UserCreateData
 }

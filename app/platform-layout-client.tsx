@@ -11,6 +11,7 @@ import { SidebarWrapper } from '@/components/sidebar-wrapper'
 import PrivateRoute from '@/components/private_route'
 import { Providers } from '@/components/providers'
 import { NotificationsProvider } from '@/lib/context/NotificationsContext'
+import { CommunityProviders } from '@/components/comunidade/CommunityProviders'
 import { cn } from '@/lib/utils'
 
 interface PlatformLayoutClientProps {
@@ -63,7 +64,9 @@ export default function PlatformLayoutClient({
   if (isNoSidebarRoute) {
     return (
       <Providers>
-        <NotificationsProvider>{children}</NotificationsProvider>
+        <NotificationsProvider>
+          <CommunityProviders>{children}</CommunityProviders>
+        </NotificationsProvider>
       </Providers>
     )
   }
@@ -71,7 +74,8 @@ export default function PlatformLayoutClient({
   return (
     <Providers>
       <NotificationsProvider>
-        <div className="flex min-h-screen bg-gray-50">
+        <CommunityProviders>
+          <div className="flex min-h-screen bg-gray-50">
           {/* Sidebar Desktop - Renderiza apenas uma vez após hidratação */}
           <SidebarWrapper />
           
@@ -110,6 +114,7 @@ export default function PlatformLayoutClient({
             </div>
           </main>
         </div>
+        </CommunityProviders>
       </NotificationsProvider>
     </Providers>
   )

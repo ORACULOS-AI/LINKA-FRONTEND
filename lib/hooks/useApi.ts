@@ -30,7 +30,13 @@ export const useApi = () => {
         }
 
         const headers = new Headers(fetchOptions.headers)
-        headers.set('Authorization', `Bearer ${accessToken}`)
+
+        // Sempre enviar o token se ele existir, independente de requireAuth
+        // Isso permite que usuários autenticados acessem recursos restritos
+        // enquanto usuários não autenticados ainda podem acessar recursos públicos
+        if (accessToken) {
+          headers.set('Authorization', `Bearer ${accessToken}`)
+        }
 
         const response = await fetch(url, { ...fetchOptions, headers })
 

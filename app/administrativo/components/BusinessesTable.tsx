@@ -86,8 +86,17 @@ export function BusinessesTable({
 
     // Ordenar por data de cadastro (mais recentes primeiro)
     allBusinesses.sort((a, b) => {
+      // Validar se data_cadastro existe antes de usar
+      if (!a.data_cadastro) return 1
+      if (!b.data_cadastro) return -1
+
       const dateA = new Date(a.data_cadastro).getTime()
       const dateB = new Date(b.data_cadastro).getTime()
+
+      // Validar se as datas são válidas
+      if (isNaN(dateA)) return 1
+      if (isNaN(dateB)) return -1
+
       return dateB - dateA
     })
 
@@ -217,10 +226,20 @@ export function BusinessesTable({
                     <Badge variant="outline">{business.tipo_negocio}</Badge>
                   </TableCell>
                   <TableCell>
-                    {format(
-                      parseISO(business.data_cadastro),
-                      "d 'de' MMMM 'de' yyyy",
-                      { locale: ptBR },
+                    {business.data_cadastro ? (
+                      (() => {
+                        try {
+                          const date = parseISO(business.data_cadastro)
+                          if (isNaN(date.getTime())) {
+                            return <span className="text-muted-foreground">Data inválida</span>
+                          }
+                          return format(date, "d 'de' MMMM 'de' yyyy", { locale: ptBR })
+                        } catch (error) {
+                          return <span className="text-muted-foreground">Data inválida</span>
+                        }
+                      })()
+                    ) : (
+                      <span className="text-muted-foreground">Sem data</span>
                     )}
                   </TableCell>
                   <TableCell>{getStatusBadge(business)}</TableCell>

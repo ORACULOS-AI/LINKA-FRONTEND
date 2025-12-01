@@ -40,7 +40,22 @@ export function BusinessChart({ businessesData }: BusinessChartProps) {
   // Preencher os dados mês a mês
   allBusinesses.forEach((business) => {
     try {
+      // Validar se data_cadastro existe e não é vazia
+      if (!business.data_cadastro) {
+        console.warn(`Negócio ${business.uid || business.id} sem data_cadastro - ignorando`)
+        return
+      }
+
       const businessDate = parseISO(business.data_cadastro)
+
+      // Validar se parseISO retornou uma data válida
+      if (isNaN(businessDate.getTime())) {
+        console.warn(
+          `Data inválida para negócio ${business.uid || business.id}: ${business.data_cadastro} - ignorando`
+        )
+        return
+      }
+
       const monthData = monthsData.find((m) =>
         isWithinInterval(businessDate, {
           start: m.startDate,
@@ -58,7 +73,12 @@ export function BusinessChart({ businessesData }: BusinessChartProps) {
         }
       }
     } catch (error) {
-      console.error('Erro ao processar data:', error)
+      console.error(
+        `Erro ao processar data do negócio ${business.uid || business.id}:`,
+        error,
+        `data_cadastro: ${business.data_cadastro}`
+      )
+      // Continuar processamento dos demais negócios
     }
   })
 

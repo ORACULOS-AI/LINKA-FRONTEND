@@ -85,6 +85,7 @@ export const useBusinessApi = () => {
   const getBusinessById = async (
     businessId: string,
   ): Promise<NegocioResponse> => {
+    // requireAuth: false permite acesso público, mas o token é enviado se disponível
     const response = await fetchWithToken(
       `${API_BASE_URL}/business/${businessId}`,
       {

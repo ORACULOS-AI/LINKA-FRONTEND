@@ -510,7 +510,7 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
       )
     }
 
-    switch (connectionStatus) {
+    switch (connectionStatus?.status) {
       case ConnectionStatus.ACCEPTED:
         return (
           <Button
@@ -528,17 +528,8 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
           </Button>
         )
       case ConnectionStatus.PENDING: {
-        // Verificar se o usuário atual enviou ou recebeu a solicitação
-        const sentRequests = currentUser?.user?.solicitacoes_enviadas || []
-        const receivedRequests = currentUser?.user?.solicitacoes_recebidas || []
-
-        const isSentByMe = sentRequests.some(
-          (req: any) => req.target_id === userId && req.status === ConnectionStatus.PENDING,
-        )
-
-        const isReceivedByMe = receivedRequests.some(
-          (req: any) => req.requester_id === userId && req.status === ConnectionStatus.PENDING,
-        )
+        // Usar a informação de direção retornada pela API
+        const isSentByMe = connectionStatus?.isSentByMe
 
         if (isSentByMe) {
           return (
@@ -556,7 +547,7 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
               Cancelar Solicitação
             </Button>
           )
-        } else if (isReceivedByMe) {
+        } else {
           return (
             <div className="flex gap-2 w-full">
               <Button
@@ -584,13 +575,6 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
                 Rejeitar
               </Button>
             </div>
-          )
-        } else {
-          return (
-            <Button variant="outline" className="w-full bg-transparent" disabled={true}>
-              <Loader2 className="h-4 w-4 mr-2" />
-              Solicitação Pendente
-            </Button>
           )
         }
       }

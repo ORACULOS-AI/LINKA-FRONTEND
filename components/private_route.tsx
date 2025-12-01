@@ -28,8 +28,10 @@ export default function PrivateRoute({ children }: PrivateRouteProps) {
     }
   }, [isLoading, isAuthenticated, isPublicRoute, pathname])
 
+  // Não mostrar nada durante o loading inicial - apenas renderizar o conteúdo
+  // O AuthContext já verifica localStorage de forma síncrona
   if (isLoading) {
-    return <div>Carregando...</div> // Ou um componente de skeleton/loading
+    return null // Retorna null para evitar flash de conteúdo
   }
 
   if (!isAuthenticated && !isPublicRoute) {

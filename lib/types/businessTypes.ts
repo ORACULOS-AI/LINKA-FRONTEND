@@ -81,14 +81,15 @@ export interface NegocioBase {
   telefone: string
   tipo_negocio: NegocioType
   categoria: CategoriaNegocio
-  descricao_problema: string
-  solucao_proposta: string
+  descricao: string
   area_atuacao: AreaAtuacao
   estagio: EstagioNegocio
   palavras_chave: string[]
   uid_admin: string
 
-  // Campos opcionais
+  // Campos opcionais - mantidos para retrocompatibilidade
+  descricao_problema?: string
+  solucao_proposta?: string
   website?: string
   cnpj?: string
   razao_social?: string
@@ -105,6 +106,7 @@ export interface NegocioBase {
   // Campos de controle
   status?: StatusNegocio
   visivel?: boolean
+  claimed?: boolean
   data_cadastro?: string
 
   // Relacionamentos

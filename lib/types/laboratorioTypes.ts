@@ -39,6 +39,7 @@ export interface LaboratorioBase {
 
   // Campos de controle
   visivel?: boolean
+  claimed?: boolean
   created_at?: string
   updated_at?: string
 }

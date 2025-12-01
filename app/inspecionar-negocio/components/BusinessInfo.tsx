@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { motion } from "framer-motion"
-import { Edit, Save, X, Mail, Phone, Tag, TrendingUp, Target, Lightbulb, DollarSign } from 'lucide-react'
+import { Edit, Save, X, Mail, Phone, Tag, TrendingUp, Target, Lightbulb, DollarSign, FileText } from 'lucide-react'
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -155,99 +155,112 @@ export const BusinessInfo: React.FC<BusinessInfoProps> = ({
 
       {/* Business Details Card */}
       <Card className="overflow-hidden shadow-lg border border-purple-100 bg-white">
-        <Tabs defaultValue="problema" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-purple-50 to-violet-50 p-1 rounded-t-lg border-b border-purple-100">
-            <TabsTrigger value="problema" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600">
-              <Target className="h-4 w-4 mr-2" />
-              Problema
-            </TabsTrigger>
-            <TabsTrigger value="solucao" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600">
-              <Lightbulb className="h-4 w-4 mr-2" />
-              Solução
-            </TabsTrigger>
-            <TabsTrigger value="modelo" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Modelo
-            </TabsTrigger>
-          </TabsList>
+        <div className="p-6">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-gradient-to-br from-purple-100 to-purple-50 rounded-lg border border-purple-200">
+                <FileText className="h-5 w-5 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Sobre o Negócio</h3>
+            </div>
+            {isEditingFields ? (
+              <Textarea
+                value={editedBusiness.descricao ?? business.descricao ?? editedBusiness.descricao_problema ?? business.descricao_problema ?? ""}
+                onChange={(e) => onFieldChange("descricao", e.target.value)}
+                className="min-h-[150px] bg-white border-purple-200 focus:border-purple-400"
+                placeholder="Descreva seu negócio, o que ele faz, qual problema resolve ou que serviços/produtos oferece..."
+              />
+            ) : (
+              <div className="prose prose-gray max-w-none">
+                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {business.descricao || business.descricao_problema || "Nenhuma descrição fornecida."}
+                </p>
+              </div>
+            )}
+          </motion.div>
 
-          <div className="p-6">
-            <TabsContent value="problema" className="mt-0">
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gradient-to-br from-red-100 to-red-50 rounded-lg border border-red-200">
-                    <Target className="h-5 w-5 text-red-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Problema Identificado</h3>
-                </div>
-                {isEditingFields ? (
-                  <Textarea
-                    value={editedBusiness.descricao_problema ?? business.descricao_problema}
-                    onChange={(e) => onFieldChange("descricao_problema", e.target.value)}
-                    className="min-h-[120px] bg-white border-purple-200 focus:border-purple-400"
-                    placeholder="Descreva o problema que seu negócio resolve..."
-                  />
-                ) : (
-                  <div className="prose prose-gray max-w-none">
-                    <p className="text-gray-700 leading-relaxed">
-                      {business.descricao_problema || "Nenhuma descrição de problema fornecida."}
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            </TabsContent>
+          {/* Mostrar Problema/Solução apenas se existirem (retrocompatibilidade) */}
+          {(business.descricao_problema || business.solucao_proposta) && business.descricao && (
+            <Tabs defaultValue="problema" className="w-full mt-6">
+              <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-purple-50 to-violet-50 p-1 rounded-lg border border-purple-100">
+                <TabsTrigger value="problema" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600">
+                  <Target className="h-4 w-4 mr-2" />
+                  Problema
+                </TabsTrigger>
+                <TabsTrigger value="solucao" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-purple-600">
+                  <Lightbulb className="h-4 w-4 mr-2" />
+                  Solução
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="solucao" className="mt-0">
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gradient-to-br from-green-100 to-green-50 rounded-lg border border-green-200">
-                    <Lightbulb className="h-5 w-5 text-green-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Solução Proposta</h3>
-                </div>
-                {isEditingFields ? (
-                  <Textarea
-                    value={editedBusiness.solucao_proposta ?? business.solucao_proposta}
-                    onChange={(e) => onFieldChange("solucao_proposta", e.target.value)}
-                    className="min-h-[120px] bg-white border-purple-200 focus:border-purple-400"
-                    placeholder="Descreva a solução que seu negócio oferece..."
-                  />
-                ) : (
-                  <div className="prose prose-gray max-w-none">
-                    <p className="text-gray-700 leading-relaxed">
-                      {business.solucao_proposta || "Nenhuma solução proposta fornecida."}
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            </TabsContent>
+              <div className="pt-4">
+                <TabsContent value="problema" className="mt-0">
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    {isEditingFields ? (
+                      <Textarea
+                        value={editedBusiness.descricao_problema ?? business.descricao_problema ?? ""}
+                        onChange={(e) => onFieldChange("descricao_problema", e.target.value)}
+                        className="min-h-[100px] bg-white border-purple-200 focus:border-purple-400"
+                        placeholder="Descreva o problema que seu negócio resolve..."
+                      />
+                    ) : (
+                      <div className="prose prose-gray max-w-none">
+                        <p className="text-gray-700 leading-relaxed">
+                          {business.descricao_problema || "Nenhuma descrição de problema fornecida."}
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                </TabsContent>
 
-            <TabsContent value="modelo" className="mt-0">
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-gradient-to-br from-purple-100 to-purple-50 rounded-lg border border-purple-200">
-                    <DollarSign className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900">Modelo de Negócio</h3>
+                <TabsContent value="solucao" className="mt-0">
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                    {isEditingFields ? (
+                      <Textarea
+                        value={editedBusiness.solucao_proposta ?? business.solucao_proposta ?? ""}
+                        onChange={(e) => onFieldChange("solucao_proposta", e.target.value)}
+                        className="min-h-[100px] bg-white border-purple-200 focus:border-purple-400"
+                        placeholder="Descreva a solução que seu negócio oferece..."
+                      />
+                    ) : (
+                      <div className="prose prose-gray max-w-none">
+                        <p className="text-gray-700 leading-relaxed">
+                          {business.solucao_proposta || "Nenhuma solução proposta fornecida."}
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                </TabsContent>
+              </div>
+            </Tabs>
+          )}
+
+          {/* Modelo de Negócio */}
+          {(business.modelo_negocio || isEditingFields) && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="mt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-br from-green-100 to-green-50 rounded-lg border border-green-200">
+                  <DollarSign className="h-5 w-5 text-green-600" />
                 </div>
-                {isEditingFields ? (
-                  <Textarea
-                    value={editedBusiness.modelo_negocio ?? business.modelo_negocio ?? ""}
-                    onChange={(e) => onFieldChange("modelo_negocio", e.target.value)}
-                    className="min-h-[120px] bg-white border-purple-200 focus:border-purple-400"
-                    placeholder="Descreva o modelo de negócio..."
-                  />
-                ) : (
-                  <div className="prose prose-gray max-w-none">
-                    <p className="text-gray-700 leading-relaxed">
-                      {business.modelo_negocio || "Nenhum modelo de negócio fornecido."}
-                    </p>
-                  </div>
-                )}
-              </motion.div>
-            </TabsContent>
-          </div>
-        </Tabs>
+                <h3 className="text-lg font-semibold text-gray-900">Modelo de Negócio</h3>
+              </div>
+              {isEditingFields ? (
+                <Textarea
+                  value={editedBusiness.modelo_negocio ?? business.modelo_negocio ?? ""}
+                  onChange={(e) => onFieldChange("modelo_negocio", e.target.value)}
+                  className="min-h-[100px] bg-white border-purple-200 focus:border-purple-400"
+                  placeholder="Descreva o modelo de negócio..."
+                />
+              ) : (
+                <div className="prose prose-gray max-w-none">
+                  <p className="text-gray-700 leading-relaxed">
+                    {business.modelo_negocio || "Nenhum modelo de negócio fornecido."}
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </div>
       </Card>
     </div>
   )

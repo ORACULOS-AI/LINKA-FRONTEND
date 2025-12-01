@@ -226,7 +226,7 @@ export default function LoginScreen() {
                 Plataforma LINKA
               </h2>
               <p className="text-white/90 text-lg leading-relaxed">
-                O ecossistema de inovação da UFC que conecta estudantes, pesquisadores e empreendedores 
+                O ecossistema de inovação da UFC que conecta estudantes, pesquisadores, técnicos administrativos e empreendedores
                 em uma rede colaborativa para transformar ideias em realidade.
               </p>
             </div>

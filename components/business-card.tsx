@@ -122,29 +122,11 @@ export function BusinessCard({ business }: BusinessCardProps) {
                 </div>
               </div>
 
-              {/* Problem & Solution */}
-              <div className="flex-1 mb-4 space-y-3">
-                {/* Problem */}
-                <div className="flex items-start gap-2">
-                  <Target className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-red-700 mb-1">Problema</p>
-                    <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
-                      {business.descricao_problema.slice(0, 60)}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Solution */}
-                <div className="flex items-start gap-2">
-                  <Lightbulb className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-green-700 mb-1">Solução</p>
-                    <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">
-                      {business.solucao_proposta.slice(0, 60)}
-                    </p>
-                  </div>
-                </div>
+              {/* Description */}
+              <div className="flex-1 mb-4">
+                <p className="text-sm text-gray-700 line-clamp-3 leading-relaxed">
+                  {business.descricao || business.descricao_problema || 'Sem descrição disponível'}
+                </p>
               </div>
 
               {/* Keywords & Stage */}
@@ -231,13 +213,21 @@ export function BusinessCard({ business }: BusinessCardProps) {
 
                 <div className="grid gap-4">
                   <div>
-                    <h3 className="font-semibold mb-2">Descrição do Problema</h3>
-                    <p className="text-sm">{business.descricao_problema}</p>
+                    <h3 className="font-semibold mb-2">Sobre o Negócio</h3>
+                    <p className="text-sm">{business.descricao || business.descricao_problema || 'Sem descrição disponível'}</p>
                   </div>
-                  <div>
-                    <h3 className="font-semibold mb-2">Solução Proposta</h3>
-                    <p className="text-sm">{business.solucao_proposta}</p>
-                  </div>
+                  {business.descricao_problema && business.solucao_proposta && (
+                    <>
+                      <div>
+                        <h3 className="font-semibold mb-2">Problema Identificado</h3>
+                        <p className="text-sm">{business.descricao_problema}</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-2">Solução Proposta</h3>
+                        <p className="text-sm">{business.solucao_proposta}</p>
+                      </div>
+                    </>
+                  )}
                   <div className="grid gap-2 text-sm">
                     <p>
                       <strong>Área de Atuação:</strong> {business.area_atuacao}

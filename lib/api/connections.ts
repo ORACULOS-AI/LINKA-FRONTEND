@@ -89,7 +89,7 @@ export function useConnectionRequests() {
   }
 
   // Nova função para verificar o status de conexão entre o usuário atual e outro usuário
-  const getConnectionStatus = async (userId: string): Promise<ConnectionStatus | 'none'> => {
+  const getConnectionStatus = async (userId: string): Promise<{ status: ConnectionStatus | 'none', isSentByMe: boolean }> => {
     try {
       // Primeiro verificar se já estão conectados
       const connectionsResponse = await fetchWithToken(
@@ -100,7 +100,7 @@ export function useConnectionRequests() {
 
       // Verificar se o usuário está na lista de conexões
       if (connections.includes(userId)) {
-        return ConnectionStatus.ACCEPTED
+        return { status: ConnectionStatus.ACCEPTED, isSentByMe: false }
       }
 
       // Buscar solicitações enviadas pendentes
@@ -114,9 +114,9 @@ export function useConnectionRequests() {
       const sentPending = sentRequests.find(
         (req: ConnectionRequest) => req.target_id === userId,
       )
-      
+
       if (sentPending) {
-        return ConnectionStatus.PENDING
+        return { status: ConnectionStatus.PENDING, isSentByMe: true }
       }
 
       // Buscar solicitações recebidas pendentes
@@ -130,15 +130,15 @@ export function useConnectionRequests() {
       const receivedPending = receivedRequests.find(
         (req: ConnectionRequest) => req.requester_id === userId,
       )
-      
+
       if (receivedPending) {
-        return ConnectionStatus.PENDING
+        return { status: ConnectionStatus.PENDING, isSentByMe: false }
       }
 
-      return 'none'
+      return { status: 'none', isSentByMe: false }
     } catch (error) {
       console.error('Error checking connection status:', error)
-      return 'none'
+      return { status: 'none', isSentByMe: false }
     }
   }
 

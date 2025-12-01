@@ -1,18 +1,10 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLaboratorioApi } from '@/lib/api/laboratorio'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from '@/components/ui/select'
-import { RefreshCw, Plus, Trash2, Edit, Mail, Phone, MapPin } from 'lucide-react'
+import { Plus, Trash2, Edit, Mail, Phone, MapPin, Beaker, CheckCircle, Clock, XCircle, Sparkles } from 'lucide-react'
 import PrivateRoute from '@/components/private_route'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -37,17 +29,22 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { motion } from 'framer-motion'
-import { cn } from '@/lib/utils'
 import { LaboratorioCreationModal } from './components/laboratorio-creation-modal'
 
 export default function MeusLaboratoriosPage() {
   const router = useRouter()
   const { useGetUserLaboratorios, useDeleteLaboratorio } = useLaboratorioApi()
-  const [searchTerm, setSearchTerm] = useState('')
-  const [sortBy, setSortBy] = useState<'recent' | 'oldest' | 'alphabetical'>(
-    'recent',
-  )
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+
+  // Verificar permissões de acesso
+  useEffect(() => {
+    const userType = localStorage.getItem('userType')
+    const isAdmin = localStorage.getItem('userIsAdmin') === 'true'
+
+    if (!isAdmin && userType !== 'pesquisador') {
+      router.push('/dashboard')
+    }
+  }, [router])
 
   const {
     data: laboratorios,
@@ -65,111 +62,44 @@ export default function MeusLaboratoriosPage() {
   const handleDeleteLaboratorio = async (laboratorioId: string) => {
     try {
       await deleteLaboratorioMutation.mutateAsync(laboratorioId)
-      // Força a atualização da lista após a deleção
       await refetch()
     } catch (error) {
       console.error('Erro ao excluir laboratório:', error)
     }
   }
 
-  const handleSearch = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-  }, [])
-
-  const handleSortChange = useCallback(
-    (value: 'recent' | 'oldest' | 'alphabetical') => {
-      setSortBy(value)
-    },
-    [],
-  )
-
-  const handleRefresh = useCallback(() => {
-    refetch()
-  }, [refetch])
-
-  const { ativosCount, inativosCount, manutencaoCount } = useMemo(
+  const { approvedCount, pendingCount, inactiveCount, totalCount } = useMemo(
     () => ({
-      ativosCount: laboratorios?.filter((l) => l.status === 'ATIVO').length || 0,
-      inativosCount: laboratorios?.filter((l) => l.status === 'INATIVO').length || 0,
-      manutencaoCount: laboratorios?.filter((l) => l.status === 'MANUTENCAO').length || 0,
+      totalCount: laboratorios?.length || 0,
+      approvedCount: laboratorios?.filter((l) => l.status === 'ATIVO').length || 0,
+      pendingCount: laboratorios?.filter((l) => l.status === 'MANUTENCAO').length || 0,
+      inactiveCount: laboratorios?.filter((l) => l.status === 'INATIVO').length || 0,
     }),
     [laboratorios],
   )
 
-  const renderStatusCounts = useMemo(
-    () => (
-      <div className="grid grid-cols-3 gap-8 w-full text-center">
-        <div className="flex flex-col items-center">
-          <div className="text-sm font-medium text-green-600">Ativos</div>
-          <div className="text-3xl font-bold">{ativosCount}</div>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="text-sm font-medium text-red-600">Inativos</div>
-          <div className="text-3xl font-bold">{inativosCount}</div>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="text-sm font-medium text-yellow-600">Manutenção</div>
-          <div className="text-3xl font-bold">{manutencaoCount}</div>
-        </div>
-      </div>
-    ),
-    [ativosCount, inativosCount, manutencaoCount],
-  )
-
-  const filteredLaboratorios = useMemo(() => {
+  // Ordenação automática por mais recentes
+  const sortedLaboratorios = useMemo(() => {
     if (!laboratorios) return []
-
-    let filtered = [...laboratorios]
-
-    // Aplicar busca
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase()
-      filtered = filtered.filter(
-        (laboratorio) =>
-          laboratorio.nome.toLowerCase().includes(searchLower) ||
-          laboratorio.responsavel.toLowerCase().includes(searchLower) ||
-          laboratorio.email.toLowerCase().includes(searchLower) ||
-          laboratorio.unidade.toLowerCase().includes(searchLower)
-      )
-    }
-
-    // Aplicar ordenação
-    switch (sortBy) {
-      case 'recent':
-        filtered.sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() -
-            new Date(a.created_at).getTime(),
-        )
-        break
-      case 'oldest':
-        filtered.sort(
-          (a, b) =>
-            new Date(a.created_at).getTime() -
-            new Date(b.created_at).getTime(),
-        )
-        break
-      case 'alphabetical':
-        filtered.sort((a, b) => a.nome.localeCompare(b.nome))
-        break
-    }
-
-    return filtered
-  }, [laboratorios, searchTerm, sortBy])
+    return [...laboratorios].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    )
+  }, [laboratorios])
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       'ATIVO': {
-        className: 'bg-green-100 text-green-800',
-        text: 'Ativo',
-      },
-      'INATIVO': {
-        className: 'bg-red-100 text-red-800',
-        text: 'Inativo',
+        className: 'bg-green-100 text-green-800 border-green-200',
+        text: 'Aprovado',
       },
       'MANUTENCAO': {
-        className: 'bg-yellow-100 text-yellow-800',
-        text: 'Manutenção',
+        className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        text: 'Pendente',
+      },
+      'INATIVO': {
+        className: 'bg-red-100 text-red-800 border-red-200',
+        text: 'Inativo',
       },
     }
 
@@ -177,7 +107,7 @@ export default function MeusLaboratoriosPage() {
 
     return (
       <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${config.className}`}
+        className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${config.className}`}
       >
         {config.text}
       </span>
@@ -187,28 +117,28 @@ export default function MeusLaboratoriosPage() {
   const getTipoBadge = (tipo: string) => {
     const tipoConfig = {
       'PESQUISA': {
-        className: 'bg-blue-100 text-blue-800',
+        className: 'bg-blue-100 text-blue-800 border-blue-200',
         text: 'Pesquisa',
       },
       'ENSINO': {
-        className: 'bg-purple-100 text-purple-800',
+        className: 'bg-purple-100 text-purple-800 border-purple-200',
         text: 'Ensino',
       },
       'EXTENSAO': {
-        className: 'bg-green-100 text-green-800',
+        className: 'bg-green-100 text-green-800 border-green-200',
         text: 'Extensão',
       },
       'DESENVOLVIMENTO': {
-        className: 'bg-orange-100 text-orange-800',
+        className: 'bg-orange-100 text-orange-800 border-orange-200',
         text: 'Desenvolvimento',
       },
       'MULTIDISCIPLINAR': {
-        className: 'bg-indigo-100 text-indigo-800',
+        className: 'bg-indigo-100 text-indigo-800 border-indigo-200',
         text: 'Multidisciplinar',
       },
     }
 
-    const config = tipoConfig[tipo] || { className: 'bg-gray-100 text-gray-800', text: tipo }
+    const config = tipoConfig[tipo] || { className: 'bg-gray-100 text-gray-800 border-gray-200', text: tipo }
 
     return (
       <Badge variant="outline" className={config.className}>
@@ -217,11 +147,10 @@ export default function MeusLaboratoriosPage() {
     )
   }
 
-  // Função auxiliar para formatar datas com segurança
-  const formatDate = (laboratorio, field: 'created_at' | 'updated_at'): string => {
-    if (!laboratorio || !laboratorio[field]) return 'Data não disponível'
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return 'Data não disponível'
     try {
-      return format(new Date(laboratorio[field]), "d 'de' MMMM 'às' HH:mm", {
+      return format(new Date(dateString), "d 'de' MMMM 'às' HH:mm", {
         locale: ptBR,
       })
     } catch (e) {
@@ -232,11 +161,7 @@ export default function MeusLaboratoriosPage() {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-        >
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((i) => (
             <motion.div
               key={i}
@@ -244,269 +169,281 @@ export default function MeusLaboratoriosPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
             >
-              <Skeleton className="h-[350px]" />
+              <Skeleton className="h-[350px] rounded-2xl" />
             </motion.div>
           ))}
-        </motion.div>
+        </div>
       )
     }
 
     if (!laboratorios || laboratorios.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center space-y-4 py-12">
-          <h2 className="text-2xl font-semibold">
-            Você ainda não tem nenhum laboratório cadastrado
-          </h2>
-          <p className="text-muted-foreground text-center">
-            Cadastre seu primeiro laboratório para começar a gerenciar
-            suas atividades de pesquisa e desenvolvimento!
-          </p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center space-y-6 py-16"
+        >
+          <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center">
+            <Beaker className="h-10 w-10 text-purple-400" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Nenhum laboratório cadastrado ainda
+            </h2>
+            <p className="text-gray-600 max-w-md">
+              Cadastre seu primeiro laboratório para começar a gerenciar suas atividades de pesquisa
+            </p>
+          </div>
           <Button
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-black text-white hover:bg-black/70"
+            className="bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-lg hover:shadow-purple-500/25 text-lg px-8 py-6"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Criar Laboratório
+            <Plus className="mr-2 h-5 w-5" />
+            Criar Primeiro Laboratório
           </Button>
-        </div>
+        </motion.div>
       )
     }
 
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-      >
-        {filteredLaboratorios.map((laboratorio, index) => (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {sortedLaboratorios.map((laboratorio, index) => (
           <motion.div
             key={laboratorio.uid}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+            transition={{ delay: index * 0.05 }}
           >
             <Card
-              className="flex flex-col hover:shadow-lg transition-all duration-200 cursor-pointer group"
-              onClick={() =>
-                router.push(`/inspecionar-laboratorio/${laboratorio.uid}`)
-              }
+              className="group relative overflow-hidden bg-white border-2 border-gray-100 hover:border-purple-300 hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-300 cursor-pointer h-full flex flex-col"
+              onClick={() => router.push(`/inspecionar-laboratorio/${laboratorio.uid}`)}
             >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl group-hover:text-blue-600 transition-colors">
-                        {laboratorio.nome}
-                      </CardTitle>
-                      <div className="flex gap-2">
+              {/* Top gradient accent */}
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 via-violet-500 to-purple-600" />
+
+              <CardHeader className="pb-4">
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle className="text-xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors flex-1 line-clamp-2">
+                    {laboratorio.nome}
+                  </CardTitle>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-purple-50 hover:text-purple-600"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        router.push(`/inspecionar-laboratorio/${laboratorio.uid}`)
+                      }}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            router.push(`/inspecionar-laboratorio/${laboratorio.uid}`)
-                          }}
+                          className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Excluir Laboratório
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir este laboratório?
-                                Esta ação não pode ser desfeita e pode afetar
-                                projetos e pesquisadores associados.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={async (e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  await handleDeleteLaboratorio(laboratorio.uid)
-                                }}
-                                className="bg-red-500 hover:bg-red-600"
-                              >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                      {getTipoBadge(laboratorio.tipo)}
-                      {getStatusBadge(laboratorio.status)}
-                    </div>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Unidade: {laboratorio.unidade}
-                      {laboratorio.subunidade && ` • ${laboratorio.subunidade}`}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Criado em: {formatDate(laboratorio, 'created_at')}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      Última atualização: {formatDate(laboratorio, 'updated_at')}
-                    </p>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir Laboratório</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir "{laboratorio.nome}"?
+                            Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={async (e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              await handleDeleteLaboratorio(laboratorio.uid)
+                            }}
+                            className="bg-red-500 hover:bg-red-600"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {getTipoBadge(laboratorio.tipo)}
+                  {getStatusBadge(laboratorio.status)}
+                </div>
               </CardHeader>
-              <CardContent className="flex-1">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-semibold">Responsável</h4>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <span>{laboratorio.responsavel}</span>
+
+              <CardContent className="flex-1 space-y-4">
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Responsável</h4>
+                  <div className="space-y-1.5">
+                    <div className="text-sm text-gray-700 font-medium">
+                      {laboratorio.responsavel}
                     </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Mail className="h-4 w-4" />
-                      <span>{laboratorio.email}</span>
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <Mail className="h-3.5 w-3.5 text-purple-600 flex-shrink-0" />
+                      <span className="truncate">{laboratorio.email}</span>
                     </div>
-                    <div className="flex items-center space-x-2 text-sm text-gray-600">
-                      <Phone className="h-4 w-4" />
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <Phone className="h-3.5 w-3.5 text-purple-600 flex-shrink-0" />
                       <span>{laboratorio.telefone}</span>
                     </div>
                   </div>
-
-                  {(laboratorio.campus || laboratorio.sala) && (
-                    <div>
-                      <h4 className="text-sm font-semibold">Localização</h4>
-                      <div className="flex items-center space-x-2 text-sm text-gray-600">
-                        <MapPin className="h-4 w-4" />
-                        <span>
-                          {laboratorio.campus && `${laboratorio.campus}`}
-                          {laboratorio.campus && laboratorio.sala && ", "}
-                          {laboratorio.sala && `Sala ${laboratorio.sala}`}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
+                </div>
+                {(laboratorio.campus || laboratorio.sala) && (
                   <div>
-                    <h4 className="text-sm font-semibold">Descrição</h4>
-                    <p className="text-sm text-gray-600 line-clamp-3">
-                      {laboratorio.descricao || "Sem descrição disponível"}
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Localização</h4>
+                    <div className="flex items-center gap-2 text-sm text-gray-700">
+                      <MapPin className="h-3.5 w-3.5 text-purple-600 flex-shrink-0" />
+                      <span>
+                        {laboratorio.campus && `${laboratorio.campus}`}
+                        {laboratorio.campus && laboratorio.sala && ", "}
+                        {laboratorio.sala && `Sala ${laboratorio.sala}`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {laboratorio.descricao && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Descrição</h4>
+                    <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
+                      {laboratorio.descricao}
                     </p>
                   </div>
-                </div>
+                )}
               </CardContent>
-              <CardFooter className="border-t pt-4">
-                <div className="flex justify-between w-full text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    {laboratorio.pesquisadores && laboratorio.pesquisadores.length > 0 && (
-                      <span>
-                        {laboratorio.pesquisadores.length} pesquisador{laboratorio.pesquisadores.length !== 1 ? 'es' : ''}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {laboratorio.equipamentos && laboratorio.equipamentos.length > 0 && (
-                      <span>
-                        {laboratorio.equipamentos.length} equipamento{laboratorio.equipamentos.length !== 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </div>
+
+              <CardFooter className="border-t border-gray-100 pt-4 flex-col items-start gap-2">
+                <div className="text-xs text-gray-500">
+                  Criado em {formatDate(laboratorio.created_at)}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Unidade: {laboratorio.unidade}
+                  {laboratorio.subunidade && ` • ${laboratorio.subunidade}`}
                 </div>
               </CardFooter>
+
+              {/* Hover overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-purple-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             </Card>
           </motion.div>
         ))}
-      </motion.div>
+      </div>
     )
   }
 
   return (
     <PrivateRoute>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="min-h-screen"
-      >
-        <div className="container mx-auto px-4 py-8">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <div className="flex flex-col gap-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Meus Laboratórios
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Gerencie seus laboratórios, acompanhe o status e mantenha
-                  suas informações atualizadas
-                </p>
-              </div>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50">
+        {/* HEADER ROXO */}
+        <div className="relative bg-gradient-to-br from-purple-600 via-purple-500 to-violet-600 text-white overflow-hidden">
+          {/* Decorative blur orbs */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse" />
+            <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-violet-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+            <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
+          </div>
 
-              {/* Busca e Ordenação */}
-              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-                <div className="flex-1 w-full lg:max-w-2xl">
-                  <form onSubmit={handleSearch} className="relative">
-                    <Input
-                      type="text"
-                      placeholder="Buscar laboratórios..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-4 pr-4 py-2 bg-white"
-                    />
-                  </form>
-                </div>
-                <div className="flex flex-wrap gap-4 items-center">
-                  <Select value={sortBy} onValueChange={handleSortChange}>
-                    <SelectTrigger className="w-[180px] bg-white">
-                      <SelectValue placeholder="Ordenar por" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white">
-                      <SelectItem value="recent">Mais recentes</SelectItem>
-                      <SelectItem value="oldest">Mais antigos</SelectItem>
-                      <SelectItem value="alphabetical">
-                        Ordem alfabética
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleRefresh}
-                    className="h-10 w-10 bg-white"
+          <div className="relative z-10 container mx-auto px-4 py-16">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="max-w-5xl mx-auto"
+            >
+              {/* Badge */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 mb-6"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="text-sm font-semibold">Gestão de Laboratórios</span>
+              </motion.div>
+
+              {/* Título */}
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-4xl md:text-5xl font-black mb-4"
+              >
+                Meus Laboratórios
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-lg md:text-xl text-white/90 mb-8 max-w-2xl"
+              >
+                Gerencie seus laboratórios, acompanhe o status e mantenha suas informações atualizadas
+              </motion.p>
+
+              {/* Stats Cards */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="grid grid-cols-2 md:grid-cols-4 gap-4"
+              >
+                {[
+                  { icon: Beaker, label: 'Total', value: totalCount, color: 'yellow' },
+                  { icon: CheckCircle, label: 'Aprovados', value: approvedCount, color: 'green' },
+                  { icon: Clock, label: 'Pendentes', value: pendingCount, color: 'amber' },
+                  { icon: XCircle, label: 'Inativos', value: inactiveCount, color: 'red' },
+                ].map((stat, idx) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.6 + idx * 0.1 }}
+                    className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20 hover:bg-white/15 transition-all"
                   >
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+                    <stat.icon className={`h-7 w-7 mb-2 text-${stat.color}-300`} />
+                    <div className="text-3xl md:text-4xl font-black mb-1">{stat.value}</div>
+                    <div className="text-sm text-white/80 font-medium">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </motion.div>
 
-              {/* Status e Botão Adicionar */}
-              <div className="grid gap-6 md:grid-cols-4">
-                <div className="md:col-span-3 bg-white rounded-lg px-4 py-3 shadow-sm">
-                  {renderStatusCounts}
-                </div>
-                <div className="flex items-center justify-center">
-                  <Button
-                    className="w-full h-full bg-black text-white hover:bg-black/70"
-                    onClick={() => setIsCreateModalOpen(true)}
-                  >
-                    <Plus className="mr-2 h-5 w-5" />
-                    Novo Laboratório
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+              {/* Botão Criar */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.9 }}
+                className="mt-8"
+              >
+                <Button
+                  onClick={() => setIsCreateModalOpen(true)}
+                  size="lg"
+                  className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6 rounded-xl font-bold shadow-2xl"
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  Novo Laboratório
+                </Button>
+              </motion.div>
+            </motion.div>
+          </div>
 
+          {/* Wave divider */}
+          <div className="absolute bottom-0 left-0 right-0">
+            <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
+              <path d="M0 0L60 10C120 20 240 40 360 46.7C480 53 600 47 720 43.3C840 40 960 40 1080 46.7C1200 53 1320 67 1380 73.3L1440 80V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0V0Z" fill="white" fillOpacity="0.1"/>
+              <path d="M0 40L60 46.7C120 53 240 67 360 73.3C480 80 600 80 720 73.3C840 67 960 53 1080 46.7C1200 40 1320 40 1380 40H1440V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0V40Z" fill="rgb(249, 250, 251)"/>
+            </svg>
+          </div>
+        </div>
+
+        {/* CONTEÚDO */}
+        <div className="container mx-auto px-4 py-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -516,16 +453,17 @@ export default function MeusLaboratoriosPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="rounded-lg border border-red-200 bg-red-50 p-6 text-base text-red-600"
+                className="rounded-2xl border-2 border-red-200 bg-red-50 p-6 text-red-600 text-center"
               >
-                Erro ao carregar os laboratórios: {error.message}
+                <p className="font-semibold mb-2">Erro ao carregar laboratórios</p>
+                <p className="text-sm">{error.message}</p>
               </motion.div>
             ) : (
               renderContent()
             )}
           </motion.div>
         </div>
-      </motion.div>
+      </div>
 
       <LaboratorioCreationModal
         isOpen={isCreateModalOpen}

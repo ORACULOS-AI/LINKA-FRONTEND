@@ -8,17 +8,143 @@ import { useBusinessApi } from "@/lib/api/business"
 import { BusinessSearchAndSort } from "./business-search-and-sort"
 import { BusinessList } from "./business-list"
 import { Sparkles, Store, TrendingUp } from "lucide-react"
-import type { NegocioType, NegocioResponse } from "@/lib/types/businessTypes"
+import type { NegocioType, NegocioResponse, CategoriaNegocio } from "@/lib/types/businessTypes"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface BusinessShowcaseProps {
   initialBusinesses?: NegocioResponse[] | null
 }
 
+interface CategoryFilterTabsProps {
+  tipoFilter: NegocioType | "all"
+  categoriaFilter: CategoriaNegocio | "all"
+  setCategoriaFilter: (value: CategoriaNegocio | "all") => void
+  businesses: NegocioResponse[]
+  searchTerm: string
+  sortBy: "recent" | "oldest" | "alphabetical"
+  currentPage: number
+  setCurrentPage: (page: number) => void
+  itemsPerPage: number
+  loading: boolean
+}
+
+function CategoryFilterTabs({ tipoFilter, categoriaFilter, setCategoriaFilter, businesses, searchTerm, sortBy, currentPage, setCurrentPage, itemsPerPage, loading }: CategoryFilterTabsProps) {
+  return (
+    <Tabs
+      defaultValue="all"
+      className="w-full"
+      onValueChange={(value) => setCategoriaFilter(value as CategoriaNegocio | "all")}
+    >
+      <div className="mb-6">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Categoria</h3>
+        <TabsList className="bg-white border border-purple-100 p-1 rounded-2xl shadow-lg flex-wrap h-auto justify-start">
+          <TabsTrigger
+            value="all"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
+          >
+            Todas
+          </TabsTrigger>
+          <TabsTrigger
+            value="STARTUP"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
+          >
+            Startups
+          </TabsTrigger>
+          <TabsTrigger
+            value="EMPRESA_JUNIOR"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
+          >
+            Empresas Juniores
+          </TabsTrigger>
+          <TabsTrigger
+            value="SPIN_OFF"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
+          >
+            Spin-offs
+          </TabsTrigger>
+          <TabsTrigger
+            value="OUTRO"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
+          >
+            Outros
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
+      <TabsContent value="all">
+        <BusinessList
+          businesses={businesses}
+          filter={tipoFilter}
+          categoriaFilter="all"
+          searchTerm={searchTerm}
+          sortBy={sortBy}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          loading={loading}
+        />
+      </TabsContent>
+      <TabsContent value="STARTUP">
+        <BusinessList
+          businesses={businesses}
+          filter={tipoFilter}
+          categoriaFilter="STARTUP"
+          searchTerm={searchTerm}
+          sortBy={sortBy}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          loading={loading}
+        />
+      </TabsContent>
+      <TabsContent value="EMPRESA_JUNIOR">
+        <BusinessList
+          businesses={businesses}
+          filter={tipoFilter}
+          categoriaFilter="EMPRESA_JUNIOR"
+          searchTerm={searchTerm}
+          sortBy={sortBy}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          loading={loading}
+        />
+      </TabsContent>
+      <TabsContent value="SPIN_OFF">
+        <BusinessList
+          businesses={businesses}
+          filter={tipoFilter}
+          categoriaFilter="SPIN_OFF"
+          searchTerm={searchTerm}
+          sortBy={sortBy}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          loading={loading}
+        />
+      </TabsContent>
+      <TabsContent value="OUTRO">
+        <BusinessList
+          businesses={businesses}
+          filter={tipoFilter}
+          categoriaFilter="OUTRO"
+          searchTerm={searchTerm}
+          sortBy={sortBy}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          loading={loading}
+        />
+      </TabsContent>
+    </Tabs>
+  )
+}
+
 export function BusinessShowcase({ initialBusinesses }: BusinessShowcaseProps) {
   const { useListBusinesses } = useBusinessApi()
 
-  const [filter, setFilter] = useState<NegocioType | "all">("all")
+  const [tipoFilter, setTipoFilter] = useState<NegocioType | "all">("all")
+  const [categoriaFilter, setCategoriaFilter] = useState<CategoriaNegocio | "all">("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [visibleBusinesses, setVisibleBusinesses] = useState<NegocioResponse[]>(
@@ -186,70 +312,48 @@ export function BusinessShowcase({ initialBusinesses }: BusinessShowcaseProps) {
           />
         </motion.div>
 
+        {/* Filtros por Tipo de Negócio */}
         <Tabs
           defaultValue="all"
-          className="w-full"
-          onValueChange={(value) => setFilter(value as NegocioType | "all")}
+          className="w-full mb-6"
+          onValueChange={(value) => setTipoFilter(value as NegocioType | "all")}
         >
-          <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between mb-8">
-            <TabsList className="bg-white border border-purple-100 p-1 rounded-2xl shadow-lg flex-wrap h-auto justify-start">
-              <TabsTrigger
-                value="all"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
-              >
-                Todos
-              </TabsTrigger>
-              <TabsTrigger
-                value="incubada"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
-              >
-                Incubadas
-              </TabsTrigger>
-              <TabsTrigger
-                value="parceira"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
-              >
-                Parceiras
-              </TabsTrigger>
-            </TabsList>
+          <div className="flex flex-col gap-4 mb-6">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Tipo de Negócio</h3>
+              <TabsList className="bg-white border border-purple-100 p-1 rounded-2xl shadow-lg flex-wrap h-auto justify-start">
+                <TabsTrigger
+                  value="all"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
+                >
+                  Todos
+                </TabsTrigger>
+                <TabsTrigger
+                  value="incubada"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
+                >
+                  Incubadas
+                </TabsTrigger>
+                <TabsTrigger
+                  value="parceira"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-violet-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl px-4 sm:px-6 py-3 font-medium transition-all duration-300 flex items-center gap-2"
+                >
+                  Parceiras
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
-          <TabsContent value="all">
-            <BusinessList
-              businesses={visibleBusinesses}
-              filter="all"
-              searchTerm={searchTerm}
-              sortBy={sortBy}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              itemsPerPage={itemsPerPage}
-              loading={isLoading}
-            />
+
+          {/* Filtros por Categoria - Aninhado dentro do tipo */}
+          <TabsContent value="all" className="mt-0">
+            <CategoryFilterTabs tipoFilter={tipoFilter} categoriaFilter={categoriaFilter} setCategoriaFilter={setCategoriaFilter} businesses={visibleBusinesses} searchTerm={searchTerm} sortBy={sortBy} currentPage={currentPage} setCurrentPage={setCurrentPage} itemsPerPage={itemsPerPage} loading={isLoading} />
           </TabsContent>
-          <TabsContent value="incubada">
-            <BusinessList
-              businesses={visibleBusinesses}
-              filter="incubada"
-              searchTerm={searchTerm}
-              sortBy={sortBy}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              itemsPerPage={itemsPerPage}
-              loading={isLoading}
-            />
+          <TabsContent value="incubada" className="mt-0">
+            <CategoryFilterTabs tipoFilter="incubada" categoriaFilter={categoriaFilter} setCategoriaFilter={setCategoriaFilter} businesses={visibleBusinesses} searchTerm={searchTerm} sortBy={sortBy} currentPage={currentPage} setCurrentPage={setCurrentPage} itemsPerPage={itemsPerPage} loading={isLoading} />
           </TabsContent>
-          <TabsContent value="parceira">
-            <BusinessList
-              businesses={visibleBusinesses}
-              filter="parceira"
-              searchTerm={searchTerm}
-              sortBy={sortBy}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              itemsPerPage={itemsPerPage}
-              loading={isLoading}
-            />
+          <TabsContent value="parceira" className="mt-0">
+            <CategoryFilterTabs tipoFilter="parceira" categoriaFilter={categoriaFilter} setCategoriaFilter={setCategoriaFilter} businesses={visibleBusinesses} searchTerm={searchTerm} sortBy={sortBy} currentPage={currentPage} setCurrentPage={setCurrentPage} itemsPerPage={itemsPerPage} loading={isLoading} />
           </TabsContent>
-          
         </Tabs>
 
         {/* Error States */}

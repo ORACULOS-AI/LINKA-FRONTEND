@@ -5,11 +5,12 @@ import { motion } from "framer-motion"
 import { BusinessCard } from "@/components/business-card"
 import { BusinessCardSkeleton } from "./business-card-skeleton"
 import { Pagination } from "@/components/ui/pagination"
-import type { NegocioResponse, NegocioType } from "@/lib/types/businessTypes"
+import type { NegocioResponse, NegocioType, CategoriaNegocio } from "@/lib/types/businessTypes"
 
 interface BusinessListProps {
   businesses: NegocioResponse[]
   filter: NegocioType | "all"
+  categoriaFilter?: CategoriaNegocio | "all"
   searchTerm: string
   sortBy: "recent" | "oldest" | "alphabetical"
   currentPage: number
@@ -21,6 +22,7 @@ interface BusinessListProps {
 export function BusinessList({
   businesses,
   filter,
+  categoriaFilter = "all",
   searchTerm,
   sortBy,
   currentPage,
@@ -30,11 +32,12 @@ export function BusinessList({
 }: BusinessListProps) {
   const filteredAndSortedBusinesses = useMemo(() => {
     const result = businesses.filter((business) => {
-      const matchesFilter = filter === "all" || business.tipo_negocio === filter
+      const matchesTipo = filter === "all" || business.tipo_negocio === filter
+      const matchesCategoria = categoriaFilter === "all" || business.categoria === categoriaFilter
       const matchesSearch =
         business.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
         business.palavras_chave.some((keyword) => keyword.toLowerCase().includes(searchTerm.toLowerCase()))
-      return matchesFilter && matchesSearch
+      return matchesTipo && matchesCategoria && matchesSearch
     })
 
     switch (sortBy) {
@@ -49,7 +52,7 @@ export function BusinessList({
     }
 
     return result
-  }, [businesses, filter, searchTerm, sortBy])
+  }, [businesses, filter, categoriaFilter, searchTerm, sortBy])
 
   const currentItems = useMemo(() => {
     const indexOfLastItem = currentPage * itemsPerPage

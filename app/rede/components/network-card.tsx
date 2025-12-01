@@ -26,9 +26,13 @@ import {
   Building2,
   Eye,
   Clock,
+  MessageCircle,
+  Video,
 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { useChatOverlay } from "@/lib/context/ChatOverlayContext"
+import { useCrossPageActions } from "@/lib/hooks/useCrossPageActions"
 
 type NetworkCardProps = {
   user: UserCreateData & { uid: string }
@@ -52,11 +56,23 @@ export const NetworkCard = React.memo(function NetworkCard({
   isSentByMe,
 }: NetworkCardProps) {
   const router = useRouter()
+  const { openChat } = useChatOverlay()
+  const { messageUser, scheduleMeeting } = useCrossPageActions()
 
   // Memoizar callbacks para evitar re-renderizações
   const handleViewProfile = useCallback(() => {
     router.push(`/perfil?id=${user.uid}&type=${user.tipo_usuario}`)
   }, [router, user.uid, user.tipo_usuario])
+
+  // Handler para abrir chat
+  const handleMessageUser = useCallback(() => {
+    messageUser(user.uid)
+  }, [messageUser, user.uid])
+
+  // Handler para agendar reunião
+  const handleScheduleMeeting = useCallback(() => {
+    scheduleMeeting(user.uid, user.nome)
+  }, [scheduleMeeting, user.uid, user.nome])
 
   const handleActionClick = useCallback((action: "send" | "accept" | "reject" | "cancel" | "remove") => {
     handleRequestAction(action, user.uid, user)
@@ -227,7 +243,7 @@ export const NetworkCard = React.memo(function NetworkCard({
   }, [connectionStatus, isSentByMe, isLoading, handleActionClick])
 
   return (
-    <Card className="border border-purple-100 bg-white hover:shadow-md transition-shadow duration-200 h-full">
+    <Card className="border border-purple-100 bg-white hover:shadow-lg hover:scale-[1.02] transition-all duration-200 h-full group">
       <CardContent className="p-4">
         {/* User Info */}
         <div className="flex flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-3 mb-4">
@@ -280,6 +296,31 @@ export const NetworkCard = React.memo(function NetworkCard({
 
         <div className="flex flex-col space-y-3">
           {statusTag}
+
+          {/* Quick Actions para usuários conectados */}
+          {connectionStatus === ConnectionStatus.ACCEPTED && (
+            <div className="flex gap-2 w-full">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleMessageUser}
+                className="flex-1 border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Mensagem
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleScheduleMeeting}
+                className="flex-1 border-blue-200 text-blue-700 hover:bg-blue-50 transition-colors"
+              >
+                <Video className="w-4 h-4 mr-2" />
+                Agendar
+              </Button>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-2 w-full">
             <Button
               size="sm"

@@ -22,21 +22,60 @@ const BusinessDetails: React.FC<BusinessDetailsProps> = ({
   return (
     <div className="col-span-2 space-y-8">
       <section>
-        <h2 className="text-2xl font-semibold mb-4">Sobre o Projeto</h2>
+        <h2 className="text-2xl font-semibold mb-4">Sobre o Negócio</h2>
         {isEditing ? (
           <Textarea
-            name="descricao_problema"
-            value={editedBusiness.descricao_problema || ''}
+            name="descricao"
+            value={editedBusiness.descricao || editedBusiness.descricao_problema || ''}
             onChange={handleChange}
             rows={6}
             className="w-full"
+            placeholder="Descreva seu negócio, o que ele faz, qual problema resolve ou que serviços/produtos oferece..."
           />
         ) : (
           <p className="text-gray-700 whitespace-pre-wrap">
-            {business.descricao_problema}
+            {business.descricao || business.descricao_problema || 'Sem descrição disponível'}
           </p>
         )}
       </section>
+
+      {/* Mostrar Problema/Solução apenas se existirem (retrocompatibilidade) */}
+      {(business.descricao_problema || business.solucao_proposta) && business.descricao && (
+        <>
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">Problema Identificado</h2>
+            {isEditing ? (
+              <Textarea
+                name="descricao_problema"
+                value={editedBusiness.descricao_problema || ''}
+                onChange={handleChange}
+                rows={4}
+                className="w-full"
+              />
+            ) : (
+              <p className="text-gray-700 whitespace-pre-wrap">
+                {business.descricao_problema}
+              </p>
+            )}
+          </section>
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">Solução Proposta</h2>
+            {isEditing ? (
+              <Textarea
+                name="solucao_proposta"
+                value={editedBusiness.solucao_proposta || ''}
+                onChange={handleChange}
+                rows={4}
+                className="w-full"
+              />
+            ) : (
+              <p className="text-gray-700 whitespace-pre-wrap">
+                {business.solucao_proposta}
+              </p>
+            )}
+          </section>
+        </>
+      )}
 
       {business.tipo_negocio === NegocioType.INCUBADA && (
         <section>

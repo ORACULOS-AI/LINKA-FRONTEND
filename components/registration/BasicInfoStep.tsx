@@ -2,8 +2,9 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { PhoneInput } from '../phone-input'
 import { PublicUserType } from '@/lib/types/userTypes'
-import { GraduationCap, Crown, Briefcase, Sparkles } from 'lucide-react'
+import { GraduationCap, Crown, Briefcase, Sparkles, UserCog } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 interface BasicInfoStepProps {
   nome: string
@@ -12,6 +13,7 @@ interface BasicInfoStepProps {
   userType: PublicUserType
   errors: { [key: string]: string }
   onInputChange: (name: string, value: string) => void
+  onUserTypeChange?: (type: PublicUserType) => void
 }
 
 export function BasicInfoStep({
@@ -21,6 +23,7 @@ export function BasicInfoStep({
   userType,
   errors,
   onInputChange,
+  onUserTypeChange,
 }: BasicInfoStepProps) {
   // Função para obter o ícone do tipo de usuário
   const getUserTypeIcon = (type: PublicUserType) => {
@@ -29,6 +32,8 @@ export function BasicInfoStep({
         return <GraduationCap className="h-4 w-4" />
       case PublicUserType.PESQUISADOR:
         return <Crown className="h-4 w-4" />
+      case PublicUserType.TECNICO_ADMIN:
+        return <UserCog className="h-4 w-4" />
       case PublicUserType.EXTERNO:
         return <Briefcase className="h-4 w-4" />
       default:
@@ -43,6 +48,8 @@ export function BasicInfoStep({
         return 'Estudante'
       case PublicUserType.PESQUISADOR:
         return 'Pesquisador'
+      case PublicUserType.TECNICO_ADMIN:
+        return 'Técnico'
       case PublicUserType.EXTERNO:
         return 'Externo'
       default:
@@ -53,6 +60,9 @@ export function BasicInfoStep({
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       onInputChange('email', e.target.value)
   }
+
+  // Detectar se o email é @ufc.br (permite escolher entre Pesquisador e Técnico Admin)
+  const isUfcEmail = email.endsWith('@ufc.br') && !email.endsWith('@alu.ufc.br')
 
   return (
     <div className="space-y-6">
@@ -113,12 +123,75 @@ export function BasicInfoStep({
         >
           <Sparkles className="h-3 w-3 text-purple-500" />
           <span>
-            <strong>Detecção automática:</strong> @alu.ufc.br (Estudante) • @ufc.br (Pesquisador) • Outros (Externo)
+            <strong>Detecção automática:</strong> @alu.ufc.br (Estudante) • @ufc.br (Pesquisador/Técnico Administrativo) • Outros (Externo)
           </span>
         </motion.div>
-        
+
         {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
       </div>
+
+      {/* Seleção entre Pesquisador e Técnico Admin para emails @ufc.br */}
+      {isUfcEmail && onUserTypeChange && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="space-y-3"
+        >
+          <Label className="text-gray-700 font-medium">
+            Selecione seu tipo de vínculo
+          </Label>
+          <RadioGroup
+            value={userType}
+            onValueChange={(value) => onUserTypeChange(value as PublicUserType)}
+            className="grid grid-cols-2 gap-3"
+          >
+            <div
+              className={`flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition-all ${
+                userType === PublicUserType.PESQUISADOR
+                  ? 'bg-purple-50 border-purple-500 shadow-sm'
+                  : 'border-gray-200 hover:border-purple-300'
+              }`}
+              onClick={() => onUserTypeChange(PublicUserType.PESQUISADOR)}
+            >
+              <RadioGroupItem value={PublicUserType.PESQUISADOR} id="pesquisador" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Crown className="h-4 w-4 text-purple-600" />
+                  <Label htmlFor="pesquisador" className="cursor-pointer font-medium">
+                    Pesquisador
+                  </Label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Docentes e pesquisadores
+                </p>
+              </div>
+            </div>
+
+            <div
+              className={`flex items-center space-x-3 rounded-lg border-2 p-4 cursor-pointer transition-all ${
+                userType === PublicUserType.TECNICO_ADMIN
+                  ? 'bg-purple-50 border-purple-500 shadow-sm'
+                  : 'border-gray-200 hover:border-purple-300'
+              }`}
+              onClick={() => onUserTypeChange(PublicUserType.TECNICO_ADMIN)}
+            >
+              <RadioGroupItem value={PublicUserType.TECNICO_ADMIN} id="tecnico_admin" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <UserCog className="h-4 w-4 text-purple-600" />
+                  <Label htmlFor="tecnico_admin" className="cursor-pointer font-medium">
+                    Técnico Administrativo
+                  </Label>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Servidores técnicos da UFC
+                </p>
+              </div>
+            </div>
+          </RadioGroup>
+        </motion.div>
+      )}
 
       <PhoneInput
         value={telefone}

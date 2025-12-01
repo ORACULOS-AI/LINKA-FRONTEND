@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/sidebar'
 import { useAuth } from '@/lib/context/AuthContext'
 import { useNotifications } from '@/lib/context/NotificationsContext'
+import { NotificationBell } from '@/components/global-notifications/NotificationBell'
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -68,6 +69,7 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
   const { hasUnread } = useNotifications()
   const { isAuthenticated, logout } = useAuth()
   const [isAdmin, setIsAdmin] = React.useState(false)
+  const [userType, setUserType] = React.useState<string | null>(null)
 
   const handleLogout = React.useCallback(async () => {
     try {
@@ -80,14 +82,24 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
 
   React.useEffect(() => {
     const admin: boolean = localStorage.getItem('userIsAdmin') === 'true'
+    const type = localStorage.getItem('userType')
     setIsAdmin(admin)
+    setUserType(type)
   }, [])
 
-  const vitrinesItems = React.useMemo(() => [
-    { name: 'Negócios', icon: Briefcase, href: '/negocios' },
-    { name: 'Iniciativas', icon: HandshakeIcon, href: '/iniciativas' },
-    { name: 'Laboratórios', icon: Pickaxe, href: '/laboratorios' },
-  ], [])
+  const vitrinesItems = React.useMemo(() => {
+    const items = [
+      { name: 'Negócios', icon: Briefcase, href: '/negocios' },
+      { name: 'Iniciativas', icon: HandshakeIcon, href: '/iniciativas' },
+    ]
+
+    // Apenas pesquisadores e admins veem Laboratórios
+    if (isAdmin || userType === 'pesquisador') {
+      items.push({ name: 'Laboratórios', icon: Pickaxe, href: '/laboratorios' })
+    }
+
+    return items
+  }, [isAdmin, userType])
 
   const comunidadeItems = React.useMemo(
     () => [
@@ -123,6 +135,11 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
       href: '/administrativo/negocios',
     },
     {
+      name: 'Administrar Laboratórios',
+      icon: Pickaxe,
+      href: '/administrativo/laboratorios',
+    },
+    {
       name: 'Administrar Iniciativas',
       icon: HandshakeIcon,
       href: '/administrativo/iniciativas',
@@ -134,17 +151,26 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
     },
   ], [])
 
-  const personalItems = React.useMemo(() => [
-    { name: 'Meus Negócios', icon: Building2, href: '/meus-negocios' },
-    { name: 'Meus Eventos', icon: CalendarCheck, href: '/meus-eventos' },
-    {
-      name: 'Minhas Iniciativas',
-      icon: HandshakeIcon,
-      href: '/minhas-iniciativas',
-    },
-    { name: 'Meus Laboratórios', icon: Pickaxe, href: '/meus-laboratorios' },
-    { name: 'Perfil do Usuário', icon: UserCircle, href: '/perfil' },
-  ], [])
+  const personalItems = React.useMemo(() => {
+    const items = [
+      { name: 'Meus Negócios', icon: Building2, href: '/meus-negocios' },
+      { name: 'Meus Eventos', icon: CalendarCheck, href: '/meus-eventos' },
+      {
+        name: 'Minhas Iniciativas',
+        icon: HandshakeIcon,
+        href: '/minhas-iniciativas',
+      },
+    ]
+
+    // Apenas pesquisadores e admins veem Meus Laboratórios
+    if (isAdmin || userType === 'pesquisador') {
+      items.push({ name: 'Meus Laboratórios', icon: Pickaxe, href: '/meus-laboratorios' })
+    }
+
+    items.push({ name: 'Perfil do Usuário', icon: UserCircle, href: '/perfil' })
+
+    return items
+  }, [isAdmin, userType])
 
   const SidebarNavItem = React.forwardRef<HTMLDivElement, SidebarNavItemProps>(
     ({ className, title, items, ...props }, ref) => {
@@ -250,17 +276,20 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
             <img src="/link@.svg" alt="LINK@ Logo" className="h-5 w-auto" />
           </div>
         </Link>
-        {onClose && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="md:hidden hover:bg-purple-100 hover:text-purple-700 transition-colors duration-200"
-          >
-            <X className="h-5 w-5" />
-            <span className="sr-only">Close sidebar</span>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="md:hidden hover:bg-purple-100 hover:text-purple-700 transition-colors duration-200"
+            >
+              <X className="h-5 w-5" />
+              <span className="sr-only">Close sidebar</span>
+            </Button>
+          )}
+        </div>
       </SidebarHeader>
       
       <SidebarContent className="flex-grow overflow-y-auto overflow-x-hidden py-4">

@@ -6,6 +6,7 @@ import {
   PesquisadorCreate,
   EstudanteCreate,
   ExternoCreate,
+  TecnicoAdminCreate,
   campusOptions,
 } from '@/lib/types/userTypes'
 import {
@@ -151,6 +152,74 @@ export function AdditionalInfoStep({
               ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+    )
+  }
+
+  if (userType === PublicUserType.TECNICO_ADMIN) {
+    const tecnicoData = formData as TecnicoAdminCreate
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="setor">Setor *</Label>
+          <Input
+            id="setor"
+            value={tecnicoData.setor}
+            onChange={(e) => onInputChange('setor', e.target.value)}
+            className="h-11"
+            required
+            placeholder="Ex: Tecnologia da Informação"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="cargo">Cargo *</Label>
+          <Input
+            id="cargo"
+            value={tecnicoData.cargo}
+            onChange={(e) => onInputChange('cargo', e.target.value)}
+            className="h-11"
+            required
+            placeholder="Ex: Técnico em Informática"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="campus">Campus *</Label>
+          <Select
+            value={tecnicoData.campus}
+            onValueChange={(value) => onInputChange('campus', value)}
+          >
+            <SelectTrigger className="h-11">
+              <SelectValue placeholder="Selecione o campus" />
+            </SelectTrigger>
+            <SelectContent>
+              {campusOptions.map((campus) => (
+                <SelectItem key={campus} value={campus}>
+                  {campus}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="siape">SIAPE (opcional)</Label>
+          <Input
+            id="siape"
+            value={tecnicoData.siape || ''}
+            onChange={(e) => onInputChange('siape', e.target.value)}
+            className="h-11"
+            placeholder="Número SIAPE"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="telefone_ramal">Ramal (opcional)</Label>
+          <Input
+            id="telefone_ramal"
+            value={tecnicoData.telefone_ramal || ''}
+            onChange={(e) => onInputChange('telefone_ramal', e.target.value)}
+            className="h-11"
+            placeholder="Ex: 3366"
+          />
         </div>
       </div>
     )
