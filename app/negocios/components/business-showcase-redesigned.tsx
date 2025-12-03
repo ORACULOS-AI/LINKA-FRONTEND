@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useBusinessApi } from "@/lib/api/business"
 import { BusinessListImproved } from "./business-list-improved"
 import { Search, TrendingUp, RotateCw, ChevronDown, Sparkles } from "lucide-react"
-import type { NegocioType, NegocioResponse, CategoriaNegocio } from "@/lib/types/businessTypes"
+import { NegocioType, CategoriaNegocio, type NegocioResponse } from "@/lib/types/businessTypes"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -71,8 +71,9 @@ export function BusinessShowcaseRedesigned({ initialBusinesses }: BusinessShowca
   const getTipoLabel = (tipo: NegocioType | "all") => {
     const labels = {
       all: "Todos os tipos",
-      incubada: "Incubadas",
-      parceira: "Parceiras",
+      [NegocioType.PRE_INCUBADO]: "Pré-Incubadas",
+      [NegocioType.INCUBADO]: "Incubadas",
+      [NegocioType.PARCEIRO]: "Parceiras",
     }
     return labels[tipo] || tipo
   }
@@ -185,8 +186,9 @@ export function BusinessShowcaseRedesigned({ initialBusinesses }: BusinessShowca
               <DropdownMenuContent align="start" className="w-56 rounded-xl border-purple-200">
                 <DropdownMenuRadioGroup value={tipoFilter} onValueChange={(v) => setTipoFilter(v as NegocioType | "all")}>
                   <DropdownMenuRadioItem value="all" className="rounded-lg">Todos os tipos</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="incubada" className="rounded-lg">Incubadas</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="parceira" className="rounded-lg">Parceiras</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value={NegocioType.PRE_INCUBADO} className="rounded-lg">Pré-Incubadas</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value={NegocioType.INCUBADO} className="rounded-lg">Incubadas</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value={NegocioType.PARCEIRO} className="rounded-lg">Parceiras</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>

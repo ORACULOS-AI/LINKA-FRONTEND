@@ -19,6 +19,37 @@ const BusinessDetails: React.FC<BusinessDetailsProps> = ({
   isEditing,
   handleChange,
 }) => {
+  const getEstagioLabel = (stage: string) => {
+    const labels: Record<string, string> = {
+      'IDEACAO': 'Ideação',
+      'VALIDACAO': 'Validação',
+      'MVP': 'MVP',
+      'OPERACAO': 'Operação',
+      'CRESCIMENTO': 'Crescimento',
+      'ESCALA': 'Escala'
+    };
+    return labels[stage] || stage;
+  };
+
+  const getCategoriaLabel = (categoria: string) => {
+    const labels: Record<string, string> = {
+      'STARTUP': 'Startup',
+      'EMPRESA_JUNIOR': 'Empresa Júnior',
+      'SPIN_OFF': 'Spin-off',
+      'OUTRO': 'Outro'
+    };
+    return labels[categoria] || categoria;
+  };
+
+  const getTipoNegocioLabel = (tipo: NegocioType) => {
+    const labels: Record<NegocioType, string> = {
+      [NegocioType.PRE_INCUBADO]: 'Pré-Incubada',
+      [NegocioType.INCUBADO]: 'Incubada',
+      [NegocioType.PARCEIRO]: 'Parceira',
+    };
+    return labels[tipo] || tipo;
+  };
+
   return (
     <div className="col-span-2 space-y-8">
       <section>
@@ -26,7 +57,7 @@ const BusinessDetails: React.FC<BusinessDetailsProps> = ({
         {isEditing ? (
           <Textarea
             name="descricao"
-            value={editedBusiness.descricao || editedBusiness.descricao_problema || ''}
+            value={editedBusiness.descricao || ''}
             onChange={handleChange}
             rows={6}
             className="w-full"
@@ -34,80 +65,32 @@ const BusinessDetails: React.FC<BusinessDetailsProps> = ({
           />
         ) : (
           <p className="text-gray-700 whitespace-pre-wrap">
-            {business.descricao || business.descricao_problema || 'Sem descrição disponível'}
+            {business.descricao || 'Sem descrição disponível'}
           </p>
         )}
       </section>
 
-      {/* Mostrar Problema/Solução apenas se existirem (retrocompatibilidade) */}
-      {(business.descricao_problema || business.solucao_proposta) && business.descricao && (
-        <>
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">Problema Identificado</h2>
-            {isEditing ? (
-              <Textarea
-                name="descricao_problema"
-                value={editedBusiness.descricao_problema || ''}
-                onChange={handleChange}
-                rows={4}
-                className="w-full"
-              />
-            ) : (
-              <p className="text-gray-700 whitespace-pre-wrap">
-                {business.descricao_problema}
-              </p>
-            )}
-          </section>
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">Solução Proposta</h2>
-            {isEditing ? (
-              <Textarea
-                name="solucao_proposta"
-                value={editedBusiness.solucao_proposta || ''}
-                onChange={handleChange}
-                rows={4}
-                className="w-full"
-              />
-            ) : (
-              <p className="text-gray-700 whitespace-pre-wrap">
-                {business.solucao_proposta}
-              </p>
-            )}
-          </section>
-        </>
-      )}
-
-      {business.tipo_negocio === NegocioType.INCUBADA && (
-        <section>
-          <h2 className="text-2xl font-semibold mb-4">Área Estratégica</h2>
-          {isEditing ? (
-            <Input
-              name="area_estrategica"
-              value={editedBusiness.area_estrategica || ''}
-              onChange={handleChange}
-              className="w-full"
-            />
-          ) : (
-            <p className="text-gray-700">{business.area_estrategica}</p>
-          )}
-        </section>
-      )}
-
-      {business.tipo_negocio === NegocioType.EXTERNO && (
-        <section>
-          <h2 className="text-2xl font-semibold mb-4">Área de Atuação</h2>
-          {isEditing ? (
-            <Input
-              name="area_de_atuacao"
-              value={editedBusiness.area_de_atuacao || ''}
-              onChange={handleChange}
-              className="w-full"
-            />
-          ) : (
-            <p className="text-gray-700">{business.area_de_atuacao}</p>
-          )}
-        </section>
-      )}
+      <section>
+        <h2 className="text-2xl font-semibold mb-4">Classificação</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-500">Categoria</p>
+            <p className="text-gray-700">{getCategoriaLabel(business.categoria)}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Tipo de Vínculo</p>
+            <p className="text-gray-700">{getTipoNegocioLabel(business.tipo_negocio)}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Estágio</p>
+            <p className="text-gray-700">{getEstagioLabel(business.estagio)}</p>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Área de Atuação</p>
+            <p className="text-gray-700">{business.area_atuacao}</p>
+          </div>
+        </div>
+      </section>
 
       <section>
         <h2 className="text-2xl font-semibold mb-4">Palavras-chave</h2>
@@ -120,8 +103,3 @@ const BusinessDetails: React.FC<BusinessDetailsProps> = ({
           ))}
         </div>
       </section>
-    </div>
-  )
-}
-
-export default BusinessDetails

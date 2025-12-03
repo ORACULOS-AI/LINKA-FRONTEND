@@ -146,6 +146,31 @@ export const useLaboratorioApi = () => {
     return await response.json()
   }
 
+  const updateLaboratorioFotos = async ({
+    laboratorioId,
+    fotoPerfil,
+    fotoCapa,
+  }: {
+    laboratorioId: string
+    fotoPerfil?: File
+    fotoCapa?: File
+  }): Promise<LaboratorioResponse> => {
+    const formData = new FormData()
+    if (fotoPerfil) formData.append('foto_perfil', fotoPerfil)
+    if (fotoCapa) formData.append('foto_capa', fotoCapa)
+
+    const response = await fetchWithToken(
+      `${API_BASE_URL}/laboratorios/${laboratorioId}/fotos`,
+      {
+        method: 'PUT',
+        body: formData,
+        // Não definir Content-Type, o browser define automaticamente para multipart/form-data
+      },
+    )
+    const data = await response.json()
+    return data.data
+  }
+
   const deleteLaboratorio = async (laboratorioId: string): Promise<void> => {
     await fetchWithToken(`${API_BASE_URL}/laboratorios/${laboratorioId}`, {
       method: 'DELETE',
@@ -269,6 +294,26 @@ export const useLaboratorioApi = () => {
         toast({
           title: 'Erro',
           description: error?.message || 'Erro ao atualizar laboratório',
+          variant: 'destructive',
+        })
+      },
+    })
+  }
+
+  const useUpdateLaboratorioFotos = () => {
+    return useMutation({
+      mutationFn: updateLaboratorioFotos,
+      onSuccess: (data) => {
+        queryClient.invalidateQueries({ queryKey: ['laboratorio', data.uid] })
+        toast({
+          title: 'Sucesso',
+          description: 'Fotos atualizadas com sucesso',
+        })
+      },
+      onError: (error: any) => {
+        toast({
+          title: 'Erro',
+          description: error?.message || 'Erro ao atualizar fotos',
           variant: 'destructive',
         })
       },
@@ -422,6 +467,7 @@ export const useLaboratorioApi = () => {
     useGetLaboratorio,
     useListLaboratorios,
     useUpdateLaboratorio,
+    useUpdateLaboratorioFotos,
     useDeleteLaboratorio,
     useGetUserLaboratorios,
     useGetLaboratoriosByAdmin,

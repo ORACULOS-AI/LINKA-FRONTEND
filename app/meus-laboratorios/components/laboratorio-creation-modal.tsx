@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-'use client'
-
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,6 +6,7 @@ import { useLaboratorioApi } from '@/lib/api/laboratorio'
 import { WizardModal, WizardStep } from '@/components/wizard-modal'
 import { TagInput } from '@/components/tag-input'
 import { TextareaWithCounter } from '@/components/textarea-with-counter'
+import { ImageCropModal } from '@/components/ImageCropModal'
 import {
   Form,
   FormControl,
@@ -29,7 +26,9 @@ import {
 } from '@/components/ui/select'
 import { PhoneInput } from '@/components/phone-input'
 import { TipoLaboratorio, type LaboratorioCreate } from '@/lib/types/laboratorioTypes'
-import { Info, FileText, Settings } from 'lucide-react'
+import { Info, FileText, Settings, Image as ImageIcon, Upload, FileText as DocumentIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 
 // Schema de validação com Zod
 const laboratorioSchema = z.object({
@@ -53,20 +52,18 @@ const laboratorioSchema = z.object({
   email: z.string().email('Email inválido'),
   descricao: z
     .string()
-    .max(1000, 'Descrição deve ter no máximo 1000 caracteres')
     .optional(),
   website: z.string().url('URL inválida').optional().or(z.literal('')),
   campus: z.string().optional(),
   sala: z.string().optional(),
   endereco: z.string().optional(),
   areas_pesquisa: z
-    .array(z.string().max(50))
-    .max(10, 'Máximo de 10 áreas de pesquisa')
+    .array(z.string())
     .optional(),
   equipamentos: z
-    .array(z.string().max(100))
-    .max(20, 'Máximo de 20 equipamentos')
+    .array(z.string())
     .optional(),
+  documentos: z.array(z.string().url('URL inválida')).optional(), // URLs de documentos
 })
 
 type LaboratorioFormData = z.infer<typeof laboratorioSchema>
@@ -93,8 +90,24 @@ export function LaboratorioCreationModal({
   onSuccess?: () => void
 }) {
   const [currentStep, setCurrentStep] = useState(0)
-  const { useCreateLaboratorio } = useLaboratorioApi()
+  const { useCreateLaboratorio, useUpdateLaboratorioFotos } = useLaboratorioApi()
   const createLaboratorioMutation = useCreateLaboratorio()
+  const updateLaboratorioFotosMutation = useUpdateLaboratorioFotos()
+
+  // Estados para imagens
+  const [fotoPerfil, setFotoPerfil] = useState<File | null>(null)
+  const [fotoPerfilPreview, setFotoPerfilPreview] = useState<string | null>(null)
+  const [isCropPerfilOpen, setIsCropPerfilOpen] = useState(false)
+  const [tempPerfilImage, setTempPerfilImage] = useState<string | null>(null)
+
+  const [fotoCapa, setFotoCapa] = useState<File | null>(null)
+  const [fotoCapaPreview, setFotoCapaPreview] = useState<string | null>(null)
+  const [isCropCapaOpen, setIsCropCapaOpen] = useState(false)
+  const [tempCapaImage, setTempCapaImage] = useState<string | null>(null)
+
+  // Estados para documentos
+  const [documents, setDocuments] = useState<File[]>([])
+  const [documentUrls, setDocumentUrls] = useState<string[]>([])
 
   const form = useForm<LaboratorioFormData>({
     resolver: zodResolver(laboratorioSchema),
@@ -114,8 +127,57 @@ export function LaboratorioCreationModal({
       endereco: '',
       areas_pesquisa: [],
       equipamentos: [],
+      documentos: [], // Default para documentos
     },
   })
+
+  // Handlers de imagem
+  const handleFileSelect = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    setTempImage: (url: string) => void,
+    setIsOpen: (open: boolean) => void
+  ) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0]
+      const url = URL.createObjectURL(file)
+      setTempImage(url)
+      setIsOpen(true)
+      // Reset input value to allow selecting same file again
+      e.target.value = ''
+    }
+  }
+
+  const handleCropComplete = async (
+    croppedBlob: Blob,
+    setFile: (file: File) => void,
+    setPreview: (url: string) => void,
+    setIsOpen: (open: boolean) => void
+  ) => {
+    const file = new File([croppedBlob], fileName, { type: 'image/jpeg' })
+    setFile(file)
+    setPreview(URL.createObjectURL(croppedBlob))
+    setIsOpen(false)
+  }
+
+
+
+  // Handlers de documento
+  const handleDocumentSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files)
+      setDocuments((prev) => [...prev, ...newFiles])
+      setDocumentUrls((prev) => [
+        ...prev,
+        ...newFiles.map((file) => URL.createObjectURL(file)),
+      ])
+      e.target.value = '' // Clear input
+    }
+  }
+
+  const handleRemoveDocument = (indexToRemove: number) => {
+    setDocuments((prev) => prev.filter((_, i) => i !== indexToRemove))
+    setDocumentUrls((prev) => prev.filter((_, i) => i !== indexToRemove))
+  }
 
   const handleSubmit = async () => {
     const isValid = await form.trigger()
@@ -139,11 +201,30 @@ export function LaboratorioCreationModal({
         endereco: data.endereco || undefined,
         areas_pesquisa: data.areas_pesquisa || [],
         equipamentos: data.equipamentos || [],
+        documentos: data.documentos || [], // Incluir URLs de documentos no envio inicial
       }
 
-      await createLaboratorioMutation.mutateAsync(laboratorioData)
+      // 1. Criar laboratório
+      const newLab = await createLaboratorioMutation.mutateAsync(laboratorioData)
 
+      // 2. Upload de imagens (se houver)
+      if (fotoPerfil || fotoCapa) {
+        await updateLaboratorioFotosMutation.mutateAsync({
+          laboratorioId: newLab.uid,
+          fotoPerfil: fotoPerfil || undefined,
+          fotoCapa: fotoCapa || undefined,
+        })
+      }
+      // 3. TODO: Upload de documentos (se houver) - Será implementado no backend ainda
+
+      // Reset
       form.reset()
+      setFotoPerfil(null)
+      setFotoPerfilPreview(null)
+      setFotoCapa(null)
+      setFotoCapaPreview(null)
+      setDocuments([])
+      setDocumentUrls([])
       setCurrentStep(0)
       onClose()
       if (onSuccess) onSuccess()
@@ -160,6 +241,10 @@ export function LaboratorioCreationModal({
         return ['responsavel', 'email', 'telefone', 'descricao', 'website']
       case 2:
         return ['campus', 'sala', 'endereco', 'areas_pesquisa', 'equipamentos']
+      case 3:
+        return [] // Passo de imagens não tem validação de schema Zod obrigatória
+      case 4:
+        return ['documentos'] // Valida o campo documentos (se existirem)
       default:
         return []
     }
@@ -168,8 +253,13 @@ export function LaboratorioCreationModal({
   const handleStepChange = async (newStep: number) => {
     if (newStep > currentStep) {
       const fields = getFieldsForStep(currentStep)
-      const isValid = await form.trigger(fields as any)
-      if (isValid) {
+      // Apenas validar se houver campos no step atual
+      if (fields.length > 0) {
+        const isValid = await form.trigger(fields as any)
+        if (isValid) {
+          setCurrentStep(newStep)
+        }
+      } else {
         setCurrentStep(newStep)
       }
     } else {
@@ -177,7 +267,7 @@ export function LaboratorioCreationModal({
     }
   }
 
-  // Define os 3 steps
+  // Define os steps
   const steps: WizardStep[] = [
     {
       title: 'Informações Básicas',
@@ -322,7 +412,6 @@ export function LaboratorioCreationModal({
                   <TextareaWithCounter
                     value={field.value || ''}
                     onChange={field.onChange}
-                    maxLength={1000}
                     minHeight="120px"
                     placeholder="Descreva as atividades, objetivos e missão do laboratório..."
                   />
@@ -409,8 +498,6 @@ export function LaboratorioCreationModal({
                     value={field.value || []}
                     onChange={field.onChange}
                     placeholder="Digite uma área de pesquisa e pressione Enter"
-                    maxTags={10}
-                    maxLength={50}
                   />
                 </FormControl>
                 <FormDescription>
@@ -432,8 +519,6 @@ export function LaboratorioCreationModal({
                     value={field.value || []}
                     onChange={field.onChange}
                     placeholder="Digite um equipamento e pressione Enter"
-                    maxTags={20}
-                    maxLength={100}
                   />
                 </FormControl>
                 <FormDescription>
@@ -445,24 +530,174 @@ export function LaboratorioCreationModal({
           />
         </div>
       ),
-    },
-  ]
-
-  return (
-    <Form {...form}>
-      <WizardModal
-        isOpen={isOpen}
-        onClose={onClose}
-        title="Criar Novo Laboratório"
-        description="Preencha os dados do laboratório em 3 etapas simples"
-        steps={steps}
-        currentStep={currentStep}
-        onStepChange={handleStepChange}
-        onSubmit={handleSubmit}
-        isSubmitting={createLaboratorioMutation.isPending}
-        submitText="Criar Laboratório"
-        maxWidth="sm:max-w-[700px]"
-      />
-    </Form>
-  )
-}
+        },
+        {
+          title: 'Imagens',
+          icon: <ImageIcon className="w-5 h-5" />,
+          content: (
+            <div className="space-y-6">
+              {/* Logo / Perfil */}
+              <div className="space-y-4">
+                <FormLabel>Logo ou Imagem de Perfil</FormLabel>
+                <div className="flex items-center gap-6">
+                  <div className="relative w-32 h-32 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden">
+                    {fotoPerfilPreview ? (
+                      <Image
+                        src={fotoPerfilPreview}
+                        alt="Preview Perfil"
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <ImageIcon className="w-8 h-8 text-gray-400" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileSelect(e, setTempPerfilImage, setIsCropPerfilOpen)}
+                      className="hidden"
+                      id="foto-perfil-upload"
+                    />
+                    <label htmlFor="foto-perfil-upload">
+                      <Button type="button" variant="outline" className="w-full" asChild>
+                        <span>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Selecionar Logo
+                        </span>
+                      </Button>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Recomendado: 400x400px (JPG, PNG). Máx 5MB.
+                    </p>
+                  </div>
+                </div>
+              </div>
+    
+              {/* Capa */}
+              <div className="space-y-4">
+                <FormLabel>Imagem de Capa</FormLabel>
+                <div className="relative w-full h-40 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 overflow-hidden">
+                  {fotoCapaPreview ? (
+                    <Image
+                      src={fotoCapaPreview}
+                      alt="Preview Capa"
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <ImageIcon className="w-10 h-10 text-gray-400" />
+                  )}
+                </div>
+                <div>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileSelect(e, setTempCapaImage, setIsCropCapaOpen)}
+                    className="hidden"
+                    id="foto-capa-upload"
+                  />
+                  <label htmlFor="foto-capa-upload">
+                    <Button type="button" variant="outline" className="w-full" asChild>
+                      <span>
+                        <Upload className="w-4 h-4 mr-2" />
+                        Selecionar Capa
+                      </span>
+                    </Button>
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">
+                      Recomendado: 1200x400px (JPG, PNG). Máx 5MB.
+                    </p>
+                </div>
+              </div>
+    
+              {/* Modais de Recorte */}
+              <ImageCropModal
+                isOpen={isCropPerfilOpen}
+                onClose={() => setIsCropPerfilOpen(false)}
+                imageSrc={tempPerfilImage}
+                aspectRatio={1}
+                onCropComplete={(blob) => handleCropComplete(blob, setFotoPerfil, setFotoPerfilPreview, setIsCropPerfilOpen, 'perfil.jpg')}
+              />
+    
+              <ImageCropModal
+                isOpen={isCropCapaOpen}
+                onClose={() => setIsCropCapaOpen(false)}
+                imageSrc={tempCapaImage}
+                aspectRatio={3} // 1200x400 approx
+                onCropComplete={(blob) => handleCropComplete(blob, setFotoCapa, setFotoCapaPreview, setIsCropCapaOpen, 'capa.jpg')}
+              />
+            </div>
+          )
+        },
+        {
+          title: 'Documentos',
+          icon: <DocumentIcon className="w-5 h-5" />,
+          content: (
+            <div className="space-y-4">
+              <FormLabel>Anexar Documentos (PDFs, Relatórios, etc.)</FormLabel>
+              <Input
+                type="file"
+                accept=".pdf, .doc, .docx, .txt"
+                multiple
+                onChange={handleDocumentSelect}
+                className="border-purple-200 focus:border-purple-500 focus:ring-purple-500/20"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                Máximo de 5 documentos, até 10MB cada. Formatos: PDF, DOCX, TXT.
+              </p>
+              {documents.length > 0 && (
+                <div className="space-y-2 mt-4">
+                  <h4 className="font-semibold text-gray-700">Documentos Selecionados:</h4>
+                  {documents.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveDocument(index)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+               <FormField
+                control={form.control}
+                name="documentos"
+                render={({ field }) => (
+                  <FormItem className="hidden"> {/* Campo oculto para validação do Zod */}
+                    <FormControl>
+                      <Input {...field} value={field.value?.join(',') || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          ),
+        },
+      ]
+    
+      return (
+        <Form {...form}>
+          <WizardModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Criar Novo Laboratório"
+            description="Preencha os dados do laboratório em 5 etapas simples"
+            steps={steps}
+            currentStep={currentStep}
+            onStepChange={handleStepChange}
+            onSubmit={handleSubmit}
+            isSubmitting={createLaboratorioMutation.isPending || updateLaboratorioFotosMutation.isPending}
+            submitText="Criar Laboratório"
+            maxWidth="sm:max-w-[700px]"
+          />
+        </Form>
+      )
+    }

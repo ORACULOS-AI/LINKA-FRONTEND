@@ -36,7 +36,7 @@ import {
   CategoriaNegocio,
 } from '@/lib/types/businessTypes'
 
-// Schema de validação (tipo_negocio removido - sempre PARCEIRA)
+// Schema de validação (tipo_negocio removido - sempre PARCEIRO)
 const businessSchema = z.object({
   nome: z
     .string()
@@ -164,7 +164,7 @@ export function BusinessCreationModal({
         nome: data.nome,
         email: data.email,
         telefone: data.telefone,
-        tipo_negocio: NegocioType.PARCEIRA, // Sempre PARCEIRA - admin altera manualmente
+        tipo_negocio: NegocioType.PARCEIRO, // Sempre PARCEIRO - admin altera manualmente
         categoria: data.categoria,
         area_atuacao: data.area_atuacao,
         estagio: data.estagio,

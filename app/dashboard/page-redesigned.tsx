@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { QuickLinksImproved } from './components/QuickLinksImproved'
+import { ChartsSection } from './components/ChartsSection'
 
 // Animated Counter Component
 function AnimatedCounter({ value, duration = 2 }: { value: number; duration?: number }) {
@@ -157,10 +158,10 @@ export default function DashboardPageRedesigned() {
               className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8"
             >
               {[
-                { number: totalStartups, label: 'Startups Incubadas', icon: Rocket },
-                { number: totalEJs, label: 'Empresas Juniores', icon: Users },
-                { number: totalLabs, label: 'Laboratórios Ativos', icon: Beaker },
-                { number: `${percentualStartups}%`, label: 'São Startups', icon: TrendingUp },
+                { number: totalStartups, label: 'Startups Incubadas', icon: Rocket, suffix: '' },
+                { number: totalEJs, label: 'Empresas Juniores', icon: Users, suffix: '' },
+                { number: totalLabs, label: 'Laboratórios Ativos', icon: Beaker, suffix: '' },
+                { number: percentualStartups, label: 'São Startups', icon: TrendingUp, suffix: '%' },
               ].map((stat, idx) => (
                 <motion.div
                   key={idx}
@@ -172,6 +173,7 @@ export default function DashboardPageRedesigned() {
                   <stat.icon className="h-8 w-8 mb-3 mx-auto text-yellow-300" />
                   <div className="text-4xl md:text-5xl font-black mb-2">
                     <AnimatedCounter value={stat.number} duration={5} />
+                    {stat.suffix}
                   </div>
                   <div className="text-sm md:text-base text-white/80 font-medium">{stat.label}</div>
                 </motion.div>
@@ -256,6 +258,9 @@ export default function DashboardPageRedesigned() {
             </div>
           </motion.section>
         )}
+
+        {/* Seção: Analytics Detalhado */}
+        <ChartsSection data={dashboardData} />
 
         {/* Seção: Presença nos Centros */}
         {labsPorCampus.length > 0 && (

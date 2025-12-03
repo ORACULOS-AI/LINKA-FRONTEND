@@ -1,6 +1,7 @@
 export enum NegocioType {
-  INCUBADA = 'incubada',
-  PARCEIRA = 'parceira',
+  PRE_INCUBADO = 'PRE_INCUBADO',
+  INCUBADO = 'INCUBADO',
+  PARCEIRO = 'PARCEIRO',
 }
 
 export enum CategoriaNegocio {

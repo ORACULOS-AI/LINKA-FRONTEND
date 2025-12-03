@@ -29,22 +29,26 @@ export interface LaboratorioBase {
   campus?: string
   sala?: string
   descricao?: string
-  areas_pesquisa?: string[]
-  equipamentos?: string[]
+
+  // NOVOS CAMPOS RICOS (Listas e Objetos - AGORA SEM "?" se garantido pelo backend como array vazio)
+  pesquisadores: string[]         // Lista de nomes
+  projetos: string[]              // Lista de títulos de projetos
+  equipamentos: string[]          // Lista de equipamentos disponíveis
+  areas_pesquisa: string[]        // Lista de áreas/tags
+
+  // Redes Sociais agora é um Objeto/Map
+  redes_sociais?: Record<string, string>; // Pode ser opcional, mas se presente é um objeto
+
   website?: string
-  redes_sociais?: Record<string, string>
-  pesquisadores?: string[]
-  projetos?: string[]
-  laboratorios?: string[]
 
   // Campos de controle
-  visivel?: boolean
-  claimed?: boolean
+  visivel: boolean; // Removido '?'
+  claimed: boolean; // Removido '?'
   created_at?: string
   updated_at?: string
 }
 
-export interface LaboratorioCreate extends Omit<LaboratorioBase, 'uid' | 'uid_admin' | 'created_at' | 'updated_at' | 'pesquisadores' | 'projetos' | 'laboratorios'> {
+export interface LaboratorioCreate extends Omit<LaboratorioBase, 'uid' | 'uid_admin' | 'created_at' | 'updated_at'> {
   // uid, uid_admin, timestamps e arrays são gerados automaticamente
 }
 
@@ -66,7 +70,7 @@ export interface LaboratorioSummary {
   tipo: TipoLaboratorio
   status: StatusLaboratorio
   campus?: string
-  areas_pesquisa?: string[]
+  areas_pesquisa: string[] // Removido '?'
   created_at: string
 }
 

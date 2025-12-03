@@ -223,7 +223,10 @@ export function BusinessesTable({
                 <TableRow key={business.id}>
                   <TableCell className="font-medium">{business.nome}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{business.tipo_negocio}</Badge>
+                    <div className="flex gap-1 flex-col">
+                      <Badge variant="outline">{business.categoria}</Badge>
+                      <Badge variant="secondary" className="w-fit">{business.tipo_negocio}</Badge>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {business.data_cadastro ? (

@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { NegocioResponse } from '@/lib/types/businessTypes'
+import { NegocioType, type NegocioResponse } from '@/lib/types/businessTypes'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -13,15 +13,21 @@ interface BusinessCardProps {
 }
 
 export function BusinessCardImproved({ business, index = 0 }: BusinessCardProps) {
-  const getBusinessTypeBadge = (type: NegocioResponse['tipo_negocio']) => {
+  const getBusinessTypeBadge = (type: NegocioType) => {
     const config = {
-      'incubada': {
+      [NegocioType.PRE_INCUBADO]: {
+        gradient: 'from-yellow-500 to-yellow-600',
+        text: 'Pré-Incubada',
+        emoji: '🌱',
+        glow: 'group-hover:shadow-yellow-500/20'
+      },
+      [NegocioType.INCUBADO]: {
         gradient: 'from-emerald-500 to-emerald-600',
         text: 'Incubada',
         emoji: '🚀',
         glow: 'group-hover:shadow-emerald-500/20'
       },
-      'parceira': {
+      [NegocioType.PARCEIRO]: {
         gradient: 'from-blue-500 to-blue-600',
         text: 'Parceira',
         emoji: '🤝',

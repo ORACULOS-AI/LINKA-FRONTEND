@@ -191,7 +191,7 @@ export const NotificationCard = ({
           <div 
             className={`p-6 ${
               isClickableNotification(notification.tipo)
-                ? 'cursor-pointer hover:bg-purple-50/50 transition-all duration-300' 
+                ? 'cursor-pointer hover:bg-purple-100 active:bg-purple-200 transition-all duration-300' 
                 : ''
             }`}
             onClick={() => {
