@@ -147,7 +147,9 @@ export const MembersSection: React.FC<MembersSectionProps> = ({
               </div>
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Membros</h2>
-                <p className="text-sm text-gray-600">{memberCount} membros ativos</p>
+                <p className="text-sm text-gray-600">
+                  {memberCount} {memberCount === 1 ? "membro ativo" : "membros ativos"}
+                </p>
               </div>
             </div>
             {isOwner && (
@@ -261,9 +263,13 @@ export const MembersSection: React.FC<MembersSectionProps> = ({
               <div className="mx-auto w-16 h-16 bg-purple-50/30 rounded-full flex items-center justify-center mb-4">
                 <Users className="h-8 w-8 text-slate-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum membro ainda</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {isOwner ? "Comece a montar sua equipe" : "Nenhum membro adicional"}
+              </h3>
               <p className="text-slate-500 mb-6 max-w-sm mx-auto">
-                Convide pessoas para colaborar no seu negócio e formar uma equipe incrível.
+                {isOwner
+                  ? "Convide pessoas para colaborar no seu negócio e formar uma equipe incrível."
+                  : "Este negócio conta apenas com o proprietário no momento."}
               </p>
               {isOwner && (
                 <Button
@@ -271,7 +277,7 @@ export const MembersSection: React.FC<MembersSectionProps> = ({
                   className="gap-2 bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-purple-500/25 hover:shadow-lg"
                 >
                   <UserPlus className="h-4 w-4" />
-                  Convidar primeiro membro
+                  Convidar membros
                 </Button>
               )}
             </div>
