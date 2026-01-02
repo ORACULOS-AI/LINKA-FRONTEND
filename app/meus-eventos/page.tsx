@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEventApi } from '@/lib/api/event'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, Edit, Calendar, MapPin, Users, CheckCircle, Clock, XCircle, Sparkles } from 'lucide-react'
+import { Plus, Trash2, Edit, Calendar, MapPin, Users, CheckCircle, Clock, XCircle, Sparkles, FileText } from 'lucide-react'
 import PrivateRoute from '@/components/private_route'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -29,7 +29,7 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { motion } from 'framer-motion'
-import { EventStatus } from '@/lib/types/eventTypes'
+import { EventStatus, EventStatusLabels } from '@/lib/types/eventTypes'
 import { EventCreationModal } from './components/event-creation-modal'
 
 export default function EventManagementPage() {
@@ -52,18 +52,18 @@ export default function EventManagementPage() {
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
-      await deleteEventMutation.mutateAsync(eventId)
+      await deleteEventMutation.mutateAsync({ eventId })
       await refetch()
     } catch (error) {
       console.error('Erro ao excluir evento:', error)
     }
   }
 
-  const { approvedCount, pendingCount, canceledCount, totalCount } = useMemo(
+  const { approvedCount, draftCount, canceledCount, totalCount } = useMemo(
     () => ({
       totalCount: events?.length || 0,
       approvedCount: events?.filter((e) => e.status === EventStatus.ATIVO).length || 0,
-      pendingCount: events?.filter((e) => e.status === 'PENDENTE' as EventStatus).length || 0,
+      draftCount: events?.filter((e) => e.status === EventStatus.RASCUNHO).length || 0,
       canceledCount: events?.filter((e) => e.status === EventStatus.CANCELADO).length || 0,
     }),
     [events],
@@ -82,19 +82,15 @@ export default function EventManagementPage() {
     const statusConfig = {
       [EventStatus.ATIVO]: {
         className: 'bg-green-100 text-green-800 border-green-200',
-        text: 'Aprovado',
       },
-      'PENDENTE': {
-        className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        text: 'Pendente',
+      [EventStatus.RASCUNHO]: {
+        className: 'bg-gray-100 text-gray-800 border-gray-300',
       },
       [EventStatus.CANCELADO]: {
         className: 'bg-red-100 text-red-800 border-red-200',
-        text: 'Cancelado',
       },
       [EventStatus.CONCLUIDO]: {
         className: 'bg-blue-100 text-blue-800 border-blue-200',
-        text: 'Concluído',
       },
     }
 
@@ -104,7 +100,7 @@ export default function EventManagementPage() {
       <span
         className={`px-2.5 py-1 rounded-lg text-xs font-semibold border ${config.className}`}
       >
-        {config.text}
+        {EventStatusLabels[status]}
       </span>
     )
   }
@@ -257,12 +253,12 @@ export default function EventManagementPage() {
                     <span className="truncate">{event.local}</span>
                   </div>
                 </div>
-                {event.participantes && event.participantes.length > 0 && (
+                {event.total_participantes > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Participantes</h4>
                     <div className="flex items-center gap-2 text-sm text-gray-700">
                       <Users className="h-3.5 w-3.5 text-purple-600 flex-shrink-0" />
-                      <span>{event.participantes.length} participante(s)</span>
+                      <span>{event.total_participantes} participante(s)</span>
                     </div>
                   </div>
                 )}
@@ -345,8 +341,8 @@ export default function EventManagementPage() {
               >
                 {[
                   { icon: Calendar, label: 'Total', value: totalCount, color: 'yellow' },
-                  { icon: CheckCircle, label: 'Aprovados', value: approvedCount, color: 'green' },
-                  { icon: Clock, label: 'Pendentes', value: pendingCount, color: 'amber' },
+                  { icon: CheckCircle, label: 'Ativos', value: approvedCount, color: 'green' },
+                  { icon: FileText, label: 'Rascunhos', value: draftCount, color: 'amber' },
                   { icon: XCircle, label: 'Cancelados', value: canceledCount, color: 'red' },
                 ].map((stat, idx) => (
                   <motion.div

@@ -1,200 +1,126 @@
-"use client"
-
-import { motion } from "framer-motion"
-import Image from "next/image"
-import { Calendar, MapPin, Users, Share2, Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import type { Event } from "@/lib/types/event"
-import { format } from "date-fns"
-import { ptBR } from "date-fns/locale"
-import { useChatOverlay } from "@/lib/context/ChatOverlayContext"
-import { toast } from "@/hooks/use-toast"
-import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { Event, EventListItem, EventStatusColors, EventCategoriaLabels, EventStatusLabels, formatEventDateRange, getVacanciesText, canParticipate } from '@/lib/types/eventTypes'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Calendar, MapPin, Users, Video, Tag } from 'lucide-react'
+import Image from 'next/image'
 
 interface EventCardProps {
-  event: Event
+  event: Event | EventListItem
+  onParticipate?: () => void
+  onViewDetails?: () => void
+  showActions?: boolean
 }
 
-export function EventCard({ event }: EventCardProps) {
-  const { openChat } = useChatOverlay()
-  const router = useRouter()
-
-  // Status badge configuration
-  const statusConfig = {
-    ATIVO: {
-      label: "Ativo",
-      color: "bg-green-500",
-      textColor: "text-green-700",
-      bgColor: "bg-green-50",
-      borderColor: "border-green-200",
-    },
-    PAUSADO: {
-      label: "Pausado",
-      color: "bg-yellow-500",
-      textColor: "text-yellow-700",
-      bgColor: "bg-yellow-50",
-      borderColor: "border-yellow-200",
-    },
-    CONCLUIDO: {
-      label: "Concluído",
-      color: "bg-blue-500",
-      textColor: "text-blue-700",
-      bgColor: "bg-blue-50",
-      borderColor: "border-blue-200",
-    },
-    CANCELADO: {
-      label: "Cancelado",
-      color: "bg-red-500",
-      textColor: "text-red-700",
-      bgColor: "bg-red-50",
-      borderColor: "border-red-200",
-    },
-  }
-
-  const status = statusConfig[event.status]
-
-  // Format date
-  const eventDate = format(new Date(event.data_evento || event.data), "dd 'de' MMMM 'de' yyyy", {
-    locale: ptBR,
-  })
-
-  const eventTime = format(new Date(event.data_evento || event.data), "HH:mm", {
-    locale: ptBR,
-  })
-
-  // Handle RSVP
-  const handleRSVP = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    // TODO: Implement RSVP API call when backend is ready
-    toast({
-      title: "Confirmação enviada!",
-      description: "Você confirmou presença neste evento.",
-    })
-  }
-
-  // Handle share in chat
-  const handleShareInChat = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    // Copy event link to clipboard
-    const eventUrl = `${window.location.origin}/eventos/${event.uid}`
-    navigator.clipboard.writeText(eventUrl)
-
-    // Open chat overlay
-    openChat()
-
-    toast({
-      title: "Link copiado!",
-      description: "O link do evento foi copiado. Abra uma conversa para compartilhar.",
-    })
-  }
-
-  // Handle card click - navigate to event details
-  const handleCardClick = () => {
-    router.push(`/eventos/${event.uid}`)
-  }
-
-  // Default placeholder image if no foto_url
-  const imageUrl = (event as any).foto_url || "/placeholder-event.jpg"
+export function EventCard({ event, onParticipate, onViewDetails, showActions = true }: EventCardProps) {
+  const isOnline = event.is_online
+  const canJoin = canParticipate(event)
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ scale: 1.02, y: -4 }}
-      transition={{ duration: 0.2 }}
-      onClick={handleCardClick}
-      className="cursor-pointer"
-    >
-      <div className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300">
-        {/* Image Cover */}
-        <div className="relative h-48 w-full bg-gradient-to-br from-purple-100 via-violet-100 to-purple-50">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+      {/* Imagem de Capa */}
+      <div className="relative h-48 bg-gradient-to-br from-primary/20 to-primary/5">
+        {event.imagem_capa ? (
           <Image
-            src={imageUrl}
-            alt={event.nome}
+            src={event.imagem_capa}
+            alt={event.titulo}
             fill
             className="object-cover"
-            onError={(e) => {
-              // Fallback to gradient background if image fails
-              e.currentTarget.style.display = "none"
-            }}
           />
-
-          {/* Status Badge Overlay */}
-          <div className="absolute top-3 right-3">
-            <Badge className={cn(
-              "font-semibold shadow-md",
-              status.textColor,
-              status.bgColor,
-              status.borderColor,
-              "border"
-            )}>
-              <div className={cn("w-2 h-2 rounded-full mr-2", status.color)} />
-              {status.label}
-            </Badge>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <Calendar className="w-16 h-16 text-primary/30" />
           </div>
+        )}
 
-          {/* Gradient Overlay at Bottom */}
-          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
-        </div>
+        {/* Status Badge */}
+        <Badge className={`absolute top-2 right-2 ${EventStatusColors[event.status]}`}>
+          {EventStatusLabels[event.status]}
+        </Badge>
 
-        {/* Content */}
-        <div className="p-5">
-          {/* Title */}
-          <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 hover:text-purple-600 transition-colors">
-            {event.nome}
-          </h3>
-
-          {/* Description */}
-          <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-            {event.descricao}
-          </p>
-
-          {/* Event Details */}
-          <div className="space-y-2 mb-4">
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <Calendar className="h-4 w-4 text-purple-600 flex-shrink-0" />
-              <span className="font-medium">{eventDate}</span>
-              <span className="text-gray-400">•</span>
-              <span>{eventTime}</span>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <MapPin className="h-4 w-4 text-purple-600 flex-shrink-0" />
-              <span className="truncate">{event.localizacao || event.local}</span>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={handleRSVP}
-              disabled={event.status !== "ATIVO"}
-              className={cn(
-                "flex-1 transition-all duration-200",
-                event.status === "ATIVO"
-                  ? "bg-purple-600 hover:bg-purple-700 text-white"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              )}
-            >
-              <Check className="h-4 w-4 mr-2" />
-              Confirmar Presença
-            </Button>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleShareInChat}
-              className="border-purple-200 text-purple-700 hover:bg-purple-50"
-            >
-              <Share2 className="h-4 w-4 mr-2" />
-              Compartilhar
-            </Button>
-          </div>
-        </div>
+        {/* Categoria Badge */}
+        <Badge variant="secondary" className="absolute top-2 left-2">
+          {EventCategoriaLabels[event.categoria]}
+        </Badge>
       </div>
-    </motion.div>
+
+      {/* Conteúdo */}
+      <div className="p-4 space-y-3">
+        {/* Título */}
+        <h3 className="font-semibold text-lg line-clamp-2">{event.titulo}</h3>
+
+        {/* Descrição */}
+        <p className="text-sm text-muted-foreground line-clamp-2">{event.descricao}</p>
+
+        {/* Metadados */}
+        <div className="space-y-2 text-sm text-muted-foreground">
+          {/* Data */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            <span>{formatEventDateRange(event.data_inicio, event.data_fim)}</span>
+          </div>
+
+          {/* Local */}
+          <div className="flex items-center gap-2">
+            {isOnline ? <Video className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+            <span>{isOnline ? 'Evento Online' : event.local}</span>
+          </div>
+
+          {/* Participantes */}
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            <span>
+              {event.total_participantes} participantes
+              {event.capacidade_maxima && ` / ${event.capacidade_maxima}`}
+            </span>
+          </div>
+
+          {/* Vagas */}
+          {event.capacidade_maxima && (
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{getVacanciesText(event)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Tags */}
+        {event.tags && event.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {event.tags.slice(0, 3).map((tag) => (
+              <Badge key={tag} variant="outline" className="text-xs">
+                <Tag className="w-3 h-3 mr-1" />
+                {tag}
+              </Badge>
+            ))}
+            {event.tags.length > 3 && (
+              <Badge variant="outline" className="text-xs">
+                +{event.tags.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Ações */}
+        {showActions && (
+          <div className="flex gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={onViewDetails}
+            >
+              Ver Detalhes
+            </Button>
+            {canJoin && (
+              <Button
+                className="flex-1"
+                onClick={onParticipate}
+              >
+                Inscrever-se
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+    </Card>
   )
 }

@@ -1,121 +1,141 @@
-"use client"
+'use client'
 
-import { Search, SlidersHorizontal, RefreshCw } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import type { EventStatus } from "@/lib/types/event"
-import { cn } from "@/lib/utils"
+import { EventStatus, EventCategoria, EventStatusLabels, EventCategoriaLabels, EventFiltersState, initialEventFilters } from '@/lib/types/eventTypes'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { Search, X, Filter } from 'lucide-react'
 
 interface EventFiltersProps {
-  searchTerm: string
-  onSearchChange: (value: string) => void
-  selectedStatus: EventStatus
-  onStatusChange: (status: EventStatus) => void
-  sortOrder: "asc" | "desc"
-  onSortChange: (order: "asc" | "desc") => void
-  onRefresh: () => void
-  totalCount?: number
-  activeCount?: number
+  filters: EventFiltersState
+  onFiltersChange: (filters: EventFiltersState) => void
+  onReset?: () => void
 }
 
-const STATUS_OPTIONS: { value: EventStatus; label: string; color: string }[] = [
-  { value: "ATIVO", label: "Ativos", color: "bg-green-500" },
-  { value: "PAUSADO", label: "Pausados", color: "bg-yellow-500" },
-  { value: "CONCLUIDO", label: "Concluídos", color: "bg-blue-500" },
-  { value: "CANCELADO", label: "Cancelados", color: "bg-red-500" },
-]
+export function EventFilters({ filters, onFiltersChange, onReset }: EventFiltersProps) {
+  const updateFilter = <K extends keyof EventFiltersState>(
+    key: K,
+    value: EventFiltersState[K]
+  ) => {
+    onFiltersChange({ ...filters, [key]: value })
+  }
 
-export function EventFilters({
-  searchTerm,
-  onSearchChange,
-  selectedStatus,
-  onStatusChange,
-  sortOrder,
-  onSortChange,
-  onRefresh,
-  totalCount = 0,
-  activeCount = 0,
-}: EventFiltersProps) {
+  const hasActiveFilters = () => {
+    return JSON.stringify(filters) !== JSON.stringify(initialEventFilters)
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Search and Quick Actions Row */}
-      <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
-        {/* Search Bar */}
-        <div className="flex-1 w-full lg:max-w-2xl">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Buscar eventos por nome ou descrição..."
-              value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-10 h-11 bg-white border-gray-200 focus:border-purple-300 focus:ring-purple-200"
-            />
-          </div>
+    <div className="space-y-4 p-4 border rounded-lg">
+      {/* Busca Textual */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+        <Input
+          placeholder="Buscar eventos por título ou descrição..."
+          value={filters.searchQuery}
+          onChange={(e) => updateFilter('searchQuery', e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Filtros em Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Status */}
+        <div>
+          <Label>Status</Label>
+          <Select
+            value={filters.selectedStatus}
+            onValueChange={(value) => updateFilter('selectedStatus', value as EventStatus | 'all')}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {Object.values(EventStatus).map((status) => (
+                <SelectItem key={status} value={status}>
+                  {EventStatusLabels[status]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Sort and Refresh Controls */}
-        <div className="flex gap-2 w-full lg:w-auto">
-          {/* Sort Button */}
-          <Button
-            variant="outline"
-            onClick={() => onSortChange(sortOrder === "asc" ? "desc" : "asc")}
-            className="flex-1 lg:flex-none border-gray-200 hover:bg-purple-50 hover:border-purple-300"
+        {/* Categoria */}
+        <div>
+          <Label>Categoria</Label>
+          <Select
+            value={filters.selectedCategoria}
+            onValueChange={(value) => updateFilter('selectedCategoria', value as EventCategoria | 'all')}
           >
-            <SlidersHorizontal className="h-4 w-4 mr-2" />
-            {sortOrder === "asc" ? "Mais Próximos" : "Mais Distantes"}
-          </Button>
+            <SelectTrigger>
+              <SelectValue placeholder="Todas as categorias" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {Object.values(EventCategoria).map((categoria) => (
+                <SelectItem key={categoria} value={categoria}>
+                  {EventCategoriaLabels[categoria]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-          {/* Refresh Button */}
-          <Button
-            variant="outline"
-            onClick={onRefresh}
-            className="border-gray-200 hover:bg-purple-50 hover:border-purple-300"
+        {/* Ordenação */}
+        <div>
+          <Label>Ordenar por</Label>
+          <Select
+            value={filters.sortBy}
+            onValueChange={(value) => updateFilter('sortBy', value as any)}
           >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="data_inicio">Data do Evento</SelectItem>
+              <SelectItem value="created_at">Data de Criação</SelectItem>
+              <SelectItem value="titulo">Título</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Status Filter Pills */}
-      <div className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl px-5 py-4 border border-purple-100">
-        <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm font-semibold text-purple-900">
-            Filtrar por Status
-          </Label>
-          <div className="flex items-center gap-2 text-xs text-purple-700">
-            <span className="font-medium">{totalCount}</span>
-            <span className="text-purple-500">eventos</span>
-            <span className="text-purple-400">•</span>
-            <span className="font-medium">{activeCount}</span>
-            <span className="text-purple-500">ativos</span>
-          </div>
+      {/* Switches */}
+      <div className="flex flex-wrap gap-6">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="online"
+            checked={filters.isOnlineOnly}
+            onCheckedChange={(checked) => updateFilter('isOnlineOnly', checked)}
+          />
+          <Label htmlFor="online">Apenas eventos online</Label>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {STATUS_OPTIONS.map((status) => {
-            const isSelected = selectedStatus === status.value
-            return (
-              <button
-                key={status.value}
-                onClick={() => onStatusChange(status.value)}
-                className={cn(
-                  "px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200",
-                  "border-2 flex items-center gap-2",
-                  isSelected
-                    ? "bg-white border-purple-400 text-purple-900 shadow-md scale-105"
-                    : "bg-white/50 border-transparent text-gray-700 hover:bg-white hover:border-purple-200 hover:scale-102"
-                )}
-              >
-                <div className={cn("w-2 h-2 rounded-full", status.color)} />
-                {status.label}
-              </button>
-            )
-          })}
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="vagas"
+            checked={filters.onlyWithVacancies}
+            onCheckedChange={(checked) => updateFilter('onlyWithVacancies', checked)}
+          />
+          <Label htmlFor="vagas">Apenas com vagas</Label>
         </div>
       </div>
+
+      {/* Botão Limpar */}
+      {hasActiveFilters() && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onFiltersChange(initialEventFilters)}
+          className="w-full md:w-auto"
+        >
+          <X className="w-4 h-4 mr-2" />
+          Limpar Filtros
+        </Button>
+      )}
     </div>
   )
 }

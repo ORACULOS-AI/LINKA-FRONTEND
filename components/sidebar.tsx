@@ -67,9 +67,7 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const { hasUnread } = useNotifications()
-  const { isAuthenticated, logout } = useAuth()
-  const [isAdmin, setIsAdmin] = React.useState(false)
-  const [userType, setUserType] = React.useState<string | null>(null)
+  const { isAuthenticated, logout, userType, isAdmin } = useAuth()
 
   const handleLogout = React.useCallback(async () => {
     try {
@@ -80,47 +78,23 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
     }
   }, [router, logout])
 
-  React.useEffect(() => {
-    const admin: boolean = localStorage.getItem('userIsAdmin') === 'true'
-    const type = localStorage.getItem('userType')
-    setIsAdmin(admin)
-    setUserType(type)
-  }, [])
-
   const vitrinesItems = React.useMemo(() => {
     const items = [
       { name: 'Negócios', icon: Briefcase, href: '/negocios' },
       { name: 'Iniciativas', icon: HandshakeIcon, href: '/iniciativas' },
+      { name: 'Laboratórios', icon: Pickaxe, href: '/laboratorios' },
     ]
 
-    // Apenas pesquisadores e admins veem Laboratórios
-    if (isAdmin || userType === 'pesquisador') {
-      items.push({ name: 'Laboratórios', icon: Pickaxe, href: '/laboratorios' })
-    }
-
     return items
-  }, [isAdmin, userType])
+  }, [])
 
   const comunidadeItems = React.useMemo(
     () => [
       { name: 'Rede', icon: Network, href: '/rede' },
-      { name: 'Conversas', icon: MessageCircle, href: '/conversas' },
       { name: 'Reuniões', icon: CalendarCheck, href: '/reunioes' },
-      {
-        name: 'Notificações',
-        icon: ({ className, ...props }: IconProps) => (
-          <div className="relative">
-            <BellIcon className={className} {...props} />
-            {hasUnread && (
-              <span className="absolute -top-1 -right-1 w-2 h-2 bg-gradient-to-r from-purple-500 to-violet-500 rounded-full animate-pulse" />
-            )}
-          </div>
-        ),
-        href: '/notificacoes',
-      },
       { name: 'Eventos', icon: CalendarCheck, href: '/eventos' },
     ],
-    [hasUnread],
+    [],
   )
 
   const adminItems = React.useMemo(() => [

@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { MainSidebar } from '@/components/sidebar'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, Briefcase, Network, Bell, UserCircle, LogOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Briefcase, Network, Bell, UserCircle, LogOut, Pickaxe, HandshakeIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/context/AuthContext'
@@ -55,6 +55,18 @@ export function SidebarWrapper() {
       href: '/negocios', 
       title: 'Negócios',
       isActive: pathname === '/negocios'
+    },
+    { 
+      icon: Pickaxe, 
+      href: '/laboratorios', 
+      title: 'Laboratórios',
+      isActive: pathname === '/laboratorios'
+    },
+    { 
+      icon: HandshakeIcon, 
+      href: '/iniciativas', 
+      title: 'Iniciativas',
+      isActive: pathname === '/iniciativas'
     },
     { 
       icon: Network, 

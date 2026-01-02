@@ -21,6 +21,7 @@ interface AuthContextType {
   userType: UserType | null
   userId: string | null
   user: UserWithType | null
+  isAdmin: boolean
   isLoading: boolean
   login: (
     username: string,
@@ -40,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [userType, setUserType] = useState<UserType | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [user, setUser] = useState<UserWithType | null>(null)
+  const [isAdmin, setIsAdmin] = useState<boolean>(false)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const { useLogin, useLogout } = useAuthApi()
   const loginMutation = useLogin()
@@ -51,11 +53,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const storedUserType = localStorage.getItem('userType') as UserType | null
     const storedUserId = localStorage.getItem('userId')
     const storedUser = localStorage.getItem('user')
+    const storedIsAdmin = localStorage.getItem('userIsAdmin') === 'true'
 
     if (token && storedUserType) {
       setIsAuthenticated(true)
       setUserType(storedUserType)
       setUserId(storedUserId)
+      setIsAdmin(storedIsAdmin)
       if (storedUser) {
         setUser(JSON.parse(storedUser))
       }
@@ -64,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUserType(null)
       setUserId(null)
       setUser(null)
+      setIsAdmin(false)
     }
     setIsLoading(false)
   }, [])
@@ -94,11 +99,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUserType(userType as UserType)
       setUserId(response.user_uid)
       setUser(userWithType)
+      setIsAdmin(response.is_admin)
       localStorage.setItem('accessToken', response.access_token)
       localStorage.setItem('refreshToken', response.refresh_token)
       localStorage.setItem('userType', response.user_type)
       localStorage.setItem('userId', response.user_uid)
-      localStorage.setItem('userIsAdmin', response.is_admin)
+      localStorage.setItem('userIsAdmin', String(response.is_admin))
       localStorage.setItem('user', JSON.stringify(response))
       queryClient.invalidateQueries({ queryKey: ['currentUser'] })
     } catch (error) {
@@ -114,10 +120,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('userType')
       localStorage.removeItem('userId')
+      localStorage.removeItem('userIsAdmin')
+      localStorage.removeItem('user')
       setIsAuthenticated(false)
       setUserType(null)
       setUserId(null)
       setUser(null)
+      setIsAdmin(false)
       queryClient.clear()
     } catch (error) {
       console.error('Logout failed:', error)
@@ -131,11 +140,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     userType,
     userId,
     user,
+    isAdmin,
     isLoading,
     login,
     logout,
     getAccessToken,
-  }), [isAuthenticated, userType, userId, user, isLoading, login, logout])
+  }), [isAuthenticated, userType, userId, user, isAdmin, isLoading, login, logout])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
