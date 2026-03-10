@@ -10,12 +10,12 @@ import '@livekit/components-styles'
 
 const poppins = Poppins({
   subsets: ['latin'],
-  weight: ['200', '600', '400', '500', '600', '700', '800', '900'],
+  weight: ['200', '400', '500', '600', '700', '800', '900'],
 })
 
 export const metadata: Metadata = {
-  title: 'LINK@',
-  description: 'Plataforma de Conexões e Projetos da UFC',
+  title: 'Ambiente Digital de Conexões',
+  description: 'Ambiente Digital de Conexões da UFC — conectando pesquisadores, estudantes e empreendedores',
 }
 
 export default function RootLayout({
@@ -28,7 +28,7 @@ export default function RootLayout({
       <head>
         <Analytics />
         <SpeedInsights />
-        <link rel="icon" href="/link@.svg" type="image/svg+xml" />
+        <link rel="icon" href="/logo-ufc-inova.png" type="image/png" />
       </head>
       <body
         className={`${poppins.className} flex flex-col min-h-screen`}

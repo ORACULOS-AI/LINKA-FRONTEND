@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  reactStrictMode: true,
   images: {
     remotePatterns: [
       {
@@ -11,14 +9,14 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'linka-profile-images.s3.sa-east-1.amazonaws.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'drive.google.com',
       },
     ],
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  reactStrictMode: false,
 }
 
 export default nextConfig

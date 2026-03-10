@@ -11,12 +11,6 @@ interface ProfileBusinessItemProps {
 const ProfileBusinessItem: React.FC<ProfileBusinessItemProps> = ({ business }) => {
   const [imageError, setImageError] = React.useState(false)
 
-  // Debug log para entender a estrutura dos dados
-  console.log('ProfileBusinessItem - business:', business)
-  console.log('ProfileBusinessItem - business.id:', business.id)
-  console.log('ProfileBusinessItem - business.uid:', business.uid)
-  console.log('ProfileBusinessItem - business.nome:', business.nome)
-
   // Usar id, uid ou created_at como fallback para o link
   const businessId = business.id || business.uid || business.created_at
   const businessName = business.nome || 'Negócio sem nome'

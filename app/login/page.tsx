@@ -30,7 +30,7 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/negocios')
+      router.push('/')
     }
   }, [isAuthenticated, router])
 
@@ -44,7 +44,7 @@ export default function LoginScreen() {
 
     try {
       await login(email, password, userType)
-      router.push('/negocios')
+      router.push('/')
     } catch (error: any) {
       if (error.response && error.response.data) {
         setError(error.response.data.detail || 'Erro ao fazer login')
@@ -218,12 +218,12 @@ export default function LoginScreen() {
               transition={{ delay: 0.8, duration: 0.5 }}
             >
               <Sparkles className="h-4 w-4 text-white" />
-              <span className="text-sm font-medium text-white">Ecossistema de Inovação UFC</span>
+              <span className="text-sm font-medium text-white">Ambiente Digital de Conexões</span>
             </motion.div>
 
             <div className="mb-8">
               <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent mb-4">
-                Plataforma LINKA
+                Ambiente Digital de Conexões
               </h2>
               <p className="text-white/90 text-lg leading-relaxed">
                 O ecossistema de inovação da UFC que conecta estudantes, pesquisadores, técnicos administrativos e empreendedores
@@ -310,7 +310,7 @@ export default function LoginScreen() {
               transition={{ delay: 0.4, duration: 0.5 }}
             >
               <Sparkles className="h-4 w-4 text-white" />
-              <span className="text-sm font-medium text-white">Ecossistema UFC</span>
+              <span className="text-sm font-medium text-white">Ambiente Digital de Conexões</span>
             </motion.div>
 
             {/* Title */}

@@ -125,7 +125,7 @@ export default function InitiativePage({
       // queryClient.invalidateQueries({ queryKey: ['initiatives'] })
       router.push('/minhas-iniciativas')
     } catch (error) {
-      console.error('Erro ao atualizar iniciativa:', error)
+      void error
       toast({
         title: 'Erro',
         description: 'Erro ao atualizar iniciativa',
@@ -951,8 +951,7 @@ function calculateProgress(initiative: Iniciativa): number {
 
     const progress = (daysElapsed / totalDays) * 100
     return Math.min(Math.max(progress, 0), 100)
-  } catch (error) {
-    console.error("Erro ao calcular progresso:", error)
+  } catch {
     return 0
   }
 }

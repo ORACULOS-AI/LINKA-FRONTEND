@@ -43,8 +43,7 @@ export function PresenceValidation({
       await validarPresenca(event.uid, uid_usuario, status)
       onSuccess()
       toast.success('Presença validada com sucesso')
-    } catch (error) {
-      console.error('Erro ao validar presença:', error)
+    } catch {
       toast.error('Erro ao validar presença')
     } finally {
       setIsLoading(false)

@@ -78,8 +78,8 @@ export function InitiativesChart({ initiativesData }: InitiativesChartProps) {
           monthData.recusadas++
         }
       }
-    } catch (error) {
-      console.error('Erro ao processar data da iniciativa:', error)
+    } catch {
+      // Skip invalid initiative dates
     }
   })
 

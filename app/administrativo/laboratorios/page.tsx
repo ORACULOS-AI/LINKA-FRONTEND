@@ -18,16 +18,16 @@ export default function LaboratoriosAdminPage() {
   const handleApprove = async (labId: string) => {
     try {
       await approveMutation.mutateAsync(labId)
-    } catch (error) {
-      console.error('Erro ao aprovar:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 
   const handleReject = async (labId: string) => {
     try {
       await rejectMutation.mutateAsync(labId)
-    } catch (error) {
-      console.error('Erro ao recusar:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

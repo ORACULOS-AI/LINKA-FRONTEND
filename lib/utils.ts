@@ -40,3 +40,21 @@ export function formatImageSrc(src: string): string {
 
   return src
 }
+
+export function isValidImageUrl(url: string | undefined | null): boolean {
+  if (!url) return false
+  // Aceitar URLs do Drive normalizadas por formatImageSrc (uc?export=view)
+  if (url.includes('drive.google.com')) {
+    return url.includes('uc?export=view')
+  }
+  return url.startsWith('https://')
+}
+
+export function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0].toUpperCase())
+    .join('')
+}

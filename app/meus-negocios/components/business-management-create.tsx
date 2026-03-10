@@ -19,8 +19,8 @@ export function BusinessManagementCreate() {
     try {
       await createBusinessMutation.mutateAsync(businessData)
       setIsOpen(false)
-    } catch (error) {
-      console.error('Error creating business:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

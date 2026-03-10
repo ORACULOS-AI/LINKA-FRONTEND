@@ -18,8 +18,8 @@ export default function IniciativasAdminPage() {
   const handleApprove = async (initiativeId: string) => {
     try {
       await approveMutation.mutateAsync(initiativeId)
-    } catch (error) {
-      console.error('Erro ao aprovar:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 
@@ -29,8 +29,8 @@ export default function IniciativasAdminPage() {
         initiativeId,
         motivo: 'Iniciativa recusada pelo administrador'
       })
-    } catch (error) {
-      console.error('Erro ao recusar:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

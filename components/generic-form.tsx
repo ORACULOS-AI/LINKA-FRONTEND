@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,7 +31,14 @@ export default function GenericForm({
 }: GenericFormProps) {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const [uid, setUid] = useState<string | null>(null)
+  const uid = useMemo(() => {
+    if (typeof window === 'undefined') return null
+    const token = localStorage.getItem('token')
+    if (!token) return null
+    try {
+      return (JSON.parse(atob(token.split('.')[1])) as { uid: string }).uid ?? null
+    } catch { return null }
+  }, [])
 
   const formSchema = factory.createSchema()
   const fields = factory.createFields()
@@ -47,20 +54,6 @@ export default function GenericForm({
     resolver: zodResolver(formSchema),
     defaultValues: {} as any,
   })
-
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      try {
-        const decoded = JSON.parse(atob(token.split('.')[1])) as { uid: string }
-        if (decoded && decoded.uid) {
-          setUid(decoded.uid)
-        }
-      } catch (error) {
-        console.error('Error decoding token:', error)
-      }
-    }
-  }, [])
 
   const onSubmit = async (data: any) => {
     if (!uid) {
@@ -113,8 +106,7 @@ export default function GenericForm({
           variant: 'success',
         })
       }
-    } catch (error) {
-      console.error('Erro ao criar item:', error)
+    } catch {
       toast({
         title: 'Erro ao criar item',
         description: 'Ocorreu um erro ao tentar criar o item. Por favor, verifique os dados e tente novamente.',

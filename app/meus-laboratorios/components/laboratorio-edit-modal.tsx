@@ -238,8 +238,8 @@ export function LaboratorioEditModal({
       setCurrentStep(0)
       onClose()
       if (onSuccess) onSuccess()
-    } catch (error) {
-      console.error('Erro ao atualizar laboratório:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

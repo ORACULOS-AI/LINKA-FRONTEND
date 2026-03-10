@@ -72,8 +72,7 @@ export function ChatConversation({
 
     try {
       await sendMessageMutation.mutateAsync({ conteudo: content })
-    } catch (error) {
-      console.error("Error sending message:", error)
+    } catch {
       setMessageText(content) // Restore message on error
     }
   }

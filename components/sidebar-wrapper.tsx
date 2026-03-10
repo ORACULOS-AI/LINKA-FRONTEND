@@ -35,8 +35,8 @@ export function SidebarWrapper() {
     try {
       router.push('/login')
       await logout()
-    } catch (error) {
-      console.error('Logout failed:', error)
+    } catch {
+      // Logout failed silently
     }
   }, [router, logout])
 

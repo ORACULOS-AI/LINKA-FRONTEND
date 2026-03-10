@@ -73,8 +73,8 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
     try {
       router.push('/login')
       await logout()
-    } catch (error) {
-      console.error('Logout failed:', error)
+    } catch {
+      // Logout failed silently
     }
   }, [router, logout])
 
@@ -245,10 +245,10 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
       )}
     >
       <SidebarHeader className="border-b border-purple-100 px-4 py-4 flex justify-between items-center bg-gradient-to-r from-purple-50 to-violet-50">
-        <Link href="/dashboard" className="flex items-center space-x-2 group">
-          <div className="relative">
-            <img src="/link@.svg" alt="LINK@ Logo" className="h-5 w-auto" />
-          </div>
+        <Link href="/" className="flex items-center group">
+          <span className="text-sm font-bold bg-gradient-to-r from-purple-700 to-violet-600 bg-clip-text text-transparent leading-tight">
+            Ambiente Digital<br />de Conexões
+          </span>
         </Link>
         <div className="flex items-center gap-2">
           <NotificationBell />
@@ -275,17 +275,17 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
               variant="ghost"
               className={cn(
                 'w-full justify-start relative group transition-all duration-200',
-                pathname === '/dashboard' && 'bg-gradient-to-r from-purple-50 to-violet-50 text-purple-700 font-medium',
-                pathname !== '/dashboard' && 'hover:bg-purple-50/50 hover:text-purple-700'
+                pathname === '/' && 'bg-gradient-to-r from-purple-50 to-violet-50 text-purple-700 font-medium',
+                pathname !== '/' && 'hover:bg-purple-50/50 hover:text-purple-700'
               )}
             >
-              <Link href="/dashboard" className="flex items-center w-full">
+              <Link href="/" className="flex items-center w-full">
                 <Home className={cn(
                   "mr-3 h-4 w-4 transition-colors duration-200",
-                  pathname === '/dashboard' && "text-purple-600"
+                  pathname === '/' && "text-purple-600"
                 )} />
                 <span>Início</span>
-                {pathname === '/dashboard' && (
+                {pathname === '/' && (
                   <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-purple-500 to-violet-500 rounded-l-full" />
                 )}
               </Link>
@@ -330,10 +330,13 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
         >
           <Link href="/dashboard" rel="noopener noreferrer">
             <Home className="mr-2 h-4 w-4" />
-            Dashboard
+            Analytics
             <ChevronRight className="ml-auto h-4 w-4" />
           </Link>
         </Button>
+        <div className="mt-4 flex justify-center">
+          <img src="/logo-ufc-inova.png" alt="UFC INOVA" className="h-10 w-auto opacity-70" />
+        </div>
       </SidebarFooter>
     </Sidebar>
   )

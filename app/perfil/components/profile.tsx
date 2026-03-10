@@ -143,15 +143,6 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
   
   const targetUserId = isViewingOwnProfile ? getCurrentUserId() : userId
   
-  console.log('Debug ProfilePage:', {
-    isViewingOwnProfile,
-    currentUserUid: currentUser?.user?.uid,
-    localStorageUserId: localStorage.getItem('userId'),
-    paramUserId: userId,
-    targetUserId,
-    isCurrentUserLoading,
-  })
-  
   const { data: userBusinesses = [], isLoading: isBusinessesLoading } = useGetUserBusinessesById(
     targetUserId || ""
   )
@@ -159,60 +150,34 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
     targetUserId || ""
   )
 
-  // Debug logs para verificar os dados
-  console.log('=== DEBUG INITIATIVES ===')
-  console.log('targetUserId:', targetUserId)
-  console.log('isInitiativesLoading:', isInitiativesLoading)
-  console.log('userBusinesses:', userBusinesses)
-  console.log('userInitiatives:', userInitiatives)
-  console.log('userInitiatives.length:', userInitiatives?.length)
-  console.log('typeof userInitiatives:', typeof userInitiatives)
-  console.log('Array.isArray(userInitiatives):', Array.isArray(userInitiatives))
-
   // Garantir que os arrays sejam válidos antes da filtragem
   const safeUserBusinesses = Array.isArray(userBusinesses) ? userBusinesses : []
   const safeUserInitiatives = Array.isArray(userInitiatives) ? userInitiatives : []
   
-  console.log('safeUserBusinesses:', safeUserBusinesses)
-  console.log('safeUserInitiatives:', safeUserInitiatives)
-
   // Garantir que os arrays tenham IDs únicos - versão menos restritiva
   const uniqueBusinesses = safeUserBusinesses.filter((business: any, index: number, self: any[]) => {
     if (!business) {
-      console.log('Business filtrado (null/undefined):', business)
       return false
     }
     if (!business.id) {
-      console.log('Business sem ID:', business)
       // Permitir negócios sem ID, usando o index como fallback
       return true
     }
     const isDuplicate = self.findIndex((b: any) => b && b.id === business.id) !== index
-    if (isDuplicate) {
-      console.log('Business duplicado filtrado:', business)
-    }
     return !isDuplicate
   })
   
   const uniqueInitiatives = safeUserInitiatives.filter((initiative: any, index: number, self: any[]) => {
     if (!initiative) {
-      console.log('Initiative filtrada (null/undefined):', initiative)
       return false
     }
     if (!initiative.id) {
-      console.log('Initiative sem ID:', initiative)
       // Permitir iniciativas sem ID, usando o index como fallback
       return true
     }
     const isDuplicate = self.findIndex((i: any) => i && i.id === initiative.id) !== index
-    if (isDuplicate) {
-      console.log('Initiative duplicada filtrada:', initiative)
-    }
     return !isDuplicate
   })
-
-  console.log('uniqueBusinesses após filtro:', uniqueBusinesses)
-  console.log('uniqueInitiatives após filtro:', uniqueInitiatives)
 
   // Connection mutations
   const sendConnectionMutation = useCreateRequest()
@@ -304,8 +269,7 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
           userId: currentUser?.user?.uid,
         })
         handleDeleteAccount()
-      } catch (error) {
-        console.error("Error deleting profile:", error)
+      } catch {
         toast.error("Erro ao deletar perfil")
       }
     }
@@ -318,8 +282,6 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-
-    console.log("Arquivo selecionado:", file.name, file.type, file.size)
 
     if (!file.type.startsWith("image/")) {
       toast.error("Por favor, selecione apenas arquivos de imagem")
@@ -342,8 +304,7 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
     try {
       const result = await uploadProfileImageMutation.mutateAsync(croppedImage)
       toast.success("Foto de perfil atualizada com sucesso")
-    } catch (error) {
-      console.error("Error uploading profile image:", error)
+    } catch {
       toast.error("Erro ao atualizar foto de perfil")
     } finally {
       setIsUploading(false)
@@ -358,8 +319,7 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
     try {
       await deleteProfileImageMutation.mutateAsync()
       toast.success("Foto de perfil removida com sucesso")
-    } catch (error) {
-      console.error("Error deleting profile image:", error)
+    } catch {
       toast.error("Erro ao remover foto de perfil")
     } finally {
       setIsUploading(false)
@@ -376,8 +336,7 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
       localStorage.removeItem("user")
       // Redirecionar para a página de login
       router.push("/login")
-    } catch (error) {
-      console.error("Erro ao atualizar o usuário:", error)
+    } catch {
       toast.error("Erro ao atualizar perfil")
     }
   }
@@ -400,8 +359,7 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
         confirmPassword: "",
       })
       toast.success("Senha alterada com sucesso")
-    } catch (error) {
-      console.error("Error changing password:", error)
+    } catch {
       toast.error("Erro ao alterar senha")
     }
   }
@@ -413,8 +371,7 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
     try {
       await sendConnectionMutation.mutateAsync(userId)
       toast.success("Solicitação de conexão enviada")
-    } catch (error) {
-      console.error("Error sending connection request:", error)
+    } catch {
       toast.error("Erro ao enviar solicitação de conexão")
     }
   }
@@ -731,7 +688,6 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => {
-                            console.log("Botão de câmera clicado")
                             fileInputRef.current?.click()
                           }}
                           disabled={isUploading}
@@ -745,7 +701,6 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => {
-                              console.log("Botão de deletar clicado")
                               setIsDeleteImageDialogOpen(true)
                             }}
                             title="Remover foto de perfil"
@@ -762,7 +717,7 @@ export default function ProfilePage({ userId, userType }: ProfilePageProps) {
                       className="hidden"
                       accept="image/*"
                       onChange={handleFileSelect}
-                      onClick={() => console.log("Input de arquivo clicado")}
+                      onClick={() => {}}
                     />
                   </div>
 

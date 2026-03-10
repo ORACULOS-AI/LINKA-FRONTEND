@@ -88,8 +88,8 @@ export function BusinessManagementList({
         updateData: { visivel: !business.visivel } as NegocioUpdate,
       })
       onRefresh()
-    } catch (error) {
-      console.error('Error updating business visibility:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 
@@ -98,8 +98,8 @@ export function BusinessManagementList({
       await deleteBusinessMutation.mutateAsync(businessId)
       setDeleteBusinessId(null)
       onRefresh()
-    } catch (error) {
-      console.error('Error deleting business:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

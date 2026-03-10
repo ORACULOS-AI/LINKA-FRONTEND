@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEventApi } from '@/lib/api/event'
 import { Button } from '@/components/ui/button'
@@ -46,16 +46,12 @@ export default function EventManagementPage() {
 
   const deleteEventMutation = useDeleteEvent()
 
-  useEffect(() => {
-    refetch()
-  }, [refetch])
-
   const handleDeleteEvent = async (eventId: string) => {
     try {
       await deleteEventMutation.mutateAsync({ eventId })
       await refetch()
-    } catch (error) {
-      console.error('Erro ao excluir evento:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

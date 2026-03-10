@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { Event } from '../../../lib/types/event'
@@ -20,9 +20,7 @@ export default function EventList({
   events,
   isLoading,
 }: EventListProps) {
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>(events)
-
-  useEffect(() => {
+  const filteredEvents = useMemo(() => {
     let filtered = [...events]
 
     // Aplicar filtro de busca
@@ -46,7 +44,7 @@ export default function EventList({
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
     })
 
-    setFilteredEvents(filtered)
+    return filtered
   }, [events, searchTerm, status, sortOrder])
 
   if (isLoading) {

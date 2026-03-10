@@ -109,8 +109,8 @@ export default function InitiativeDetailPage({ params }: InitiativeDetailPagePro
           text: initiative?.descricao,
           url: window.location.href,
         })
-      } catch (err) {
-        console.error('Erro ao compartilhar:', err)
+      } catch {
+        // Share cancelled or failed
       }
     } else {
       await navigator.clipboard.writeText(window.location.href)

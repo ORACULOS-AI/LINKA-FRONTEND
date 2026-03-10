@@ -136,8 +136,7 @@ export function useConnectionRequests() {
       }
 
       return { status: 'none', isSentByMe: false }
-    } catch (error) {
-      console.error('Error checking connection status:', error)
+    } catch {
       return { status: 'none', isSentByMe: false }
     }
   }

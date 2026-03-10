@@ -1,7 +1,6 @@
 export const publicRoutes = [
   '/',
   '/login',
-  '/dashboard',
   '/negocios',
   '/inspecionar-negocio',
   '/iniciativas',

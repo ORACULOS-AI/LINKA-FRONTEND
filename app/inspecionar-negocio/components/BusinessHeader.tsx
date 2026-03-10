@@ -29,8 +29,8 @@ export const BusinessHeader: React.FC<BusinessHeaderProps> = ({
           text: `Confira o negócio ${business.nome}`,
           url: window.location.href,
         })
-      } catch (err) {
-        console.error("Erro ao compartilhar:", err)
+      } catch {
+        // Share cancelled or failed
       }
     } else {
       await navigator.clipboard.writeText(window.location.href)

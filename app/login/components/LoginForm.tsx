@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,20 +18,26 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [detectedUserType, setDetectedUserType] = useState<UserType | null>(null)
   const [selectedUserType, setSelectedUserType] = useState<UserType | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Função para detectar o tipo de usuário baseado no email
-  const detectUserType = (email: string): UserType => {
-    if (email.endsWith('@alu.ufc.br')) {
-      return UserType.ESTUDANTE
-    } else if (email.endsWith('@ufc.br')) {
-      return UserType.PESQUISADOR
-    } else {
-      return UserType.EXTERNO
-    }
-  }
+  // Derivar tipo de usuário diretamente do email (sem useEffect)
+  const detectedUserType = useMemo<UserType | null>(() => {
+    if (!email.includes('@')) return null
+    if (email.endsWith('@alu.ufc.br')) return UserType.ESTUDANTE
+    if (email.endsWith('@ufc.br')) return UserType.PESQUISADOR
+    return UserType.EXTERNO
+  }, [email])
+
+  // Derivar se é email UFC
+  const isUfcEmail = email.endsWith('@ufc.br') && !email.endsWith('@alu.ufc.br')
+
+  // Derivar o tipo efetivo (auto-select para não-UFC)
+  const effectiveUserType = useMemo(() => {
+    if (!detectedUserType) return null
+    if (!isUfcEmail) return detectedUserType
+    return selectedUserType || UserType.PESQUISADOR
+  }, [detectedUserType, isUfcEmail, selectedUserType])
 
   // Função para obter o ícone do tipo de usuário
   const getUserTypeIcon = (type: UserType) => {
@@ -65,35 +71,13 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
     }
   }
 
-  // Detectar se o email é @ufc.br (permite escolha entre Pesquisador e Técnico Admin)
-  const isUfcEmail = email.endsWith('@ufc.br') && !email.endsWith('@alu.ufc.br')
-
-  // Detectar tipo de usuário quando o email muda
-  useEffect(() => {
-    if (email.includes('@')) {
-      const userType = detectUserType(email)
-      setDetectedUserType(userType)
-      // Se não for @ufc.br, setar automaticamente o tipo selecionado
-      if (!isUfcEmail) {
-        setSelectedUserType(userType)
-      } else if (!selectedUserType) {
-        // Para @ufc.br, defaultar para PESQUISADOR se nada foi selecionado
-        setSelectedUserType(UserType.PESQUISADOR)
-      }
-    } else {
-      setDetectedUserType(null)
-      setSelectedUserType(null)
-    }
-  }, [email, isUfcEmail])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const userTypeToUse = selectedUserType || detectedUserType
-    if (!userTypeToUse) return
+    if (!effectiveUserType) return
 
     setIsLoading(true)
     try {
-      await onSubmit(email, password, userTypeToUse)
+      await onSubmit(email, password, effectiveUserType)
     } finally {
       setIsLoading(false)
     }
@@ -252,7 +236,7 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
         <Button
           className="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:shadow-purple-500/25 hover:shadow-lg transition-all duration-300 text-white font-medium py-3"
           type="submit"
-          disabled={isLoading || !selectedUserType}
+          disabled={isLoading || !effectiveUserType}
         >
           {isLoading ? (
             <motion.div
@@ -267,9 +251,9 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
             <>
               <LogIn className="h-4 w-4" />
               Entrar
-              {selectedUserType && (
+              {effectiveUserType && (
                 <span className="opacity-75">
-                  como {getUserTypeLabel(selectedUserType)}
+                  como {getUserTypeLabel(effectiveUserType)}
                 </span>
               )}
             </>

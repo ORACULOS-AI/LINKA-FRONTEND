@@ -85,8 +85,8 @@ export function EventsChart({ eventsData }: EventsChartProps) {
             }
           }
         }
-      } catch (error) {
-        console.error('Erro ao processar data do evento:', error)
+      } catch {
+        // Skip invalid event dates
       }
     })
   }

@@ -45,7 +45,6 @@ export const useInitiativesApi = () => {
       },
     )
     const data = await response.json()
-    console.log(data)
     return data.data
   }
 
@@ -821,7 +820,7 @@ export const useInitiativesApi = () => {
     })
 
   const useGetUserInitiativesById = (userId: string) => {
-    console.log('useGetUserInitiativesById called with:', userId, 'enabled:', !!userId && userId.trim() !== '')
+    // useGetUserInitiativesById
     return useQuery({
       queryKey: ['userInitiativesById', userId],
       queryFn: () => getUserInitiativesById(userId),

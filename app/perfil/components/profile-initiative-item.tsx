@@ -11,13 +11,6 @@ interface ProfileInitiativeItemProps {
 const ProfileInitiativeItem: React.FC<ProfileInitiativeItemProps> = ({ initiative }) => {
   const [imageError, setImageError] = React.useState(false)
 
-  // Debug log para entender a estrutura dos dados
-  console.log('ProfileInitiativeItem - initiative:', initiative)
-  console.log('ProfileInitiativeItem - initiative.id:', initiative.id)
-  console.log('ProfileInitiativeItem - initiative.uid:', initiative.uid)
-  console.log('ProfileInitiativeItem - initiative.titulo:', initiative.titulo)
-  console.log('ProfileInitiativeItem - initiative.nome:', initiative.nome)
-
   // Usar id, uid ou created_at como fallback para o link
   const initiativeId = initiative.id || initiative.uid || initiative.created_at
   const initiativeTitle = initiative.titulo || initiative.nome || 'Iniciativa sem título'

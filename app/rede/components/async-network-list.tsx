@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect, useState, useCallback } from "react"
+import { useMemo, useState, useCallback } from "react"
 import { NetworkList } from "./network-list"
 import { SkeletonCard } from "./skeleton-card"
 import { useAllUsers } from "@/hooks/allUsers"
@@ -36,15 +36,11 @@ export function AsyncNetworkList({ searchQuery, roleFilter, setSelectedUser, dis
   const cancelRequestMutation = useCancelRequest()
   const removeConnectionMutation = useRemoveConnection()
 
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [currentUserId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem("userUid")
+  })
   const [loadingActions, setLoadingActions] = useState<Record<string, boolean>>({})
-
-  useEffect(() => {
-    const storedUserUid = localStorage.getItem("userUid")
-    if (storedUserUid) {
-      setCurrentUserId(storedUserUid)
-    }
-  }, [])
 
   const isLoading = isLoadingUsers || isLoadingSent || isLoadingReceived || isLoadingConnections
 
@@ -173,8 +169,8 @@ export function AsyncNetworkList({ searchQuery, roleFilter, setSelectedUser, dis
             })
             break
         }
-      } catch (error) {
-        console.error(`Failed to ${action} connection:`, error)
+      } catch {
+        // Error handled by mutation
       } finally {
         setLoadingActions((prev) => ({ ...prev, [targetId]: false }))
       }

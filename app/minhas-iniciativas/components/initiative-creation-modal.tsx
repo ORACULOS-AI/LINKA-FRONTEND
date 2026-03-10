@@ -177,7 +177,6 @@ export function InitiativeCreationModal({
     } catch (error: any) {
       const errorMessage = error?.response?.data?.detail || error?.message || 'Erro ao criar iniciativa'
       toast.error(errorMessage)
-      console.error(error)
     }
   }
 

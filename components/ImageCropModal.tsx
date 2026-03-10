@@ -124,8 +124,8 @@ export function ImageCropModal({
       setIsLoading(true)
       const croppedImage = await getCroppedImg(imageRef.current, completedCrop)
       await onCropComplete(croppedImage)
-    } catch (error) {
-      console.error('Error cropping image:', error)
+    } catch {
+      // Crop failed
     } finally {
       setIsLoading(false)
     }

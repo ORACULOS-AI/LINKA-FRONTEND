@@ -92,8 +92,7 @@ export default function LaboratorioDetailPage({ params }: LaboratorioDetailPageP
       setIsCropModalOpen(false)
       setSelectedImage(null)
       await refetch()
-    } catch (error) {
-      console.error("Erro ao atualizar imagem:", error)
+    } catch {
       // Toast error is handled by the mutation hook
     }
   }

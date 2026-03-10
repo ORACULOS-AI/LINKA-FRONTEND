@@ -176,7 +176,7 @@ export function LaboratorioShowcaseRedesigned({ initialLaboratorios }: Laborator
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30"
             >
               <Sparkles className="h-4 w-4" />
-              <span className="text-sm font-medium">Ecossistema UFC</span>
+              <span className="text-sm font-medium">Ambiente Digital de Conexões</span>
             </motion.div>
 
             {/* Title */}

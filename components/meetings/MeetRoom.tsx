@@ -146,13 +146,9 @@ export default function MeetRoom({ meetingId }: MeetRoomProps) {
             audio={preJoinValues.audioEnabled}
             style={{ width: '100%', height: '100%' }}
             onDisconnected={handleDisconnected}
-            onConnected={() => {
-              console.log('✅ Conectado com sucesso ao LiveKit')
-            }}
             onError={(error) => {
-              console.error('❌ Erro do LiveKit:', error)
               setError(error.message || 'Erro na sala de reunião')
-            }}
+            }
           >
             <VideoConference />
           </LiveKitRoom>

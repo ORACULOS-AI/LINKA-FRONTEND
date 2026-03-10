@@ -228,8 +228,8 @@ export function LaboratorioCreationModal({
       setCurrentStep(0)
       onClose()
       if (onSuccess) onSuccess()
-    } catch (error) {
-      console.error('Erro ao criar laboratório:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

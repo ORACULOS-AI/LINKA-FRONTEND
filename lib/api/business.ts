@@ -21,8 +21,6 @@ export const fetchPublicBusinessesForServer = async (
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
 
   const url = `${API_BASE_URL_LOCAL}/business/?status=${status}`;
-  console.log('Fetching URL:', url);
-
   try {
     // Create AbortController for timeout
     const controller = new AbortController();
@@ -43,12 +41,6 @@ export const fetchPublicBusinessesForServer = async (
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      console.error(
-        'Server-side fetch failed:',
-        response.status,
-        response.statusText,
-      );
-      // Poderia logar response.text() para mais detalhes do erro
       return null;
     }
 
@@ -57,9 +49,9 @@ export const fetchPublicBusinessesForServer = async (
   } catch (error) {
     // Handle timeout/abort errors gracefully during build
     if (error instanceof Error && error.name === 'AbortError') {
-      console.warn('Server-side fetch timed out, falling back to client-side loading');
+      // Server-side fetch timed out, fall back to client-side loading
     } else {
-      console.error('Error fetching public businesses for server:', error);
+      // Server fetch failed silently
     }
     return null;
   }
@@ -365,7 +357,6 @@ export const useBusinessApi = () => {
     })
 
   const useGetUserBusinessesById = (userId: string) => {
-    console.log('useGetUserBusinessesById called with:', userId, 'enabled:', !!userId)
     return useQuery({
       queryKey: ['user-businesses', userId],
       queryFn: () => getUserBusinessesById(userId),

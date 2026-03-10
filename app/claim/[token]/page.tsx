@@ -57,9 +57,8 @@ export default function ClaimPage() {
         // Redirecionar para onboarding
         router.push(result.redirect_url)
       }, 2000)
-    } catch (error: any) {
+    } catch {
       // Erro já tratado pela mutation
-      console.error('Erro ao reivindicar:', error)
     }
   }
 
@@ -129,7 +128,7 @@ export default function ClaimPage() {
                   O link de convite pode ter expirado ou já foi utilizado. Entre em contato com o
                   administrador para solicitar um novo convite.
                 </p>
-                <Link href="/dashboard">
+                <Link href="/">
                   <Button className="w-full bg-purple-600 hover:bg-purple-700">
                     Voltar ao Dashboard
                   </Button>
@@ -168,7 +167,7 @@ export default function ClaimPage() {
                   O {getResourceTypeLabel(claimData.resource_type).toLowerCase()}{' '}
                   <strong>{claimData.resource_name}</strong> já foi reivindicado.
                 </p>
-                <Link href="/dashboard">
+                <Link href="/">
                   <Button className="w-full bg-purple-600 hover:bg-purple-700">
                     Voltar ao Dashboard
                   </Button>

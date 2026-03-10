@@ -42,7 +42,6 @@ export function BusinessChart({ businessesData }: BusinessChartProps) {
     try {
       // Validar se data_cadastro existe e não é vazia
       if (!business.data_cadastro) {
-        console.warn(`Negócio ${business.uid || business.id} sem data_cadastro - ignorando`)
         return
       }
 
@@ -50,9 +49,6 @@ export function BusinessChart({ businessesData }: BusinessChartProps) {
 
       // Validar se parseISO retornou uma data válida
       if (isNaN(businessDate.getTime())) {
-        console.warn(
-          `Data inválida para negócio ${business.uid || business.id}: ${business.data_cadastro} - ignorando`
-        )
         return
       }
 
@@ -72,12 +68,7 @@ export function BusinessChart({ businessesData }: BusinessChartProps) {
           monthData.rejection += 1
         }
       }
-    } catch (error) {
-      console.error(
-        `Erro ao processar data do negócio ${business.uid || business.id}:`,
-        error,
-        `data_cadastro: ${business.data_cadastro}`
-      )
+    } catch {
       // Continuar processamento dos demais negócios
     }
   })

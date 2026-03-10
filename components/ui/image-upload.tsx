@@ -35,8 +35,8 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
       // })
       // const { url } = await response.json()
       // onChange?.(url)
-    } catch (error) {
-      console.error('Erro ao fazer upload:', error)
+    } catch {
+      // Upload failed
     }
   }
 

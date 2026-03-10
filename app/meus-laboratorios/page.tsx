@@ -42,7 +42,7 @@ export default function MeusLaboratoriosPage() {
     const isAdmin = localStorage.getItem('userIsAdmin') === 'true'
 
     if (!isAdmin && userType !== 'pesquisador') {
-      router.push('/dashboard')
+      router.push('/')
     }
   }, [router])
 
@@ -55,16 +55,12 @@ export default function MeusLaboratoriosPage() {
 
   const deleteLaboratorioMutation = useDeleteLaboratorio()
 
-  useEffect(() => {
-    refetch()
-  }, [refetch])
-
   const handleDeleteLaboratorio = async (laboratorioId: string) => {
     try {
       await deleteLaboratorioMutation.mutateAsync(laboratorioId)
       await refetch()
-    } catch (error) {
-      console.error('Erro ao excluir laboratório:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

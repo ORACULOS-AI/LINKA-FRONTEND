@@ -54,7 +54,6 @@ export const useMessagesApi = () => {
 
   // --------------------------- Threads -----------------------------------
   const createThread = async (payload: ThreadCreatePayload): Promise<Thread> => {
-    console.log('[API] createThread payload ->', payload)
     const response = await fetchWithToken(`${API_BASE_URL}/messages/threads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -62,10 +61,8 @@ export const useMessagesApi = () => {
     })
     const data = await response.json().catch(() => ({}))
     if (!response.ok) {
-      console.error('[API] createThread error ->', data)
       throw new Error(data?.detail || 'Erro ao criar thread')
     }
-    console.log('[API] createThread success ->', data)
     return data.data as Thread
   }
 

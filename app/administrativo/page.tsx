@@ -69,7 +69,7 @@ export default function AdminPage() {
           Painel Administrativo
         </h1>
         <p className="text-muted-foreground">
-          Gerencie todos os recursos da plataforma LINKA
+          Gerencie todos os recursos da plataforma
         </p>
       </div>
 

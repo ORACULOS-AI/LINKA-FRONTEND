@@ -41,8 +41,7 @@ export function CertificateViewer({
         link.click()
         document.body.removeChild(link)
       }
-    } catch (error) {
-      console.error('Erro ao baixar certificado:', error)
+    } catch {
       toast.error('Erro ao baixar certificado')
     } finally {
       setIsLoading(false)

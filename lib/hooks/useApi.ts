@@ -55,14 +55,12 @@ export const useApi = () => {
             }
             return newResponse
           } catch (refreshError) {
-            alert('Sessão expirada. Por favor, faça login novamente.')
             await logout()
             throw new Error('Session expired. Please log in again.')
           }
         }
 
         if (!response.ok) {
-          console.log(response)
           throw new Error('API request failed')
         }
 

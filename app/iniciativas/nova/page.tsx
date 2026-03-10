@@ -243,7 +243,6 @@ export default function CriarIniciativa() {
       } catch (error: any) {
         const errorMessage = error?.response?.data?.detail || error?.message || 'Erro ao criar iniciativa'
         toast.error(errorMessage)
-        console.error(error)
       }
     } else {
       setCurrentStep(steps[currentStepIndex + 1].id)

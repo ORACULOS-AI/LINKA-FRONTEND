@@ -185,8 +185,8 @@ export function BusinessCreationModal({
       setCurrentStep(0)
       onClose()
       if (onSuccess) onSuccess()
-    } catch (error) {
-      console.error('Erro ao criar negócio:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

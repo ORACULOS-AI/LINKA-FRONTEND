@@ -26,8 +26,7 @@ export const useNotificationsApi = () => {
         throw new Error(data.detail || 'Erro ao buscar notificações')
       }
       return data.data || []
-    } catch (error) {
-      console.error('Erro ao buscar notificações:', error)
+    } catch {
       return []
     }
   }
@@ -54,7 +53,8 @@ export const useNotificationsApi = () => {
           1000 * 2 ** attemptIndex, // Backoff exponencial: 2s, 4s, 8s...
           30000, // Máximo de 30 segundos
         ),
-      staleTime: 1000 * 60 * 5, // 5 minutos (aumentado de 1 minuto)
+      staleTime: 1000 * 60 * 5, // 5 minutos
+      refetchInterval: 30000, // Polling a cada 30s — substitui setInterval manual
     })
 
   // Criar notificação (geralmente usado internamente pelo backend)

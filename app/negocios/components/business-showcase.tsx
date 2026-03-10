@@ -263,7 +263,7 @@ export function BusinessShowcase({ initialBusinesses }: BusinessShowcaseProps) {
               transition={{ delay: 0.2, duration: 0.5 }}
             >
               <Sparkles className="h-4 w-4 text-white" />
-              <span className="text-sm font-medium text-white">Ecossistema de Inovação UFC</span>
+              <span className="text-sm font-medium text-white">Ambiente Digital de Conexões</span>
             </motion.div>
 
             {/* Title */}

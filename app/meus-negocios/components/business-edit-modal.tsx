@@ -85,8 +85,7 @@ export function BusinessEditModal({
       })
       onSuccess()
       onClose()
-    } catch (error) {
-      console.error('Error updating business:', error)
+    } catch {
       toast({
         title: 'Erro ao atualizar',
         description: 'Não foi possível atualizar o negócio. Tente novamente.',

@@ -101,7 +101,6 @@ export function InitiativesTable({
 
   // Determinar quais iniciativas mostrar com base no filtro
   let initiatives: IniciativaBase[] = []
-  console.log(filter)
   if (filter === 'pendentes') {
     initiatives = initiativesData?.pendentes || []
   } else if (filter === 'ativas') {

@@ -52,7 +52,7 @@ const links = [
   { name: 'Rede', href: '/rede', expand: null },
   { name: 'Eventos', href: '/eventos', expand: null },
   {
-    name: 'LINK@',
+    name: 'Início',
     href: '/negocios',
     expand: null,
     special: true,

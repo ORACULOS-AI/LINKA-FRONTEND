@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useInitiativesApi } from '@/lib/api/initiatives'
 import { useBusinessApi } from '@/lib/api/business'
@@ -53,16 +53,12 @@ export default function InitiativesManagementPage() {
 
   const deleteInitiativeMutation = useDeleteInitiative()
 
-  useEffect(() => {
-    refetch()
-  }, [refetch])
-
   const handleDeleteInitiative = async (initiativeId: string) => {
     try {
       await deleteInitiativeMutation.mutateAsync(initiativeId)
       await refetch()
-    } catch (error) {
-      console.error('Erro ao excluir iniciativa:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

@@ -4,7 +4,6 @@ import {
   createContext,
   useContext,
   useState,
-  useEffect,
   useCallback,
   useMemo,
 } from 'react'
@@ -37,45 +36,35 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
-  const [userType, setUserType] = useState<UserType | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
-  const [user, setUser] = useState<UserWithType | null>(null)
-  const [isAdmin, setIsAdmin] = useState<boolean>(false)
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  // Inicialização síncrona do localStorage — evita flash de "Carregando..."
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return !!(getAccessToken() && localStorage.getItem('userType'))
+  })
+  const [userType, setUserType] = useState<UserType | null>(() => {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('userType') as UserType | null
+  })
+  const [userId, setUserId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null
+    return localStorage.getItem('userId')
+  })
+  const [user, setUser] = useState<UserWithType | null>(() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const stored = localStorage.getItem('user')
+      return stored ? JSON.parse(stored) : null
+    } catch { return null }
+  })
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('userIsAdmin') === 'true'
+  })
+  const [isLoading, setIsLoading] = useState<boolean>(false)
   const { useLogin, useLogout } = useAuthApi()
   const loginMutation = useLogin()
   const logoutMutation = useLogout()
   const queryClient = useQueryClient()
-
-  const checkAuth = useCallback(() => {
-    const token = getAccessToken()
-    const storedUserType = localStorage.getItem('userType') as UserType | null
-    const storedUserId = localStorage.getItem('userId')
-    const storedUser = localStorage.getItem('user')
-    const storedIsAdmin = localStorage.getItem('userIsAdmin') === 'true'
-
-    if (token && storedUserType) {
-      setIsAuthenticated(true)
-      setUserType(storedUserType)
-      setUserId(storedUserId)
-      setIsAdmin(storedIsAdmin)
-      if (storedUser) {
-        setUser(JSON.parse(storedUser))
-      }
-    } else {
-      setIsAuthenticated(false)
-      setUserType(null)
-      setUserId(null)
-      setUser(null)
-      setIsAdmin(false)
-    }
-    setIsLoading(false)
-  }, [])
-
-  useEffect(() => {
-    checkAuth()
-  }, [checkAuth])
 
   const login = useCallback(async (
     username: string,
@@ -108,7 +97,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.setItem('user', JSON.stringify(response))
       queryClient.invalidateQueries({ queryKey: ['currentUser'] })
     } catch (error) {
-      console.error('Login failed:', error)
       throw error
     }
   }, [loginMutation, queryClient])
@@ -122,6 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       localStorage.removeItem('userId')
       localStorage.removeItem('userIsAdmin')
       localStorage.removeItem('user')
+      localStorage.removeItem('token') // legacy key cleanup
       setIsAuthenticated(false)
       setUserType(null)
       setUserId(null)
@@ -129,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsAdmin(false)
       queryClient.clear()
     } catch (error) {
-      console.error('Logout failed:', error)
       throw error
     }
   }, [logoutMutation, queryClient])

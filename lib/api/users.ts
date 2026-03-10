@@ -125,12 +125,6 @@ export const useUserApi = () => {
       throw new Error('Senha atual e nova senha são obrigatórias')
     }
 
-    console.log('Changing password with params:', {
-      hasOldPassword: !!oldPassword,
-      hasNewPassword: !!newPassword,
-      endpoint: `${API_BASE_URL}/users/change-password`,
-    })
-
     const response = await fetchWithToken(
       `${API_BASE_URL}/users/change-password`,
       {
@@ -146,7 +140,6 @@ export const useUserApi = () => {
     )
 
     const result = await response.json()
-    console.log('Change password response:', result)
     return result
   }
 

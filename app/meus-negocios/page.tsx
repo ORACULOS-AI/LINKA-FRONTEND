@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useBusinessApi } from '@/lib/api/business'
 import { Button } from '@/components/ui/button'
@@ -45,16 +45,12 @@ export default function BusinessManagementPage() {
 
   const deleteBusinessMutation = useDeleteBusiness()
 
-  useEffect(() => {
-    refetch()
-  }, [refetch])
-
   const handleDeleteBusiness = async (businessId: string) => {
     try {
       await deleteBusinessMutation.mutateAsync(businessId)
       await refetch()
-    } catch (error) {
-      console.error('Erro ao excluir negócio:', error)
+    } catch {
+      // Error handled by mutation
     }
   }
 

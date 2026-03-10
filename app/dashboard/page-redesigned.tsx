@@ -131,7 +131,7 @@ export default function DashboardPageRedesigned() {
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/20 backdrop-blur-sm border border-white/30"
             >
               <Sparkles className="h-5 w-5" />
-              <span className="text-base font-semibold">Ecossistema de Inovação UFC</span>
+              <span className="text-base font-semibold">Ambiente Digital de Conexões</span>
             </motion.div>
 
             {/* Headline impactante */}

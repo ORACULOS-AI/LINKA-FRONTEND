@@ -18,7 +18,7 @@ import {
   ParticipanteStatus,
 } from '@/lib/types/eventTypes'
 import { formatDate } from '@/lib/utils'
-import { useAuth } from '@/lib/hooks/useAuth'
+import { useAuth } from '@/lib/context/AuthContext'
 import { useEventApi } from '@/lib/api/event'
 import { useState } from 'react'
 import { toast } from 'react-toastify'

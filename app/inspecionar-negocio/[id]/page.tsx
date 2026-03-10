@@ -69,14 +69,6 @@ export default function BusinessDetailPage({ params }: BusinessDetailPageProps) 
   const isOwner = business?.uid_admin === auth.userId
 
   useEffect(() => {
-    if (business) {
-      setSelectedUsers([])
-      setUserRoles({})
-      setEditedBusiness({})
-    }
-  }, [business])
-
-  useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300)
     }
@@ -144,7 +136,7 @@ export default function BusinessDetailPage({ params }: BusinessDetailPageProps) 
         description: "Imagem atualizada com sucesso",
       })
     } catch (error) {
-      console.error("Erro ao atualizar imagem:", error)
+      void error
       toast({
         title: "Erro",
         description: "Não foi possível atualizar a imagem",
@@ -182,7 +174,7 @@ export default function BusinessDetailPage({ params }: BusinessDetailPageProps) 
         description: "Convites enviados com sucesso",
       })
     } catch (error) {
-      console.error("Erro ao adicionar usuários:", error)
+      void error
       toast({
         title: "Erro",
         description: "Não foi possível enviar os convites",
