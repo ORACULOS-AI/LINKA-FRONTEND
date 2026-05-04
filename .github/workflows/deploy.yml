@@ -14,19 +14,32 @@ jobs:
   deploy:
     needs: ci
     runs-on: [self-hosted, frontend-runner]
-    if: github.ref == 'refs/heads/main'
 
     steps:
-      - name: Pull latest code
-        run: git -C ${{ github.workspace }} pull origin main
+      - name: Pull latest main
+        run: git -C /home/prointer/LINKA-FRONT-END pull origin main
 
       - name: Build frontend image
-        run: docker compose build linka-frontend
+        run: |
+          docker compose \
+            -f /home/prointer/LINKA-FRONT-END/docker-compose.yml \
+            build \
+            --build-arg NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }} \
+            linka-frontend
 
       - name: Restart frontend
-        run: docker compose up -d linka-frontend
+        run: |
+          docker compose \
+            -f /home/prointer/LINKA-FRONT-END/docker-compose.yml \
+            up -d linka-frontend
 
       - name: Health check
         run: |
           sleep 5
           curl -f http://localhost:3000/ || (echo "Frontend unhealthy after deploy" && exit 1)
+
+      - name: Summary
+        run: |
+          echo "## Frontend Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- API: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}" >> $GITHUB_STEP_SUMMARY

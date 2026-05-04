@@ -1,2 +1,3 @@
-# Vercel deploy desativado — frontend agora serve via self-hosted runner na Prointer (SLK-124/SLK-126)
-# Manter arquivo para referência histórica; nenhum job ativo.
+# Arquivo removido — Vercel substituído por self-hosted runner na Prointer (SLK-127)
+# Mantido vazio para não quebrar histórico de git.
+# Pode ser deletado com segurança.
