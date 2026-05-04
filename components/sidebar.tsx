@@ -245,7 +245,8 @@ export function MainSidebar({ className, onClose }: MainSidebarProps) {
       )}
     >
       <SidebarHeader className="border-b border-purple-100 px-4 py-4 flex justify-between items-center bg-gradient-to-r from-purple-50 to-violet-50">
-        <Link href="/" className="flex items-center group">
+        <Link href="/" className="flex items-center gap-2 group">
+          <img src="/logo-ufc-inova.png" alt="UFC Inova" className="h-9 w-auto" />
           <span className="text-sm font-bold bg-gradient-to-r from-purple-700 to-violet-600 bg-clip-text text-transparent leading-tight">
             Ambiente Digital<br />de Conexões
           </span>

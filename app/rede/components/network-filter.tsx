@@ -27,6 +27,9 @@ export function NetworkFilter({ roleFilter, setRoleFilter }: NetworkFilterProps)
         <SelectItem value="pesquisador" className="hover:bg-purple-50 focus:bg-purple-50 text-gray-700 rounded-lg">
           Pesquisadores
         </SelectItem>
+        <SelectItem value="tecnico_admin" className="hover:bg-purple-50 focus:bg-purple-50 text-gray-700 rounded-lg">
+          Técnicos Administrativos
+        </SelectItem>
         <SelectItem value="externo" className="hover:bg-purple-50 focus:bg-purple-50 text-gray-700 rounded-lg">
           Externos
         </SelectItem>

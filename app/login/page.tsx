@@ -114,6 +114,11 @@ export default function LoginScreen() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
+              {/* Logo UFC Inova */}
+              <div className="flex justify-center mb-6">
+                <img src="/logo-ufc-inova.png" alt="UFC Inova" className="h-14 w-auto" />
+              </div>
+
               {/* Title */}
               <motion.h1
                 className="text-3xl font-bold mb-2 text-gray-900"
@@ -302,6 +307,11 @@ export default function LoginScreen() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
+            {/* Logo UFC Inova */}
+            <div className="flex justify-center mb-6">
+              <img src="/logo-ufc-inova-branco.png" alt="UFC Inova" className="h-14 w-auto" />
+            </div>
+
             {/* Badge */}
             <motion.div
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm mb-6"

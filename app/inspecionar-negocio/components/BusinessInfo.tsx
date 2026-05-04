@@ -235,6 +235,41 @@ export const BusinessInfo: React.FC<BusinessInfoProps> = ({
             </Tabs>
           )}
 
+          {/* Informações Fiscais */}
+          {(business.cnpj || business.cnae || business.razao_social || isEditingFields) && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="mt-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-br from-blue-100 to-blue-50 rounded-lg border border-blue-200">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Informações Fiscais</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <InfoItem
+                  icon={FileText}
+                  label="CNPJ"
+                  value={editedBusiness.cnpj ?? business.cnpj ?? ""}
+                  isEditing={isEditingFields}
+                  onChange={(value) => onFieldChange("cnpj", value)}
+                />
+                <InfoItem
+                  icon={FileText}
+                  label="CNAE"
+                  value={editedBusiness.cnae ?? business.cnae ?? ""}
+                  isEditing={isEditingFields}
+                  onChange={(value) => onFieldChange("cnae", value)}
+                />
+                <InfoItem
+                  icon={FileText}
+                  label="Razão Social"
+                  value={editedBusiness.razao_social ?? business.razao_social ?? ""}
+                  isEditing={isEditingFields}
+                  onChange={(value) => onFieldChange("razao_social", value)}
+                />
+              </div>
+            </motion.div>
+          )}
+
           {/* Modelo de Negócio */}
           {(business.modelo_negocio || isEditingFields) && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="mt-6">

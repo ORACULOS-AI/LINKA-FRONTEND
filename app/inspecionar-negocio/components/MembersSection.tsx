@@ -179,7 +179,7 @@ export const MembersSection: React.FC<MembersSectionProps> = ({
                   <Avatar className="h-12 w-12 border-2 border-purple-200 shadow-sm">
                     <AvatarImage src={owner?.foto_url || "/placeholder.svg"} alt={owner?.nome || "Avatar"} />
                     <AvatarFallback className="bg-purple-100 text-blue-700 font-semibold">
-                      {(owner?.nome?.[0] || business.uid_admin[0])?.toUpperCase() || "A"}
+                      {owner?.nome?.[0]?.toUpperCase() || "P"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="absolute -top-1 -right-1 p-1 bg-yellow-400 rounded-full">
@@ -187,7 +187,7 @@ export const MembersSection: React.FC<MembersSectionProps> = ({
                   </div>
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">{owner?.nome || business.uid_admin}</p>
+                  <p className="font-semibold text-gray-900">{owner?.nome || "Proprietário"}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0 text-xs">
                       Proprietário
@@ -219,11 +219,11 @@ export const MembersSection: React.FC<MembersSectionProps> = ({
                     <Avatar className="h-10 w-10 border border-slate-200">
                       <AvatarImage src={user?.foto_url || "/placeholder.svg"} alt={user?.nome || "Avatar"} />
                       <AvatarFallback className="bg-purple-50/30 text-slate-700">
-                        {(user?.nome?.[0] || userId[0])?.toUpperCase() || "U"}
+                        {user?.nome?.[0]?.toUpperCase() || "M"}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium text-gray-900">{user?.nome || userId}</p>
+                      <p className="font-medium text-gray-900">{user?.nome || "Membro"}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge
                           variant="outline"

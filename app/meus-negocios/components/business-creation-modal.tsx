@@ -59,12 +59,14 @@ const businessSchema = z.object({
     .max(1000, 'A descrição deve ter no máximo 1000 caracteres'),
   descricao_problema: z
     .string()
-    .min(10, 'A descrição do problema deve ter pelo menos 10 caracteres')
-    .max(500, 'A descrição do problema deve ter no máximo 500 caracteres'),
+    .max(500, 'A descrição do problema deve ter no máximo 500 caracteres')
+    .optional()
+    .or(z.literal('')),
   solucao_proposta: z
     .string()
-    .min(10, 'A solução proposta deve ter pelo menos 10 caracteres')
-    .max(500, 'A solução deve ter no máximo 500 caracteres'),
+    .max(500, 'A solução deve ter no máximo 500 caracteres')
+    .optional()
+    .or(z.literal('')),
   website: z.string().url('URL inválida').optional().or(z.literal('')),
   cnpj: z
     .string()
@@ -350,7 +352,7 @@ export function BusinessCreationModal({
             name="descricao_problema"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-700 font-semibold">Problema que Resolve *</FormLabel>
+                <FormLabel className="text-gray-700 font-semibold">Problema que Resolve <span className="font-normal text-gray-400">(opcional)</span></FormLabel>
                 <FormControl>
                   <TextareaWithCounter
                     key="textarea-descricao-problema"
@@ -375,7 +377,7 @@ export function BusinessCreationModal({
             name="solucao_proposta"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-700 font-semibold">Solução Proposta *</FormLabel>
+                <FormLabel className="text-gray-700 font-semibold">Solução Proposta <span className="font-normal text-gray-400">(opcional)</span></FormLabel>
                 <FormControl>
                   <TextareaWithCounter
                     key="textarea-solucao-proposta"

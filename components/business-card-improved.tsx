@@ -110,14 +110,23 @@ export function BusinessCardImproved({ business, index = 0 }: BusinessCardProps)
                     width={64}
                     height={64}
                     className="object-cover w-full h-full"
+                    unoptimized
+                    onError={(e) => {
+                      const target = e.currentTarget as HTMLImageElement
+                      target.style.display = 'none'
+                      const sibling = target.nextElementSibling as HTMLElement | null
+                      if (sibling) sibling.style.display = 'flex'
+                    }}
                   />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center">
-                    <span className="text-white font-bold text-2xl">
-                      {business.nome.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
+                ) : null}
+                <div
+                  className="w-full h-full bg-gradient-to-br from-purple-500 to-violet-600 items-center justify-center"
+                  style={{ display: business.foto_perfil ? 'none' : 'flex' }}
+                >
+                  <span className="text-white font-bold text-2xl">
+                    {business.nome.charAt(0).toUpperCase()}
+                  </span>
+                </div>
               </div>
 
               <div className="flex-1 min-w-0 pt-1">

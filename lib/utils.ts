@@ -23,18 +23,18 @@ export function formatDate(
 export function formatImageSrc(src: string): string {
   if (!src) return ''
 
-  // Handle Google Drive URLs
+  // Handle Google Drive URLs - use thumbnail endpoint (uc?export=view foi descontinuado)
   if (src.includes('drive.google.com')) {
     // Pattern for /file/d/ID/view
     const fileIdMatch = src.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)
     if (fileIdMatch && fileIdMatch[1]) {
-      return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`
+      return `https://drive.google.com/thumbnail?id=${fileIdMatch[1]}&sz=w800`
     }
 
-    // Pattern for open?id=ID
+    // Pattern for open?id=ID or uc?id=ID
     const openIdMatch = src.match(/id=([a-zA-Z0-9_-]+)/)
     if (openIdMatch && openIdMatch[1]) {
-      return `https://drive.google.com/uc?export=view&id=${openIdMatch[1]}`
+      return `https://drive.google.com/thumbnail?id=${openIdMatch[1]}&sz=w800`
     }
   }
 
@@ -43,9 +43,8 @@ export function formatImageSrc(src: string): string {
 
 export function isValidImageUrl(url: string | undefined | null): boolean {
   if (!url) return false
-  // Aceitar URLs do Drive normalizadas por formatImageSrc (uc?export=view)
   if (url.includes('drive.google.com')) {
-    return url.includes('uc?export=view')
+    return url.includes('thumbnail?id=') || url.includes('uc?export=view')
   }
   return url.startsWith('https://')
 }

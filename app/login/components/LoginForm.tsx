@@ -2,9 +2,8 @@ import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle, User, GraduationCap, Crown, Briefcase, KeyRound, UserCog } from 'lucide-react'
+import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle, GraduationCap, Crown, Briefcase, KeyRound, UserCog } from 'lucide-react'
 import { UserType } from '@/lib/types/userTypes'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { motion } from 'framer-motion'
 
 interface LoginFormProps {
@@ -18,10 +17,9 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [selectedUserType, setSelectedUserType] = useState<UserType | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Derivar tipo de usuário diretamente do email (sem useEffect)
+  // Derivar tipo de usuário diretamente do email
   const detectedUserType = useMemo<UserType | null>(() => {
     if (!email.includes('@')) return null
     if (email.endsWith('@alu.ufc.br')) return UserType.ESTUDANTE
@@ -29,15 +27,8 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
     return UserType.EXTERNO
   }, [email])
 
-  // Derivar se é email UFC
-  const isUfcEmail = email.endsWith('@ufc.br') && !email.endsWith('@alu.ufc.br')
-
-  // Derivar o tipo efetivo (auto-select para não-UFC)
-  const effectiveUserType = useMemo(() => {
-    if (!detectedUserType) return null
-    if (!isUfcEmail) return detectedUserType
-    return selectedUserType || UserType.PESQUISADOR
-  }, [detectedUserType, isUfcEmail, selectedUserType])
+  // Usar sempre o tipo detectado automaticamente (perfil do cadastro)
+  const effectiveUserType = detectedUserType
 
   // Função para obter o ícone do tipo de usuário
   const getUserTypeIcon = (type: UserType) => {
@@ -142,58 +133,6 @@ export function LoginForm({ onSubmit, error, successMessage, onForgotPassword }:
         </motion.div>
       </motion.div>
 
-      {/* Seleção entre Pesquisador e Técnico Admin para emails @ufc.br */}
-      {isUfcEmail && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.4 }}
-          className="space-y-3"
-        >
-          <Label className="text-gray-700 font-medium">
-            Tipo de vínculo
-          </Label>
-          <RadioGroup
-            value={selectedUserType || ''}
-            onValueChange={(value) => setSelectedUserType(value as UserType)}
-            className="grid grid-cols-2 gap-3"
-          >
-            <div
-              className={`flex items-center space-x-3 rounded-lg border-2 p-3 cursor-pointer transition-all ${
-                selectedUserType === UserType.PESQUISADOR
-                  ? 'bg-purple-50 border-purple-500 shadow-sm'
-                  : 'border-gray-200 hover:border-purple-300'
-              }`}
-              onClick={() => setSelectedUserType(UserType.PESQUISADOR)}
-            >
-              <RadioGroupItem value={UserType.PESQUISADOR} id="login-pesquisador" />
-              <div className="flex items-center gap-2 flex-1">
-                <Crown className="h-4 w-4 text-purple-600" />
-                <Label htmlFor="login-pesquisador" className="cursor-pointer font-medium text-sm">
-                  Pesquisador
-                </Label>
-              </div>
-            </div>
-
-            <div
-              className={`flex items-center space-x-3 rounded-lg border-2 p-3 cursor-pointer transition-all ${
-                selectedUserType === UserType.TECNICO_ADMIN
-                  ? 'bg-purple-50 border-purple-500 shadow-sm'
-                  : 'border-gray-200 hover:border-purple-300'
-              }`}
-              onClick={() => setSelectedUserType(UserType.TECNICO_ADMIN)}
-            >
-              <RadioGroupItem value={UserType.TECNICO_ADMIN} id="login-tecnico" />
-              <div className="flex items-center gap-2 flex-1">
-                <UserCog className="h-4 w-4 text-purple-600" />
-                <Label htmlFor="login-tecnico" className="cursor-pointer font-medium text-sm">
-                  Técnico Administrativo
-                </Label>
-              </div>
-            </div>
-          </RadioGroup>
-        </motion.div>
-      )}
 
       <motion.div 
         className="space-y-2"

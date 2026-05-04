@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useBusinessApi } from "@/lib/api/business"
 import { BusinessListImproved } from "./business-list-improved"
 import { Search, TrendingUp, RotateCw, ChevronDown, Sparkles } from "lucide-react"
-import { NegocioType, CategoriaNegocio, type NegocioResponse } from "@/lib/types/businessTypes"
+import { NegocioType, CategoriaNegocio, AreaAtuacao, type NegocioResponse } from "@/lib/types/businessTypes"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -27,10 +27,11 @@ export function BusinessShowcaseRedesigned({ initialBusinesses }: BusinessShowca
 
   const [tipoFilter, setTipoFilter] = useState<NegocioType | "all">("all")
   const [categoriaFilter, setCategoriaFilter] = useState<CategoriaNegocio | "all">("all")
+  const [areaFilter, setAreaFilter] = useState<AreaAtuacao | "all">("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [visibleBusinesses, setVisibleBusinesses] = useState<NegocioResponse[]>(
-    initialBusinesses?.filter((b) => b.visivel === true) || [],
+    initialBusinesses?.filter((b) => b.visivel !== false) || [],
   )
   const [sortBy, setSortBy] = useState<"recent" | "oldest" | "alphabetical">("recent")
   const itemsPerPage = 9
@@ -46,10 +47,11 @@ export function BusinessShowcaseRedesigned({ initialBusinesses }: BusinessShowca
 
   useEffect(() => {
     if (businesses) {
-      const filtered = businesses.filter((business: NegocioResponse) => business.visivel === true)
+      // Tratar visivel undefined/null como visível (apenas excluir explicitamente false)
+      const filtered = businesses.filter((business: NegocioResponse) => business.visivel !== false)
       setVisibleBusinesses(filtered)
     } else if (!businesses && initialBusinesses) {
-      const filtered = initialBusinesses.filter((business: NegocioResponse) => business.visivel === true)
+      const filtered = initialBusinesses.filter((business: NegocioResponse) => business.visivel !== false)
       setVisibleBusinesses(filtered)
     } else if (!businesses && !initialBusinesses && !isLoading && !error) {
       setVisibleBusinesses([])
@@ -60,12 +62,13 @@ export function BusinessShowcaseRedesigned({ initialBusinesses }: BusinessShowca
   const filteredBusinesses = visibleBusinesses.filter((business) => {
     const matchesTipo = tipoFilter === "all" || business.tipo_negocio === tipoFilter
     const matchesCategoria = categoriaFilter === "all" || business.categoria === categoriaFilter
+    const matchesArea = areaFilter === "all" || business.area_atuacao === areaFilter
     const matchesSearch =
       searchTerm === "" ||
       business.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       business.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       business.palavras_chave.some((keyword) => keyword.toLowerCase().includes(searchTerm.toLowerCase()))
-    return matchesTipo && matchesCategoria && matchesSearch
+    return matchesTipo && matchesCategoria && matchesArea && matchesSearch
   })
 
   const getTipoLabel = (tipo: NegocioType | "all") => {
@@ -217,6 +220,31 @@ export function BusinessShowcaseRedesigned({ initialBusinesses }: BusinessShowca
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Área de Atuação */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="h-10 px-4 rounded-xl border-2 border-purple-200 hover:border-purple-300 hover:bg-purple-50 transition-all"
+                >
+                  <span className="text-sm font-medium text-gray-700">
+                    {areaFilter === "all" ? "Área de Atuação" : areaFilter.charAt(0) + areaFilter.slice(1).toLowerCase().replace(/_/g, ' ')}
+                  </span>
+                  <ChevronDown className="h-4 w-4 ml-2 text-purple-600" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 rounded-xl border-purple-200">
+                <DropdownMenuRadioGroup value={areaFilter} onValueChange={(v) => setAreaFilter(v as AreaAtuacao | "all")}>
+                  <DropdownMenuRadioItem value="all" className="rounded-lg">Todas as Áreas</DropdownMenuRadioItem>
+                  {Object.values(AreaAtuacao).map((area) => (
+                    <DropdownMenuRadioItem key={area} value={area} className="rounded-lg">
+                      {area.charAt(0) + area.slice(1).toLowerCase().replace(/_/g, ' ')}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Ordenação */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -264,7 +292,7 @@ export function BusinessShowcaseRedesigned({ initialBusinesses }: BusinessShowca
           </div>
 
           {/* Active Filters Indicator */}
-          {(tipoFilter !== "all" || categoriaFilter !== "all" || searchTerm !== "") && (
+          {(tipoFilter !== "all" || categoriaFilter !== "all" || areaFilter !== "all" || searchTerm !== "") && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
@@ -284,6 +312,12 @@ export function BusinessShowcaseRedesigned({ initialBusinesses }: BusinessShowca
                   <button onClick={() => setCategoriaFilter("all")} className="hover:text-purple-900">×</button>
                 </span>
               )}
+              {areaFilter !== "all" && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium">
+                  {areaFilter.charAt(0) + areaFilter.slice(1).toLowerCase().replace(/_/g, ' ')}
+                  <button onClick={() => setAreaFilter("all")} className="hover:text-purple-900">×</button>
+                </span>
+              )}
               {searchTerm !== "" && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-medium">
                   "{searchTerm}"
@@ -294,6 +328,7 @@ export function BusinessShowcaseRedesigned({ initialBusinesses }: BusinessShowca
                 onClick={() => {
                   setTipoFilter("all")
                   setCategoriaFilter("all")
+                  setAreaFilter("all")
                   setSearchTerm("")
                 }}
                 className="text-xs text-purple-600 hover:text-purple-700 font-medium underline"

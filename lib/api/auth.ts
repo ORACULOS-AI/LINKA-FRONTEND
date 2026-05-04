@@ -25,29 +25,44 @@ export const getRefreshToken = () => localStorage.getItem('refreshToken')
 export const useAuthApi = () => {
   const queryClient = useQueryClient()
 
+  const loginWithScope = async (
+    username: string,
+    password: string,
+    scope: string,
+  ): Promise<Response> => {
+    return fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ username, password, scope }),
+    })
+  }
+
+  const isUfcEmail = (email: string) =>
+    email.endsWith('@ufc.br') && !email.endsWith('@alu.ufc.br')
+
   const login = async ({
     username,
     password,
     userType,
   }: LoginParams): Promise<LoginResponse> => {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        username,
-        password,
-        scope: userType,
-      }),
-    })
+    let response: Response
+
+    // Para emails @ufc.br, tentar pesquisador e técnico em sequência
+    // (backend ainda usa scope para rotear; quando backend suportar auto-detect, remover o fallback)
+    if (isUfcEmail(username)) {
+      response = await loginWithScope(username, password, 'pesquisador')
+      if (!response.ok) {
+        response = await loginWithScope(username, password, 'tecnico_admin')
+      }
+    } else {
+      response = await loginWithScope(username, password, userType)
+    }
 
     if (!response.ok) {
       if (response.status === 401) {
         toast({
           title: 'Erro',
-          description:
-            'Credenciais inválidas. Por favor, verifique seu email, senha e tipo de usuário.',
+          description: 'Credenciais inválidas. Por favor, verifique seu email e senha.',
           variant: 'destructive',
         })
       }
@@ -61,9 +76,8 @@ export const useAuthApi = () => {
     localStorage.setItem('userType', data.data.user_type)
     localStorage.setItem('userUid', data.data.user_uid)
     localStorage.setItem('userIsAdmin', data.data.is_admin)
-    // Compatibilidade: manter chave legada
     localStorage.setItem('token', data.data.access_token)
-    
+
     return data.data
   }
 

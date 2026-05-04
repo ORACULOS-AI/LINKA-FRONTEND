@@ -154,6 +154,8 @@ export const useUserApi = () => {
     useQuery({
       queryKey: ['users'],
       queryFn: fetchUsers,
+      staleTime: 30 * 1000, // 30s - novos usuários aparecem rapidamente
+      refetchOnWindowFocus: true,
     })
 
   const useGetUsers = (userType: UserType) =>
