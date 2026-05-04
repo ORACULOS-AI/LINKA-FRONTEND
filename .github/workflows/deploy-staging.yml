@@ -1,0 +1,43 @@
+name: Deploy Staging — Frontend
+
+on:
+  push:
+    branches: [develop]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy-staging:
+    needs: ci
+    runs-on: [self-hosted, frontend-runner]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Build frontend image
+        run: |
+          docker compose -f ${{ github.workspace }}/docker-compose.yml \
+            build \
+            --build-arg NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }} \
+            linka-frontend
+
+      - name: Restart frontend container
+        run: docker compose -f ${{ github.workspace }}/docker-compose.yml up -d linka-frontend
+
+      - name: Health check
+        run: |
+          sleep 15
+          curl -f http://localhost:3000/ || (echo "Frontend health check failed" && exit 1)
+
+      - name: Summary
+        run: |
+          echo "## Frontend Staging Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: develop" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- URL: http://prointer:3000" >> $GITHUB_STEP_SUMMARY
