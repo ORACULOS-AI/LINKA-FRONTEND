@@ -1,5 +1,5 @@
 import React from 'react'
-import Image from 'next/image'
+import { formatImageSrc } from '@/lib/utils'
 
 interface ImageProps {
   image?:
@@ -8,7 +8,7 @@ interface ImageProps {
         contentType: string
       }
     | string
-    | null // Adicione null aqui
+    | null
   className?: string
 }
 
@@ -17,29 +17,27 @@ const ImageDisplay: React.FC<ImageProps> = ({ image, className }) => {
     return <p>Imagem não disponível</p>
   }
 
-  let base64Image: string
+  let imageUrl: string
 
   if (typeof image === 'string') {
-    base64Image = image
+    // Se for uma URL do S3 ou base64, usa diretamente
+    imageUrl = image.startsWith('data:') || image.startsWith('http') 
+      ? image 
+      : `data:image/jpeg;base64,${image}`
   } else if ('data' in image && 'contentType' in image) {
-    base64Image = `data:${image.contentType};base64,${image.data}`
+    // Se for um objeto com data e contentType, converte para base64
+    imageUrl = `data:${image.contentType};base64,${image.data}`
   } else {
     return <p>Formato de imagem inválido</p>
   }
 
   return (
-    <div>
-      <Image
-        loading="lazy"
-        src={base64Image}
-        alt="Imagem"
-        width={0}
-        height={0}
-        sizes="100vw"
-        style={{ width: '100%', height: 'auto' }}
-        className={className}
-      />
-    </div>
+    <img
+      src={formatImageSrc(imageUrl)}
+      alt="Imagem"
+      className={className}
+      style={{ maxWidth: '100%', height: 'auto' }}
+    />
   )
 }
 

@@ -1,0 +1,19 @@
+services:
+  linka-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: /api/v1
+    container_name: linka-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      INTERNAL_API_URL: http://linka-backend:8000/api/v1
+    networks:
+      - linka-network
+
+networks:
+  linka-network:
+    name: linka-network
+    external: true

@@ -1,3 +1,4 @@
+/* Estilos do calendário Mina Scheduler */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -59,72 +60,171 @@
   overflow: hidden;
   animation: typewriter 2s steps(60, end) forwards;
 }
-
 :root {
-  --gradient: #00FF7F;
-
-  --background: hsl(159 65% 4%);
-  --foreground: hsl(159, 10%, 97.5%);
-
-  --muted: hsl(159, 50%, 15%);
-  --muted-foreground: hsl(159, 10%, 55%);
-
-  --popover: hsl(179, 52.28%, 4.16%);
-  --popover-foreground: hsl(179, 5.3%, 97.6%);
-  --card: hsl(179, 52.28%, 4.16%);
-  --card-foreground: hsl(179, 5.3%, 97.6%);
-
-  --popover: hsl(159, 45%, 6.5%);
-  --popover-foreground: hsl(159, 10%, 97.5%);
-
-  --card: hsl(159, 45%, 6.5%);
-  --card-foreground: hsl(159, 10%, 97.5%);
-
-  --border: hsl(159, 50%, 15%);
-  --input: hsl(159, 50%, 15%);
-
-  --primary: hsl(159 100% 50%);
-  --primary-foreground: hsl(159 10% 5%);
-
-  --secondary: hsl(159, 50%, 15%);
-  --secondary-foreground: hsl(159 10% 97.5%);
-
-  --accent: hsl(159, 50%, 15%);
-  --accent-foreground: hsl(159 10% 97.5%);
-
-  --destructive: hsl(0, 62.8%, 30.6%);
-  --destructive-foreground: hsl(159 10% 97.5%);
-
-  --ring: hsl(159 100% 50%);
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 262.1 83.3% 57.8%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 262.1 83.3% 57.8%;
+  --radius: 0.75rem;
 }
 
 
-/* :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-}
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .bg-gradient-radial {
+    background: radial-gradient(var(--tw-gradient-stops));
   }
-} */
+
+  .bg-animated-gradient {
+    background: linear-gradient(-45deg, #0f172a, #581c87, #1e1b4b, #0f172a, #7c3aed, #2d1b69);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+  }
+
+  .bg-gradient-moving {
+    background: linear-gradient(
+      45deg,
+      transparent 0%,
+      rgba(139, 92, 246, 0.1) 25%,
+      rgba(168, 85, 247, 0.15) 50%,
+      rgba(139, 92, 246, 0.1) 75%,
+      transparent 100%
+    );
+    background-size: 200% 200%;
+    animation: gradientMove 20s ease-in-out infinite;
+  }
+
+  .bg-gradient-moving-reverse {
+    background: linear-gradient(
+      -45deg,
+      transparent 0%,
+      rgba(124, 58, 237, 0.08) 25%,
+      rgba(147, 51, 234, 0.12) 50%,
+      rgba(124, 58, 237, 0.08) 75%,
+      transparent 100%
+    );
+    background-size: 300% 300%;
+    animation: gradientMoveReverse 25s ease-in-out infinite;
+  }
+
+  .bg-gradient-diagonal {
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.05) 0%,
+      transparent 25%,
+      rgba(168, 85, 247, 0.08) 50%,
+      transparent 75%,
+      rgba(139, 92, 246, 0.05) 100%
+    );
+    background-size: 400% 400%;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  .animate-slow-spin {
+    animation: slowSpin 30s linear infinite;
+  }
+
+  .animate-diagonal-move {
+    animation: diagonalMove 18s ease-in-out infinite;
+  }
+
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes gradientMove {
+    0% {
+      background-position: 0% 0%;
+    }
+    25% {
+      background-position: 100% 50%;
+    }
+    50% {
+      background-position: 50% 100%;
+    }
+    75% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 0% 0%;
+    }
+  }
+
+  @keyframes gradientMoveReverse {
+    0% {
+      background-position: 100% 100%;
+    }
+    25% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 50% 0%;
+    }
+    75% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 100% 100%;
+    }
+  }
+
+  @keyframes diagonalMove {
+    0% {
+      background-position: 0% 0%;
+    }
+    33% {
+      background-position: 100% 50%;
+    }
+    66% {
+      background-position: 50% 100%;
+    }
+    100% {
+      background-position: 0% 0%;
+    }
+  }
+
+  @keyframes slowSpin {
+    from {
+      transform: translate(-50%, -50%) rotate(0deg);
+    }
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+
+  @keyframes glow {
+    from {
+      box-shadow: 0 0 20px rgba(147, 51, 234, 0.5);
+    }
+    to {
+      box-shadow: 0 0 30px rgba(147, 51, 234, 0.8);
+    }
+  }
+}

@@ -14,11 +14,11 @@ const legal = [
 ]
 const links = [
   { name: 'Home', href: '/', expand: null },
-  { name: 'Sobre', href: '#sobre-escritorio', expand: null },
-  { name: 'Vitrines', href: '#vitrines', expand: null },
+  { name: 'Sobre', href: '/#sobre-escritorio', expand: null },
+  { name: 'Vitrines', href: '/#vitrines', expand: null },
   {
     name: 'Comitê de Uniformização',
-    href: '#comite',
+    href: '/#comite',
     // expand: [
     //   { name: 'Sobre', href: '/sobre' },
     //   { name: 'Conferir', href: '/conferir' },
@@ -48,8 +48,15 @@ const links = [
       { name: 'Fluxos visuais', href: '/fluxos_e_checklists/fluxos_visuais' },
     ],
   },
-  { name: 'Contato', href: '/contact', expand: null },
-  { name: 'LINK@', href: '/linka', expand: null, special: true },
+  { name: 'Contato', href: '/contato', expand: null },
+  { name: 'Rede', href: '/rede', expand: null },
+  { name: 'Eventos', href: '/eventos', expand: null },
+  {
+    name: 'Início',
+    href: '/negocios',
+    expand: null,
+    special: true,
+  },
 ]
 
 export { social, legal, links }
