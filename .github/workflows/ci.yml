@@ -24,6 +24,8 @@ jobs:
         run: npm ci
 
       - name: Lint
+        env:
+          ESLINT_USE_FLAT_CONFIG: 'false'
         run: npm run lint
 
       - name: Type check
