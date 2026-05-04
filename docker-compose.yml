@@ -1,19 +1,19 @@
-version: '3.8'
-
 services:
   linka-frontend:
-    build: .
-    ports:
-      - "3001:3000"
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: /api/v1
+    container_name: linka-frontend
+    restart: unless-stopped
     environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-    volumes:
-      - .:/app
-      - /app/node_modules
+      NODE_ENV: production
+      INTERNAL_API_URL: http://linka-backend:8000/api/v1
     networks:
       - linka-network
 
 networks:
   linka-network:
-    external: true 
+    name: linka-network
+    external: true

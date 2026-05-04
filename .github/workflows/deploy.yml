@@ -1,0 +1,32 @@
+name: Deploy — Frontend
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: [self-hosted, frontend-runner]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Pull latest code
+        run: git -C ${{ github.workspace }} pull origin main
+
+      - name: Build frontend image
+        run: docker compose build linka-frontend
+
+      - name: Restart frontend
+        run: docker compose up -d linka-frontend
+
+      - name: Health check
+        run: |
+          sleep 5
+          curl -f http://localhost:3000/ || (echo "Frontend unhealthy after deploy" && exit 1)
