@@ -103,3 +103,8 @@ const BusinessDetails: React.FC<BusinessDetailsProps> = ({
           ))}
         </div>
       </section>
+    </div>
+  );
+};
+
+export default BusinessDetails;

@@ -148,7 +148,7 @@ export default function MeetRoom({ meetingId }: MeetRoomProps) {
             onDisconnected={handleDisconnected}
             onError={(error) => {
               setError(error.message || 'Erro na sala de reunião')
-            }
+            }}
           >
             <VideoConference />
           </LiveKitRoom>
