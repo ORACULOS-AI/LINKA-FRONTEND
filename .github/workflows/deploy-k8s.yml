@@ -1,0 +1,102 @@
+name: Deploy K8s — Frontend
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  build-and-push:
+    needs: ci
+    runs-on: [self-hosted, frontend-runner]
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+      - name: Clean up old images
+        run: |
+          docker images linka-frontend --format "{{.Tag}} {{.ID}}" \
+            | grep -v "^develop\|^main" \
+            | awk '{print $2}' \
+            | xargs -r docker rmi -f || true
+          docker image prune -f || true
+          sudo k3s ctr images ls -q \
+            | grep "linka-frontend" \
+            | grep -v ":develop\|:main" \
+            | xargs -r sudo k3s ctr images rm || true
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }} \
+            -t linka-frontend:${{ steps.tag.outputs.tag }} \
+            -t linka-frontend:${{ github.ref_name }} .
+          docker save linka-frontend:${{ steps.tag.outputs.tag }} | sudo k3s ctr images import -
+
+  deploy-staging:
+    needs: build-and-push
+    runs-on: [self-hosted, frontend-runner]
+    if: github.ref_name == 'develop'
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        run: |
+          kubectl apply -k k8s/overlays/staging/
+          kubectl set image deployment/linka-frontend \
+            linka-frontend=linka-frontend:${{ needs.build-and-push.outputs.image_tag }} \
+            -n linka-staging
+          kubectl rollout status deployment/linka-frontend -n linka-staging --timeout=120s
+
+      - name: Health check staging
+        run: |
+          sleep 15
+          kubectl run health-check --image=curlimages/curl --restart=Never --rm -i \
+            --namespace=linka-staging -- \
+            curl -f http://linka-frontend:3000/ || exit 1
+
+      - name: Summary
+        run: |
+          echo "## Frontend Staging Deploy K8s" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: develop" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Namespace: linka-staging" >> $GITHUB_STEP_SUMMARY
+
+  deploy-prod:
+    needs: build-and-push
+    runs-on: [self-hosted, frontend-runner]
+    if: github.ref_name == 'main'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to prod
+        run: |
+          kubectl apply -k k8s/overlays/prod/
+          kubectl set image deployment/linka-frontend \
+            linka-frontend=linka-frontend:${{ needs.build-and-push.outputs.image_tag }} \
+            -n linka-prod
+          kubectl rollout status deployment/linka-frontend -n linka-prod --timeout=180s
+
+      - name: Health check prod
+        run: |
+          sleep 10
+          curl -f https://selinka.ufc.br/ || exit 1
+
+      - name: Summary
+        run: |
+          echo "## Frontend Production Deploy K8s" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Namespace: linka-prod" >> $GITHUB_STEP_SUMMARY
+          echo "- URL: https://selinka.ufc.br" >> $GITHUB_STEP_SUMMARY
