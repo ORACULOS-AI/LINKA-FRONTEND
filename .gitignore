@@ -1,14 +1,14 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
 .pnp.js
 .yarn/install-state.gz
 
-
 # testing
 /coverage
+/test-results
+/playwright-report
+/playwright/.cache
 
 # next.js
 /.next/
@@ -29,13 +29,19 @@ yarn-error.log*
 # local env files
 .env*.local
 
-#pnpm 
+# pnpm
 pnpm-lock.yaml
 pnpm-workspace.yaml
 
 # vercel
 .vercel
 
+# sentry
+.sentryclirc
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# design system spec lives in SeLinka/SeLinka Design System/
+design.md

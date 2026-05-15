@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# LINKA-FRONT-END
 
-## Getting Started
+Frontend da plataforma **SeLinka** (rede de inovação da UFC).
 
-First, run the development server:
+## Stack
+
+| Camada | Ferramenta |
+|---|---|
+| Framework | Next.js 15 (App Router) |
+| Linguagem | TypeScript (strict + `noUncheckedIndexedAccess`) |
+| Estilo | Tailwind CSS + tokens do Design System (`styles/design-tokens.css`) |
+| UI base | shadcn/ui (Radix + Tailwind) adaptado aos tokens |
+| Estado server | TanStack Query v5 |
+| Estado client | Zustand |
+| HTTP | axios (com refresh interceptor) |
+| WebSocket | `lib/ws/useWS.ts` (native WS + backoff exponencial) |
+| Forms | react-hook-form + Zod |
+| Tipos API | openapi-typescript (gerado de `/openapi.json`) |
+| Observabilidade | @sentry/nextjs + Web Vitals |
+| Testes | Vitest + Testing Library + Playwright |
+
+## Rodando
 
 ```bash
+nvm use 22
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Checagens:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run typecheck
+npm run lint
+npm run test
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Gerar tipos a partir do backend:
 
-## Learn More
+```bash
+LINKA_API_OPENAPI_URL=http://localhost:8000/openapi.json npm run gen:types
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Variáveis de ambiente
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Ver `.env.example`. Principais:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- `NEXT_PUBLIC_LINKA_API_URL` — endpoint HTTP do backend
+- `NEXT_PUBLIC_LINKA_WS_URL` — endpoint WebSocket
+- `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_*` — opcionais em dev
 
-## Deploy on Vercel
+## Estrutura
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+app/                       # Next App Router
+  (auth)/entrar/           # tela pública
+  (app)/                   # rotas autenticadas (shell + smoke)
+components/
+  shell/                   # TopNav, Sidebar, MobileTabBar
+  ErrorBoundary.tsx
+lib/
+  api/                     # axios client + tipos gerados
+  query/                   # QueryClient + Providers
+  stores/                  # Zustand
+  ws/                      # hook useWS
+styles/                    # design tokens
+public/selinka/            # grafismos, logo, patterns
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Branches e commits
+
+```
+feature/SLK-XX-...   fix/SLK-XX-...   refactor/SLK-XX-...   ci/SLK-XX-...
+```
+
+Commits: `[SLK-XX] tipo: descrição` (`feat|fix|ci|docs|refactor|chore`).
+
+PRs vão para `develop`. `main` é deploy.
+
+## Jira
+
+Projeto **SLK**. Fluxo: `Tarefas pendentes → Em andamento → EM VALIDAÇÃO → (Ícaro) Concluído`. Comentário obrigatório em toda transição.

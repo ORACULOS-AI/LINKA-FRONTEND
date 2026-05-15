@@ -1,61 +1,46 @@
-import type { Metadata } from 'next'
-import { Poppins } from 'next/font/google'
+import type { Metadata, Viewport } from 'next'
+import { Inter, Exo_2 } from 'next/font/google'
+import { Toaster } from 'sonner'
+import { Providers } from '@/lib/query/providers'
 import './globals.css'
-import { Analytics } from '@vercel/analytics/react'
-import { SpeedInsights } from '@vercel/speed-insights/next'
-import { Toaster as SonnerToaster } from 'sonner'
-import { Toaster } from '@/components/ui/toaster'
-import PlatformLayoutClient from './platform-layout-client'
-import '@livekit/components-styles'
 
-const poppins = Poppins({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['200', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-ui',
+  display: 'swap',
+})
+
+const exo2 = Exo_2({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  weight: ['400', '600', '700'],
 })
 
 export const metadata: Metadata = {
-  title: 'Ambiente Digital de Conexões',
-  description: 'Ambiente Digital de Conexões da UFC — conectando pesquisadores, estudantes e empreendedores',
+  title: 'Linka — UFC',
+  description:
+    'Plataforma que conecta pesquisadores, estudantes, negócios, laboratórios, iniciativas e eventos da Universidade Federal do Ceará.',
+}
+
+export const viewport: Viewport = {
+  themeColor: '#06070F',
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
-    <html className="scroll-smooth" lang="pt-br">
-      <head>
-        <Analytics />
-        <SpeedInsights />
-        <link rel="icon" href="/logo-ufc-inova.png" type="image/png" />
-      </head>
-      <body
-        className={`${poppins.className} flex flex-col min-h-screen`}
-        suppressHydrationWarning
-      >
-        <PlatformLayoutClient>{children}</PlatformLayoutClient>
-        <Toaster />
-        <SonnerToaster
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: 'white',
-              border: '1px solid #e5e7eb',
-              borderRadius: '0.75rem',
-              padding: '1rem',
-            },
-            classNames: {
-              toast: 'shadow-lg',
-              title: 'text-gray-900 font-semibold',
-              description: 'text-gray-600',
-              actionButton: 'bg-purple-600 text-white hover:bg-purple-700',
-              cancelButton: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
-              closeButton: 'bg-white border-gray-200 hover:bg-gray-100',
-            },
-          }}
-          richColors
-        />
+    <html lang="pt-BR" className={`${inter.variable} ${exo2.variable}`}>
+      <body>
+        <Providers>
+          {children}
+          <Toaster position="top-right" richColors closeButton />
+        </Providers>
       </body>
     </html>
   )

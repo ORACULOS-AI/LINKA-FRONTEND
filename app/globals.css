@@ -1,230 +1,24 @@
-/* Estilos do calendário Mina Scheduler */
+@import '../styles/design-tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles for select options */
-.custom-select {
-  background-color: #fff; /* Cor de fundo */
-}
-
-.custom-select option {
-  background-color: #ECF2FF; /* Cor de fundo das opções */
-  color: #213102; /* Cor do texto das opções */
-}
-
-.custom-select option:hover {
-  background-color: #ECF2FF; /* Cor de fundo das opções */
-  color: #213102; /* Cor do texto das opções */
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 1s ease-in forwards;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateY(50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.animate-slideIn {
-  animation: slideIn 1s ease-out forwards;
-}
-
-@keyframes typewriter {
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
-}
-
-.animate-typewriter {
-  white-space: nowrap;
-  overflow: hidden;
-  animation: typewriter 2s steps(60, end) forwards;
-}
-:root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 262.1 83.3% 57.8%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 262.1 83.3% 57.8%;
-  --radius: 0.75rem;
-}
-
-
-
-
-@layer utilities {
-  .bg-gradient-radial {
-    background: radial-gradient(var(--tw-gradient-stops));
+@layer base {
+  html,
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-ui), Inter, sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
   }
 
-  .bg-animated-gradient {
-    background: linear-gradient(-45deg, #0f172a, #581c87, #1e1b4b, #0f172a, #7c3aed, #2d1b69);
-    background-size: 400% 400%;
-    animation: gradientShift 15s ease infinite;
+  *:focus-visible {
+    outline: 2px solid var(--color-blue);
+    outline-offset: 2px;
   }
 
-  .bg-gradient-moving {
-    background: linear-gradient(
-      45deg,
-      transparent 0%,
-      rgba(139, 92, 246, 0.1) 25%,
-      rgba(168, 85, 247, 0.15) 50%,
-      rgba(139, 92, 246, 0.1) 75%,
-      transparent 100%
-    );
-    background-size: 200% 200%;
-    animation: gradientMove 20s ease-in-out infinite;
-  }
-
-  .bg-gradient-moving-reverse {
-    background: linear-gradient(
-      -45deg,
-      transparent 0%,
-      rgba(124, 58, 237, 0.08) 25%,
-      rgba(147, 51, 234, 0.12) 50%,
-      rgba(124, 58, 237, 0.08) 75%,
-      transparent 100%
-    );
-    background-size: 300% 300%;
-    animation: gradientMoveReverse 25s ease-in-out infinite;
-  }
-
-  .bg-gradient-diagonal {
-    background: linear-gradient(
-      135deg,
-      rgba(139, 92, 246, 0.05) 0%,
-      transparent 25%,
-      rgba(168, 85, 247, 0.08) 50%,
-      transparent 75%,
-      rgba(139, 92, 246, 0.05) 100%
-    );
-    background-size: 400% 400%;
-  }
-
-  .animate-glow {
-    animation: glow 2s ease-in-out infinite alternate;
-  }
-
-  .animate-slow-spin {
-    animation: slowSpin 30s linear infinite;
-  }
-
-  .animate-diagonal-move {
-    animation: diagonalMove 18s ease-in-out infinite;
-  }
-
-  @keyframes gradientShift {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
-
-  @keyframes gradientMove {
-    0% {
-      background-position: 0% 0%;
-    }
-    25% {
-      background-position: 100% 50%;
-    }
-    50% {
-      background-position: 50% 100%;
-    }
-    75% {
-      background-position: 0% 50%;
-    }
-    100% {
-      background-position: 0% 0%;
-    }
-  }
-
-  @keyframes gradientMoveReverse {
-    0% {
-      background-position: 100% 100%;
-    }
-    25% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 50% 0%;
-    }
-    75% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 100% 100%;
-    }
-  }
-
-  @keyframes diagonalMove {
-    0% {
-      background-position: 0% 0%;
-    }
-    33% {
-      background-position: 100% 50%;
-    }
-    66% {
-      background-position: 50% 100%;
-    }
-    100% {
-      background-position: 0% 0%;
-    }
-  }
-
-  @keyframes slowSpin {
-    from {
-      transform: translate(-50%, -50%) rotate(0deg);
-    }
-    to {
-      transform: translate(-50%, -50%) rotate(360deg);
-    }
-  }
-
-  @keyframes glow {
-    from {
-      box-shadow: 0 0 20px rgba(147, 51, 234, 0.5);
-    }
-    to {
-      box-shadow: 0 0 30px rgba(147, 51, 234, 0.8);
-    }
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }

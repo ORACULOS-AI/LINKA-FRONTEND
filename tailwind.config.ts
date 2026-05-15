@@ -1,56 +1,44 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
-    darkMode: ['class'],
-    content: [
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
+  darkMode: ['class'],
+  content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './lib/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-  	extend: {
-  		backgroundImage: {
-  			'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-  			'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))'
-  		},
-  		colors: {
-  			primary: '#fbffe9',
-  			secondary: '#4e690b',
-  			tertiary: '#ddeff0',
-  			blueText: '#3B757F',
-  			sidebar: {
-  				DEFAULT: 'hsl(var(--sidebar-background))',
-  				foreground: 'hsl(var(--sidebar-foreground))',
-  				primary: 'hsl(var(--sidebar-primary))',
-  				'primary-foreground': 'hsl(var(--sidebar-primary-foreground))',
-  				accent: 'hsl(var(--sidebar-accent))',
-  				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
-  				border: 'hsl(var(--sidebar-border))',
-  				ring: 'hsl(var(--sidebar-ring))'
-  			}
-  		},
-  		fontFamily: {
-  			sans: [
-  				'Poppins',
-  				'sans-serif'
-  			],
-  			inter: [
-  				'Inter',
-  				'sans-serif'
-  			]
-  		},
-  		fontWeight: {
-  			light: '300',
-  			normal: '400',
-  			medium: '500',
-  			'semi-bold': '600',
-  			bold: '700',
-  			'extra-bold': '800',
-  			black: '900'
-  		}
-  	}
+    extend: {
+      colors: {
+        ink: 'var(--color-ink)',
+        paper: 'var(--color-paper)',
+        mint: {
+          DEFAULT: 'var(--color-mint)',
+          50: 'var(--color-mint-50)',
+        },
+        'selinka-blue': 'var(--color-blue)',
+        purple: 'var(--color-purple)',
+        orange: 'var(--color-orange)',
+        muted: 'var(--color-muted)',
+        border: 'var(--color-border)',
+      },
+      fontFamily: {
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-exo2)', 'system-ui', 'sans-serif'],
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+      },
+      backgroundImage: {
+        'pattern-mint-on-purple': "url('/selinka/pattern-mint-on-purple.png')",
+        'pattern-purple-on-mint': "url('/selinka/pattern-purple-on-mint.png')",
+        'pattern-orange-on-blue': "url('/selinka/pattern-orange-on-blue.png')",
+      },
+    },
   },
-  plugins: [],
+  plugins: [require('tailwindcss-animate')],
 }
 
 export default config
