@@ -27,6 +27,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     if (isError) router.replace('/entrar')
   }, [isError, router])
 
+  useEffect(() => {
+    if (data && !data.onboarding_complete) router.replace('/onboarding')
+  }, [data, router])
+
   useWS(Boolean(data))
 
   if (isLoading) {

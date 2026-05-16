@@ -1,10 +1,9 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-const API_URL =
-  process.env.NEXT_PUBLIC_LINKA_API_URL ?? 'http://localhost:8000'
-
+// Todas as chamadas vão pelo BFF Next (route handlers em app/api/*) — cookie httpOnly
+// fica no domínio do frontend. baseURL vazio = mesma origem.
 export const api = axios.create({
-  baseURL: API_URL,
+  baseURL: '',
   withCredentials: true,
   timeout: 15_000,
   headers: {
@@ -17,7 +16,7 @@ let refreshPromise: Promise<void> | null = null
 async function refreshSession(): Promise<void> {
   if (!refreshPromise) {
     refreshPromise = api
-      .post('/api/v1/auth/refresh', null, { _skipAuthRefresh: true } as never)
+      .post('/api/auth/refresh', null, { _skipAuthRefresh: true } as never)
       .then(() => undefined)
       .finally(() => {
         refreshPromise = null
@@ -60,9 +59,15 @@ export type Me = {
   tipo: 'pesquisador' | 'estudante' | 'tecnico_admin' | 'externo'
   avatar_url?: string | null
   verificado: boolean
+  onboarding_complete: boolean
+  is_admin: boolean
 }
 
 export async function fetchMe(): Promise<Me> {
-  const { data } = await api.get<Me>('/api/v1/me')
+  const { data } = await api.get<Me>('/api/auth/me')
   return data
+}
+
+export async function logout(): Promise<void> {
+  await api.post('/api/auth/logout')
 }
