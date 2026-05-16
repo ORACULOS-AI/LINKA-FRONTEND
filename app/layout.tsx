@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, Exo_2 } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { Providers } from '@/lib/query/providers'
+import { ServiceWorkerRegister } from '@/components/system/sw-register'
 import './globals.css'
 
 const inter = Inter({
@@ -18,9 +19,19 @@ const exo2 = Exo_2({
 })
 
 export const metadata: Metadata = {
-  title: 'Linka — UFC',
+  title: 'SeLinka — UFC',
   description:
-    'Plataforma que conecta pesquisadores, estudantes, negócios, laboratórios, iniciativas e eventos da Universidade Federal do Ceará.',
+    'Plataforma que conecta pesquisadores, estudantes, negócios, laboratórios, projetos e eventos da Universidade Federal do Ceará.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'SeLinka',
+    statusBarStyle: 'default',
+  },
+  icons: {
+    icon: '/icons/icon-192.png',
+    apple: '/icons/icon-192.png',
+  },
 }
 
 export const viewport: Viewport = {
@@ -40,6 +51,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <Toaster position="top-right" richColors closeButton />
+          <ServiceWorkerRegister />
         </Providers>
       </body>
     </html>

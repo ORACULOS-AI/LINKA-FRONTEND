@@ -2,15 +2,33 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/lib/toast'
+import { useConfigStore } from '@/lib/stores/config'
+import { applyTenantTheme } from '@/lib/theme/apply'
 
+/**
+ * Eventos consumidos pelo cliente. O backend emite via pubsub
+ * em canais `user:{uid}`, `feed:{uid}`, `broadcast`.
+ * Handoff D §4.1 — eventos esperados.
+ */
 type WSMessage =
-  | { type: 'notification'; payload: unknown }
-  | { type: 'feed.update'; payload: { post_id: string } }
-  | { type: 'thread.message'; payload: { thread_id: string } }
-  | { type: 'presence'; payload: { user_id: string; online: boolean } }
+  | { type: 'notification.new'; payload: { id: string; tipo: string; titulo?: string; mensagem?: string } }
+  | { type: 'message.new'; payload: { thread_id: string; message_id: string } }
+  | { type: 'message.read'; payload: { thread_id: string; user_uid: string } }
+  | { type: 'presence.online'; payload: { user_uid: string } }
+  | { type: 'presence.offline'; payload: { user_uid: string } }
+  | { type: 'presence.typing'; payload: { thread_id: string; user_uid: string } }
+  | { type: 'feed.new_post'; payload: { post_id: string; autor_uid: string } }
+  | { type: 'meeting.invited'; payload: { meeting_id: string } }
+  | { type: 'meeting.updated'; payload: { meeting_id: string; status?: string } }
+  | { type: 'like.added' | 'like.removed'; payload: { target_type: string; target_id: string; count?: number } }
+  | { type: 'follow.added'; payload: { follower_uid: string; target_type: string; target_id: string } }
+  | { type: 'config.updated'; payload: { tenant_id?: string } }
+  // legacy fallthrough
+  | { type: string; payload?: unknown }
 
 const WS_URL =
-  process.env.NEXT_PUBLIC_LINKA_WS_URL ?? 'ws://localhost:8000/ws'
+  process.env.NEXT_PUBLIC_LINKA_WS_URL ?? 'ws://localhost:8000/api/v1/ws'
 
 const MAX_BACKOFF_MS = 30_000
 
@@ -19,6 +37,7 @@ export type WSStatus = 'idle' | 'connecting' | 'open' | 'closed'
 export function useWS(enabled: boolean = true) {
   const [status, setStatus] = useState<WSStatus>('idle')
   const queryClient = useQueryClient()
+  const setConfig = useConfigStore((s) => s.setConfig)
   const wsRef = useRef<WebSocket | null>(null)
   const attemptRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -46,24 +65,98 @@ export function useWS(enabled: boolean = true) {
         } catch {
           return
         }
+
         switch (msg.type) {
-          case 'notification':
+          case 'notification.new':
+          case 'notification': {
+            const p = msg.payload as { titulo?: string; mensagem?: string } | undefined
             queryClient.invalidateQueries({ queryKey: ['notifications'] })
+            if (p?.titulo || p?.mensagem) {
+              toast.info(p.titulo ?? p.mensagem ?? 'Nova notificação')
+            }
             break
-          case 'feed.update':
-            queryClient.invalidateQueries({ queryKey: ['feed'] })
+          }
+          case 'message.new':
+          case 'thread.message': {
+            const p = msg.payload as { thread_id?: string } | undefined
+            queryClient.invalidateQueries({ queryKey: ['threads'] })
+            if (p?.thread_id) {
+              queryClient.invalidateQueries({ queryKey: ['messages', p.thread_id] })
+            }
             break
-          case 'thread.message':
-            queryClient.invalidateQueries({
-              queryKey: ['thread', msg.payload.thread_id],
+          }
+          case 'message.read': {
+            const p = msg.payload as { thread_id?: string } | undefined
+            if (p?.thread_id) {
+              queryClient.invalidateQueries({ queryKey: ['messages', p.thread_id] })
+            }
+            break
+          }
+          case 'presence.online':
+          case 'presence.offline': {
+            const p = msg.payload as { user_uid?: string } | undefined
+            if (p?.user_uid) {
+              queryClient.setQueryData(
+                ['presence', p.user_uid],
+                msg.type === 'presence.online',
+              )
+            }
+            break
+          }
+          case 'presence.typing': {
+            const p = msg.payload as { thread_id?: string; user_uid?: string } | undefined
+            if (p?.thread_id) {
+              queryClient.setQueryData(['typing', p.thread_id], p.user_uid)
+              setTimeout(() => {
+                queryClient.setQueryData(['typing', p.thread_id], null)
+              }, 4_000)
+            }
+            break
+          }
+          case 'feed.new_post':
+          case 'feed.update': {
+            queryClient.setQueryData(['feed', 'new-badge'], (prev: number = 0) => prev + 1)
+            break
+          }
+          case 'meeting.invited':
+          case 'meeting.updated': {
+            queryClient.invalidateQueries({ queryKey: ['meetings'] })
+            if (msg.type === 'meeting.invited') {
+              toast.info('Você foi convidado para uma reunião')
+            }
+            break
+          }
+          case 'like.added':
+          case 'like.removed': {
+            const p = msg.payload as { target_type?: string; target_id?: string } | undefined
+            if (p?.target_type && p.target_id) {
+              queryClient.invalidateQueries({
+                queryKey: ['like', 'count', p.target_type, p.target_id],
+              })
+            }
+            break
+          }
+          case 'follow.added': {
+            const p = msg.payload as { target_type?: string; target_id?: string } | undefined
+            if (p?.target_type && p.target_id) {
+              queryClient.invalidateQueries({
+                queryKey: ['follow', 'count', p.target_type, p.target_id],
+              })
+            }
+            break
+          }
+          case 'config.updated': {
+            queryClient.invalidateQueries({ queryKey: ['config'] }).then(() => {
+              const cfg = queryClient.getQueryData<{ tenant: Parameters<typeof applyTenantTheme>[0] }>(
+                ['config'],
+              )
+              if (cfg) {
+                setConfig(cfg as Parameters<typeof setConfig>[0])
+                applyTenantTheme(cfg.tenant)
+              }
             })
             break
-          case 'presence':
-            queryClient.setQueryData(
-              ['presence', msg.payload.user_id],
-              msg.payload.online,
-            )
-            break
+          }
         }
       }
 
@@ -89,7 +182,7 @@ export function useWS(enabled: boolean = true) {
       if (timerRef.current) clearTimeout(timerRef.current)
       wsRef.current?.close()
     }
-  }, [enabled, queryClient])
+  }, [enabled, queryClient, setConfig])
 
   return { status }
 }

@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { Suspense, useState, useRef, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Plus, Send, Smile, Video, Phone, Info, MoreHorizontal } from 'lucide-react'
-import { listThreads, listMessages, sendMessage, markThreadRead, type Thread, type Message } from '@/lib/api/messages'
+import { listThreads, listMessages, sendMessage, markThreadRead, type Message } from '@/lib/api/messages'
 import { useAuth } from '@/lib/stores/auth'
+import { NewThreadModal } from '@/components/messages/NewThreadModal'
+import { EmptyState, SkeletonList } from '@/components/primitives'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -19,8 +22,13 @@ function formatTs(iso: string) {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
 }
 
-export default function MensagensPage() {
+function MensagensInner() {
   const user = useAuth((s) => s.me)
+  const params = useSearchParams()
+  const router = useRouter()
+  const wantNew = params.get('novo') === '1'
+  const target = params.get('para')
+  const [modalOpen, setModalOpen] = useState(wantNew)
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
   const [searchT, setSearchT] = useState('')
   const [msgInput, setMsgInput] = useState('')
@@ -28,7 +36,7 @@ export default function MensagensPage() {
   const bodyRef = useRef<HTMLDivElement>(null)
   const qc = useQueryClient()
 
-  const { data: threadsData } = useQuery({
+  const { data: threadsData, isLoading: threadsLoading } = useQuery({
     queryKey: ['threads'],
     queryFn: () => listThreads({ limit: 50 }),
   })
@@ -81,7 +89,17 @@ export default function MensagensPage() {
       {/* Thread list */}
       <div className="msg-list">
         <div className="ml-head">
-          <h2>Mensagens</h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2>Mensagens</h2>
+            <button
+              type="button"
+              onClick={() => setModalOpen(true)}
+              className="inline-flex h-8 items-center gap-1 rounded-md bg-[var(--color-ink)] px-2.5 text-xs font-medium text-[var(--color-on-dark-1)] hover:opacity-90"
+              aria-label="Nova conversa"
+            >
+              <Plus className="h-3.5 w-3.5" /> Nova
+            </button>
+          </div>
           <div className="input-affix">
             <Search size={14} className="ix" />
             <input
@@ -109,9 +127,15 @@ export default function MensagensPage() {
           </div>
         </div>
 
-        {filteredThreads.length === 0 ? (
-          <div style={{ padding: '24px 18px', textAlign: 'center', color: 'var(--color-fg-3)', fontSize: 13 }}>
-            Nenhuma conversa encontrada
+        {threadsLoading ? (
+          <div className="px-3 py-4"><SkeletonList count={4} /></div>
+        ) : filteredThreads.length === 0 ? (
+          <div className="px-3 py-4">
+            <EmptyState
+              title="Você ainda não tem conversas"
+              description="Siga pessoas e seja seguido para iniciar uma conversa."
+              action={{ label: 'Nova conversa', onClick: () => setModalOpen(true) }}
+            />
           </div>
         ) : filteredThreads.map(t => {
           const other = t.participantes.find(p => p !== user?.id) ?? t.participantes[0] ?? ''
@@ -201,6 +225,27 @@ export default function MensagensPage() {
           </div>
         </div>
       )}
+
+      <NewThreadModal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false)
+          if (wantNew || target) router.replace('/mensagens')
+        }}
+        initialTarget={target}
+        onCreated={(tid) => {
+          setActiveThreadId(tid)
+          qc.invalidateQueries({ queryKey: ['threads'] })
+        }}
+      />
     </div>
+  )
+}
+
+export default function MensagensPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><SkeletonList count={4} /></div>}>
+      <MensagensInner />
+    </Suspense>
   )
 }

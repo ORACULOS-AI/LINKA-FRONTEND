@@ -4,9 +4,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Settings2, CheckCheck, MoreVertical, Bell } from 'lucide-react'
 import { fetchNotifications, markAllRead, markRead, type NotifPage, type Notif as Notification } from '@/lib/api/notifications'
+import { useEnum } from '@/lib/hooks/useEnum'
+import { EmptyState, SkeletonList } from '@/components/primitives'
 import { cn } from '@/lib/utils'
 
-type NotifFilter = 'todas' | 'naolida' | 'mencoes' | 'conexoes' | 'eventos'
+type NotifFilter = 'todas' | 'naolida' | string
 
 function NotifPageRow({ n, onRead }: { n: Notification; onRead: () => void }) {
   return (
@@ -77,15 +79,14 @@ export default function NotifsPage() {
     return () => io.disconnect()
   }, [q])
 
+  const tiposEnum = useEnum('tipo_notificacao')
   const allItems = q.data?.pages.flatMap((p) => p.items) ?? []
   const unread = allItems.filter(n => !n.lida)
 
   const filtered = allItems.filter(n => {
     if (filter === 'naolida') return !n.lida
-    if (filter === 'mencoes') return n.tipo === 'mencao'
-    if (filter === 'conexoes') return n.tipo === 'conexao_aceita' || n.tipo === 'conexao_solicitada'
-    if (filter === 'eventos') return n.tipo === 'evento'
-    return true
+    if (filter === 'todas') return true
+    return n.tipo === filter
   })
 
   return (
@@ -106,13 +107,11 @@ export default function NotifsPage() {
       </div>
 
       <div className="tabs-bar">
-        {([
-          { id: 'todas' as NotifFilter,    l: `Todas · ${allItems.length}` },
-          { id: 'naolida' as NotifFilter,  l: `Não lidas · ${unread.length}` },
-          { id: 'mencoes' as NotifFilter,  l: 'Menções' },
-          { id: 'conexoes' as NotifFilter, l: 'Conexões' },
-          { id: 'eventos' as NotifFilter,  l: 'Eventos' },
-        ]).map(t => (
+        {[
+          { id: 'todas', l: `Todas · ${allItems.length}` },
+          { id: 'naolida', l: `Não lidas · ${unread.length}` },
+          ...tiposEnum.map((t) => ({ id: t.value, l: t.label })),
+        ].map(t => (
           <button key={t.id} className={cn('tab', filter === t.id && 'active')} onClick={() => setFilter(t.id)}>
             {t.l}
           </button>
@@ -120,13 +119,13 @@ export default function NotifsPage() {
       </div>
 
       {q.isLoading ? (
-        <div className="empty"><p>Carregando…</p></div>
+        <SkeletonList count={4} />
       ) : filtered.length === 0 ? (
-        <div className="empty">
-          <Bell size={28} style={{ color: 'var(--color-fg-3)' }} />
-          <h3>Sem notificações</h3>
-          <p>Quando algo acontecer, você verá aqui.</p>
-        </div>
+        <EmptyState
+          icon={<Bell size={24} />}
+          title="Tudo em dia"
+          description="Você não tem notificações neste filtro."
+        />
       ) : (
         <div className="card" style={{ overflow: 'hidden' }}>
           {filtered.map((n) => (
