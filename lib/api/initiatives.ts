@@ -36,7 +36,8 @@ export type Iniciativa = {
   visivel: boolean
   data_inicio: string
   data_fim?: string | null
-  business_id: string
+  host_type: 'user' | 'negocio' | 'laboratorio'
+  host_id: string
   nivel_maturidade: NivelMaturidade
   areas_conhecimento: string[]
   tecnologias_utilizadas: string[]
@@ -66,7 +67,8 @@ export type IniciativaCreate = {
   titulo: string
   descricao: string
   tipo: TipoIniciativa
-  business_id: string
+  host_type: 'user' | 'negocio' | 'laboratorio'
+  host_id: string
   data_inicio: string
   data_fim?: string | null
   nivel_maturidade?: NivelMaturidade

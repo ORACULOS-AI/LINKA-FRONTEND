@@ -2,7 +2,9 @@
 
 import { useEffect, useRef } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
+import { Inbox, RefreshCw } from 'lucide-react'
 import { fetchFeed, fetchUserPosts, type FeedPage } from '@/lib/api/feed'
+import { EmptyState, SkeletonList } from '@/components/primitives'
 import { PostCard } from './PostCard'
 
 type Props = {
@@ -40,21 +42,17 @@ export function FeedTimeline({ userUid, emptyText = 'Nada por aqui ainda.' }: Pr
   }, [q])
 
   if (q.isLoading) {
-    return (
-      <div className="space-y-4">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="h-40 animate-pulse rounded-lg border border-border bg-surface" />
-        ))}
-      </div>
-    )
+    return <SkeletonList count={3} lines={3} />
   }
 
   if (q.isError) {
     return (
-      <div className="rounded-md border border-border bg-surface p-6 text-center text-sm text-ink/70">
-        Não foi possível carregar o feed.
-        <button onClick={() => q.refetch()} className="ml-2 underline">Tentar novamente</button>
-      </div>
+      <EmptyState
+        icon={<RefreshCw size={24} />}
+        title="Não foi possível carregar o feed"
+        description="Verifique sua conexão e tente novamente."
+        action={{ label: 'Tentar novamente', onClick: () => q.refetch() }}
+      />
     )
   }
 
@@ -62,9 +60,12 @@ export function FeedTimeline({ userUid, emptyText = 'Nada por aqui ainda.' }: Pr
 
   if (posts.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border bg-surface p-10 text-center text-sm text-ink/60">
-        {emptyText}
-      </div>
+      <EmptyState
+        icon={<Inbox size={24} />}
+        title={emptyText}
+        description={userUid ? undefined : 'Siga pessoas, laboratórios e projetos para começar a ver publicações.'}
+        action={userUid ? undefined : { label: 'Ir para a Vitrine', href: '/vitrine' }}
+      />
     )
   }
 

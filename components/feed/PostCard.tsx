@@ -3,10 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, BadgeCheck } from 'lucide-react'
+import { MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, BadgeCheck } from 'lucide-react'
 import {
   type FeedPost,
-  reactToPost, unreactPost,
   sharePost, bookmarkPost, unbookmarkPost,
   deletePost, listComments, createComment,
 } from '@/lib/api/feed'
@@ -14,6 +13,7 @@ import { fetchUser } from '@/lib/api/users'
 import { useAuth } from '@/lib/stores/auth'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { LikeButton } from '@/components/social/LikeButton'
 import { timeAgo } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -24,7 +24,6 @@ export function PostCard({ post }: Props) {
   const me = useAuth((s) => s.me)
   const qc = useQueryClient()
   const isOwner = me?.id === post.autor_uid
-  const [reacted, setReacted] = useState(false)
   const [bookmarked, setBookmarked] = useState(false)
   const [showComments, setShowComments] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -36,13 +35,6 @@ export function PostCard({ post }: Props) {
   })
 
   const invalidateFeed = () => qc.invalidateQueries({ queryKey: ['feed'] })
-
-  const reactM = useMutation({
-    mutationFn: () => (reacted ? unreactPost(post.id) : reactToPost(post.id, 'LIKE')),
-    onMutate: () => setReacted((v) => !v),
-    onError: () => { setReacted((v) => !v); toast.error('Falha ao reagir') },
-    onSuccess: invalidateFeed,
-  })
 
   const bookmarkM = useMutation({
     mutationFn: () => (bookmarked ? unbookmarkPost(post.id) : bookmarkPost(post.id)),
@@ -128,17 +120,12 @@ export function PostCard({ post }: Props) {
       )}
 
       <footer className="mt-4 flex items-center gap-1 border-t border-border pt-3 text-sm text-ink/70">
-        <button
-          type="button"
-          onClick={() => reactM.mutate()}
-          className={cn(
-            'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 hover:bg-surface-2',
-            reacted && 'text-purple',
-          )}
-        >
-          <Heart className={cn('h-4 w-4', reacted && 'fill-current')} />
-          <span>{post.reactions_count + (reacted ? 1 : 0)}</span>
-        </button>
+        <LikeButton
+          type="post"
+          id={post.id}
+          initialCount={post.reactions_count}
+          size="sm"
+        />
         <button
           type="button"
           onClick={() => setShowComments((v) => !v)}

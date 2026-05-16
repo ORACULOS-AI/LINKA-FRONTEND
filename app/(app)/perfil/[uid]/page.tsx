@@ -1,22 +1,22 @@
 'use client'
 
 import { use } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { BadgeCheck, UserCheck, UserMinus, UserPlus, Clock } from 'lucide-react'
+import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { BadgeCheck, MessageCircle, Heart } from 'lucide-react'
 import { fetchUser, TIPO_LABEL } from '@/lib/api/users'
-import {
-  getConnectionBetween, sendConnectionRequest, cancelConnectionRequest,
-  acceptConnectionRequest, getFollowCounts, isFollowing, followUser, unfollowUser,
-} from '@/lib/api/connections'
+import { isMutual } from '@/lib/api/follow'
+import { useFollowersCount } from '@/lib/hooks/useFollow'
 import { FeedTimeline } from '@/components/feed/FeedTimeline'
+import { FollowButton } from '@/components/social/FollowButton'
+import { LikeButton } from '@/components/social/LikeButton'
 import { Avatar } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
+import { SkeletonCard, EmptyState } from '@/components/primitives'
 import { useAuth } from '@/lib/stores/auth'
 
 export default function PublicProfilePage({ params }: { params: Promise<{ uid: string }> }) {
   const { uid } = use(params)
   const me = useAuth((s) => s.me)
-  const qc = useQueryClient()
   const isMe = me?.id === uid
 
   const { data: profile, isLoading } = useQuery({
@@ -25,48 +25,31 @@ export default function PublicProfilePage({ params }: { params: Promise<{ uid: s
     staleTime: 5 * 60_000,
   })
 
-  const { data: conn } = useQuery({
-    queryKey: ['connection-between', uid],
-    queryFn: () => getConnectionBetween(uid),
+  const { data: mutual = false } = useQuery({
+    queryKey: ['is-mutual', uid],
+    queryFn: () => isMutual(uid),
     enabled: !!me && !isMe,
+    staleTime: 30_000,
   })
 
-  const { data: counts } = useQuery({
-    queryKey: ['follow-counts', uid],
-    queryFn: () => getFollowCounts(uid),
-    enabled: !!profile,
-  })
+  const { data: followers = 0 } = useFollowersCount('user', uid, !!profile)
 
-  const { data: following } = useQuery({
-    queryKey: ['is-following', uid],
-    queryFn: () => isFollowing(uid),
-    enabled: !!me && !isMe,
-  })
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-6 lg:py-8">
+        <SkeletonCard lines={3} />
+      </div>
+    )
+  }
 
-  const connM = useMutation({
-    mutationFn: async () => {
-      if (!conn) return
-      if (conn.status === 'none') await sendConnectionRequest(uid)
-      else if (conn.status === 'following') await unfollowUser(uid)
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['connection-between', uid] }),
-  })
-
-  const followM = useMutation({
-    mutationFn: async () => {
-      if (following) await unfollowUser(uid)
-      else await followUser(uid)
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['is-following', uid] })
-      qc.invalidateQueries({ queryKey: ['follow-counts', uid] })
-    },
-  })
-
-  if (isLoading || !profile) {
+  if (!profile) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-10">
-        <div className="h-40 animate-pulse rounded-lg border border-border bg-surface" />
+        <EmptyState
+          title="Usuário não encontrado"
+          description="Esse perfil pode ter sido removido ou o link está incorreto."
+          action={{ label: 'Voltar ao feed', href: '/feed' }}
+        />
       </div>
     )
   }
@@ -75,47 +58,46 @@ export default function PublicProfilePage({ params }: { params: Promise<{ uid: s
     <div className="mx-auto max-w-2xl px-4 py-6 lg:py-8">
       <div className="mb-6 rounded-lg border border-border bg-paper p-6">
         <div className="flex items-start gap-4">
-          <Avatar nome={profile.nome} src={profile.foto_perfil ?? profile.foto_url ?? undefined} size={72} />
+          <Avatar
+            nome={profile.nome}
+            src={profile.foto_perfil ?? profile.foto_url ?? undefined}
+            size={72}
+          />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <h1 className="font-display text-xl font-semibold">{profile.nome}</h1>
               {profile.is_verified && (
-                <BadgeCheck className="h-5 w-5 shrink-0 text-selinka-blue" aria-label="Verificado" />
+                <BadgeCheck
+                  className="h-5 w-5 shrink-0 text-selinka-blue"
+                  aria-label="Verificado"
+                />
               )}
             </div>
             <p className="text-sm text-ink/60">{TIPO_LABEL[profile.tipo_usuario]}</p>
             {profile.campus && <p className="text-sm text-ink/50">{profile.campus}</p>}
+            {mutual && (
+              <p className="mt-1 inline-flex items-center gap-1 rounded-sm bg-[var(--color-mint-15)] px-2 py-0.5 text-xs text-[var(--color-fg-2)]">
+                Vocês se seguem mutuamente
+              </p>
+            )}
           </div>
 
           {!isMe && me && (
-            <div className="flex flex-col gap-2">
-              <ConnectButton status={conn?.status ?? 'none'} loading={connM.isPending} onAction={() => connM.mutate()} />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => followM.mutate()}
-                disabled={followM.isPending}
-              >
-                {following ? (
-                  <><UserMinus className="h-4 w-4" /> Deixar de seguir</>
-                ) : (
-                  <><UserPlus className="h-4 w-4" /> Seguir</>
-                )}
-              </Button>
+            <div className="flex flex-col items-end gap-2">
+              <FollowButton type="user" id={uid} size="sm" />
+              <LikeButton type="user" id={uid} size="sm" showCount={false} />
+              <MessageCTA targetUid={uid} mutual={mutual} />
             </div>
           )}
         </div>
 
         {profile.bio && (
-          <p className="mt-4 text-sm text-ink/80 leading-relaxed">{profile.bio}</p>
+          <p className="mt-4 text-sm leading-relaxed text-ink/80">{profile.bio}</p>
         )}
 
         <div className="mt-4 flex gap-6 border-t border-border pt-4 text-sm">
           <div className="text-ink/70">
-            <strong className="text-ink">{counts?.followers ?? 0}</strong> seguidores
-          </div>
-          <div className="text-ink/70">
-            <strong className="text-ink">{counts?.following ?? 0}</strong> seguindo
+            <strong className="text-ink tabular-nums">{followers}</strong> seguidores
           </div>
         </div>
       </div>
@@ -126,23 +108,25 @@ export default function PublicProfilePage({ params }: { params: Promise<{ uid: s
   )
 }
 
-function ConnectButton({
-  status, loading, onAction,
-}: {
-  status: string
-  loading: boolean
-  onAction: () => void
-}) {
-  const map: Record<string, { label: string; icon: React.ReactNode; variant: 'primary' | 'outline' }> = {
-    none: { label: 'Conectar', icon: <UserPlus className="h-4 w-4" />, variant: 'primary' },
-    following: { label: 'Seguindo', icon: <Clock className="h-4 w-4" />, variant: 'outline' },
-    connected: { label: 'Conectado', icon: <UserCheck className="h-4 w-4" />, variant: 'outline' },
+function MessageCTA({ targetUid, mutual }: { targetUid: string; mutual: boolean }) {
+  if (!mutual) {
+    return (
+      <span
+        className="inline-flex h-8 cursor-not-allowed items-center gap-1.5 rounded-md border border-[var(--color-border)] px-3 text-xs text-[var(--color-fg-3)]"
+        title="Disponível após follow mútuo"
+      >
+        <MessageCircle className="h-4 w-4" />
+        Mensagem
+      </span>
+    )
   }
-  const cfg = map[status] ?? map['none']!
-
   return (
-    <Button variant={cfg.variant} size="sm" onClick={onAction} disabled={loading || status === 'connected'}>
-      {cfg!.icon} {cfg!.label}
-    </Button>
+    <Link
+      href={`/mensagens?novo=1&para=${targetUid}`}
+      className="inline-flex h-8 items-center gap-1.5 rounded-md bg-[var(--color-ink)] px-3 text-sm font-medium text-[var(--color-on-dark-1)] hover:opacity-90"
+    >
+      <MessageCircle className="h-4 w-4" />
+      Mensagem
+    </Link>
   )
 }

@@ -21,8 +21,8 @@ export type Event = {
   categoria: EventCategoria
   status: EventStatus
   uid_owner: string
-  business_id?: string | null
-  iniciativa_id?: string | null
+  host_type: 'user' | 'negocio' | 'laboratorio' | 'iniciativa'
+  host_id: string
   capacidade_maxima?: number | null
   total_participantes: number
   total_presentes: number
@@ -80,8 +80,8 @@ export type EventCreate = {
   data_fim: string
   local: string
   categoria: EventCategoria
-  business_id?: string | null
-  iniciativa_id?: string | null
+  host_type: 'user' | 'negocio' | 'laboratorio' | 'iniciativa'
+  host_id: string
   capacidade_maxima?: number | null
   is_online?: boolean
   link_online?: string | null
@@ -99,8 +99,8 @@ export type EventUpdate = Partial<EventCreate>
 export type EventFilters = {
   status?: EventStatus
   categoria?: EventCategoria
-  business_id?: string
-  iniciativa_id?: string
+  host_type?: 'user' | 'negocio' | 'laboratorio' | 'iniciativa'
+  host_id?: string
   q?: string
   is_online?: boolean
   limit?: number
