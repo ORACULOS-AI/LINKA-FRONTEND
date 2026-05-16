@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { BadgeCheck, MapPin, Mail, ExternalLink, Badge, Share2, MoreHorizontal, Image, BookOpen, Link } from 'lucide-react'
 import { fetchMyProfile, updateMyProfile, TIPO_LABEL, type UserProfile } from '@/lib/api/users'
-import { getMyConnections, getFollowCounts } from '@/lib/api/connections'
+import { getMyConnections, getFollowCounts, type ConnectionUser } from '@/lib/api/connections'
 import { fetchFeed } from '@/lib/api/feed'
 import { EditProfileModal } from '@/components/profile/EditProfileModal'
 import { cn } from '@/lib/utils'
@@ -31,9 +31,10 @@ export default function MyProfilePage() {
     enabled: !!profile?.uid,
   })
 
-  const { data: connections = [] } = useQuery({
-    queryKey: ['connections', 'mine'],
-    queryFn: getMyConnections,
+  const { data: connections = [] as ConnectionUser[] } = useQuery({
+    queryKey: ['connections', 'mine', profile?.uid],
+    queryFn: () => getMyConnections(profile!.uid),
+    enabled: !!profile?.uid,
   })
 
   const { data: feedData } = useQuery({

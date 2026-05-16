@@ -50,9 +50,9 @@ export default function FeedPage() {
   })
 
   const { data: connectionCount = 0 } = useQuery({
-    queryKey: ['my-connection-count'],
-    queryFn: async () => (await getMyConnectionCount()) ?? 0,
-    enabled: !!me,
+    queryKey: ['my-connection-count', me?.id],
+    queryFn: async () => (await getMyConnectionCount(me!.id)) ?? 0,
+    enabled: !!me?.id,
     staleTime: 60_000,
   })
 

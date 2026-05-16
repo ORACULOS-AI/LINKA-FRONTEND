@@ -47,10 +47,7 @@ export default function PublicProfilePage({ params }: { params: Promise<{ uid: s
     mutationFn: async () => {
       if (!conn) return
       if (conn.status === 'none') await sendConnectionRequest(uid)
-      else if (conn.status === 'pending_sent' && conn.connection_id)
-        await cancelConnectionRequest(conn.connection_id)
-      else if (conn.status === 'pending_received' && conn.connection_id)
-        await acceptConnectionRequest(conn.connection_id)
+      else if (conn.status === 'following') await unfollowUser(uid)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['connection-between', uid] }),
   })
@@ -138,8 +135,7 @@ function ConnectButton({
 }) {
   const map: Record<string, { label: string; icon: React.ReactNode; variant: 'primary' | 'outline' }> = {
     none: { label: 'Conectar', icon: <UserPlus className="h-4 w-4" />, variant: 'primary' },
-    pending_sent: { label: 'Pendente', icon: <Clock className="h-4 w-4" />, variant: 'outline' },
-    pending_received: { label: 'Aceitar', icon: <UserCheck className="h-4 w-4" />, variant: 'primary' },
+    following: { label: 'Seguindo', icon: <Clock className="h-4 w-4" />, variant: 'outline' },
     connected: { label: 'Conectado', icon: <UserCheck className="h-4 w-4" />, variant: 'outline' },
   }
   const cfg = map[status] ?? map['none']!

@@ -1,11 +1,29 @@
+/**
+ * Wrappers de compatibilidade sobre o grafo polimórfico de follow (SLK-269 R3).
+ *
+ * "Conexão" no produto agora é equivalente a "follow mútuo" entre dois usuários.
+ * Não há mais request/accept/reject — segue é unilateral, mutualidade é derivada.
+ *
+ * Para novo código, prefira chamar diretamente os helpers de `lib/api/follow`.
+ */
 import { api } from './client'
-import type { ApiResp } from './feed'
+import {
+  follow,
+  unfollow,
+  isFollowing as polyIsFollowing,
+  isMutual,
+  getFollowersCount,
+  getMutualUids,
+  listMyFollowing,
+  type FollowUser,
+} from './follow'
 
-export type ConnectionStatus = 'none' | 'pending_sent' | 'pending_received' | 'connected'
+export type ConnectionStatus = 'none' | 'following' | 'connected'
 
 export type ConnectionBetween = {
   status: ConnectionStatus
-  connection_id?: string | null
+  i_follow: boolean
+  mutual: boolean
 }
 
 export type FollowCounts = {
@@ -20,107 +38,114 @@ export type ConnectionUser = {
   tipo_usuario?: string
 }
 
-export async function getConnectionBetween(otherUid: string): Promise<ConnectionBetween> {
-  const { data } = await api.get<ApiResp<ConnectionBetween>>(
-    `/api/v1/connections/between/${otherUid}`
-  )
-  return data.data
-}
-
-export async function sendConnectionRequest(toUid: string): Promise<void> {
-  await api.post('/api/v1/connections/request', { target_id: toUid })
-}
-
-export async function cancelConnectionRequest(connectionId: string): Promise<void> {
-  await api.delete(`/api/v1/connections/request/${connectionId}`)
-}
-
-export async function acceptConnectionRequest(connectionId: string): Promise<void> {
-  await api.put(`/api/v1/connections/request/${connectionId}/accept`)
-}
-
-export async function rejectConnectionRequest(connectionId: string): Promise<void> {
-  await api.put(`/api/v1/connections/request/${connectionId}/reject`)
-}
-
-export async function getFollowCounts(uid: string): Promise<FollowCounts> {
-  const { data } = await api.get<ApiResp<FollowCounts>>(`/api/v1/users/${uid}/follow-counts`)
-  return data.data
-}
-
-export async function isFollowing(uid: string): Promise<boolean> {
-  const { data } = await api.get<ApiResp<{ is_following: boolean }>>(
-    `/api/v1/users/${uid}/is-following`
-  )
-  return data.data.is_following
-}
-
-export async function followUser(uid: string): Promise<void> {
-  await api.post(`/api/v1/users/${uid}/follow`)
-}
-
-export async function unfollowUser(uid: string): Promise<void> {
-  await api.delete(`/api/v1/users/${uid}/follow`)
-}
-
-type ConnectionsResp = { connections: Array<{ connection_id: string; user: { uid: string; nome: string; foto_perfil?: string | null; tipo_usuario?: string } }> }
-
-export async function getMyConnections(): Promise<ConnectionUser[]> {
-  const { data } = await api.get<ApiResp<ConnectionsResp>>('/api/v1/connections/connections')
-  const list = (data.data as unknown as ConnectionsResp)?.connections ?? []
-  return list.map((c) => ({
-    uid: c.user.uid,
-    nome: c.user.nome,
-    foto_url: c.user.foto_perfil,
-    tipo_usuario: c.user.tipo_usuario,
-  }))
-}
-
-export async function getUserConnections(uid: string): Promise<ConnectionUser[]> {
-  const { data } = await api.get<ApiResp<ConnectionsResp>>(
-    `/api/v1/connections/users/${uid}/connections`
-  )
-  const list = (data.data as unknown as ConnectionsResp)?.connections ?? []
-  return list.map((c) => ({
-    uid: c.user.uid,
-    nome: c.user.nome,
-    foto_url: c.user.foto_perfil,
-    tipo_usuario: c.user.tipo_usuario,
-  }))
-}
-
-export type SuggestedUser = {
-  uid: string
-  nome: string
-  foto_url?: string | null
-  tipo_usuario?: string
+export type SuggestedUser = ConnectionUser & {
   campus?: string | null
   mutual_count?: number
 }
 
-type SuggestionsResp = { suggestions: Array<{ user: { uid: string; nome: string; foto_perfil?: string | null; tipo_usuario?: string; campus?: string | null }; score: number; motivo: string }> }
-
-export async function getSuggestions(limit = 5): Promise<SuggestedUser[]> {
-  const { data } = await api.get<ApiResp<SuggestionsResp>>('/api/v1/connections/suggestions', {
-    params: { limit },
-  })
-  const list = (data.data as unknown as SuggestionsResp)?.suggestions ?? []
-  return list.map((s) => ({
-    uid: s.user.uid,
-    nome: s.user.nome,
-    foto_url: s.user.foto_perfil,
-    tipo_usuario: s.user.tipo_usuario,
-    campus: s.user.campus,
-  }))
+function toConnectionUser(u: FollowUser): ConnectionUser {
+  return {
+    uid: u.uid,
+    nome: u.nome,
+    foto_url: u.foto_perfil ?? null,
+    tipo_usuario: u.tipo_usuario,
+  }
 }
 
-// GET /api/v1/connections/requests/{request_type}  — sent | received | all
-export async function getConnectionRequests(type: 'sent' | 'received' | 'all' = 'received'): Promise<unknown[]> {
-  const { data } = await api.get<ApiResp<unknown[]>>(`/api/v1/connections/requests/${type}`)
-  return data.data
+export async function getConnectionBetween(otherUid: string): Promise<ConnectionBetween> {
+  const [iFollow, mutual] = await Promise.all([
+    polyIsFollowing('user', otherUid),
+    isMutual(otherUid),
+  ])
+  return {
+    i_follow: iFollow,
+    mutual,
+    status: mutual ? 'connected' : iFollow ? 'following' : 'none',
+  }
 }
 
-export async function getMyConnectionCount(): Promise<number> {
-  const list = await getMyConnections()
-  return list?.length ?? 0
+export async function followUser(uid: string): Promise<void> {
+  await follow('user', uid)
+}
+
+export async function unfollowUser(uid: string): Promise<void> {
+  await unfollow('user', uid)
+}
+
+export async function isFollowing(uid: string): Promise<boolean> {
+  return polyIsFollowing('user', uid)
+}
+
+/** Mantido por compatibilidade — equivale a `followUser`. */
+export async function sendConnectionRequest(toUid: string): Promise<void> {
+  await followUser(toUid)
+}
+
+/** No-op — pedidos de conexão não existem mais no novo grafo. */
+export async function cancelConnectionRequest(_connectionId: string): Promise<void> {
+  // intentionally noop
+}
+
+export async function acceptConnectionRequest(_connectionId: string): Promise<void> {
+  // intentionally noop
+}
+
+export async function rejectConnectionRequest(_connectionId: string): Promise<void> {
+  // intentionally noop
+}
+
+export async function getFollowCounts(uid: string): Promise<FollowCounts> {
+  const followers = await getFollowersCount('user', uid)
+  let following = 0
+  try {
+    const list = await listMyFollowing()
+    following = list.filter((f) => f.target_type === 'user').length
+  } catch {
+    following = 0
+  }
+  return { followers, following }
+}
+
+/**
+ * "Conexões" do usuário logado = follows mútuos com outros users.
+ * Requer o uid próprio do user logado.
+ */
+export async function getMyConnections(myUid: string): Promise<ConnectionUser[]> {
+  const mutualUids = await getMutualUids(myUid)
+  if (!mutualUids.length) return []
+  const users = await Promise.all(
+    mutualUids.map(async (uid) => {
+      try {
+        const { data } = await api.get<{ data: FollowUser }>(`/api/v1/users/${uid}`)
+        return toConnectionUser(data.data)
+      } catch {
+        return null
+      }
+    }),
+  )
+  return users.filter((u): u is ConnectionUser => u !== null)
+}
+
+export async function getMyConnectionCount(myUid: string): Promise<number> {
+  const uids = await getMutualUids(myUid)
+  return uids.length
+}
+
+export async function getUserConnections(uid: string): Promise<ConnectionUser[]> {
+  return getMyConnections(uid)
+}
+
+/**
+ * Sugestões de quem seguir — backend ainda não tem endpoint dedicado
+ * (`/follow/suggestions` é roadmap). Por ora retorna vazio.
+ */
+export async function getSuggestions(_limit = 5): Promise<SuggestedUser[]> {
+  return []
+}
+
+/** Pedidos de conexão não existem mais — retorna vazio. */
+export async function getConnectionRequests(
+  _type: 'sent' | 'received' | 'all' = 'received',
+): Promise<unknown[]> {
+  return []
 }

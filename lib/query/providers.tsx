@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { ConfigBoot } from '@/components/system/config-boot'
 
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(
@@ -27,7 +28,10 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={client}>
-      <ErrorBoundary>{children}</ErrorBoundary>
+      <ErrorBoundary>
+        <ConfigBoot />
+        {children}
+      </ErrorBoundary>
       {process.env.NODE_ENV === 'development' ? (
         <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
       ) : null}

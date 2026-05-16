@@ -9,6 +9,7 @@ import {
   acceptConnectionRequest, rejectConnectionRequest, cancelConnectionRequest,
   type ConnectionUser,
 } from '@/lib/api/connections'
+import { useAuth } from '@/lib/stores/auth'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -31,9 +32,11 @@ export default function ConexoesPage() {
   const [search, setSearch] = useState('')
   const qc = useQueryClient()
 
-  const { data: connections = [] } = useQuery({
-    queryKey: ['connections', 'mine'],
-    queryFn: getMyConnections,
+  const myUid = useAuth((s) => s.me?.id ?? '')
+  const { data: connections = [] as ConnectionUser[] } = useQuery({
+    queryKey: ['connections', 'mine', myUid],
+    queryFn: () => getMyConnections(myUid),
+    enabled: !!myUid,
   })
   const { data: received = [] } = useQuery({
     queryKey: ['connections', 'requests', 'received'],
