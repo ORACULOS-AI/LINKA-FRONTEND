@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: linka-prod
+
+resources:
+  - ../../base
+  - ingress.yaml
+
+patches:
+  - path: replica-patch.yaml
+    target:
+      kind: Deployment
+      name: linka-frontend
+  - path: resources-patch.yaml
+    target:
+      kind: Deployment
+      name: linka-frontend
+  - path: hpa-patch.yaml
+    target:
+      kind: HorizontalPodAutoscaler
+      name: linka-frontend
