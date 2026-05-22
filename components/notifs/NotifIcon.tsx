@@ -22,7 +22,7 @@ export const NOTIF_ICON: Record<string, typeof Heart> = {
 
 export const NOTIF_COLOR: Record<string, string> = {
   POST_REACTION: 'text-purple',
-  POST_COMMENT: 'text-selinka-blue',
+  POST_COMMENT: 'text-blue',
   SHARE_CREATED: 'text-mint',
   POST_MENTION: 'text-purple',
   CONNECTION_REQUEST: 'text-mint',
@@ -34,7 +34,7 @@ export const NOTIF_COLOR: Record<string, string> = {
   INICIATIVA_APPROVED: 'text-mint',
   INICIATIVA_REJECTED: 'text-orange',
   ADMIN_ALERT: 'text-orange',
-  THREAD_MESSAGE: 'text-selinka-blue',
+  THREAD_MESSAGE: 'text-blue',
 }
 
 export function iconFor(tipo: string) {
@@ -42,5 +42,5 @@ export function iconFor(tipo: string) {
 }
 
 export function colorFor(tipo: string) {
-  return NOTIF_COLOR[tipo] ?? 'text-ink/70'
+  return NOTIF_COLOR[tipo] ?? 'text-fg-2'
 }

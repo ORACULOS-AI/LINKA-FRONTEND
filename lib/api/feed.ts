@@ -20,7 +20,7 @@ export type FeedPost = {
   ref_tipo: string | null
   visivel: boolean
   visibility: Visibility
-  reactions_count: number
+  likes_count: number
   comments_count: number
   shares_count: number
   created_at: string
@@ -91,12 +91,14 @@ export async function deletePost(postId: string): Promise<void> {
   await api.delete(`/api/v1/feed/posts/${postId}`)
 }
 
-export async function reactToPost(postId: string, tipo: TipoReacao = 'LIKE'): Promise<void> {
-  await api.post(`/api/v1/feed/posts/${postId}/reactions`, { tipo })
+// SLK-269 (R3): reactions polimórficas viraram like binário unificado.
+// Endpoint canônico: POST/DELETE /api/v1/like/post/{post_id}
+export async function reactToPost(postId: string, _tipo: TipoReacao = 'LIKE'): Promise<void> {
+  await api.post(`/api/v1/like/post/${postId}`)
 }
 
 export async function unreactPost(postId: string): Promise<void> {
-  await api.delete(`/api/v1/feed/posts/${postId}/reactions`)
+  await api.delete(`/api/v1/like/post/${postId}`)
 }
 
 export async function listComments(postId: string, limit = 50): Promise<PostComment[]> {
@@ -133,6 +135,20 @@ export async function fetchUserPosts(uid: string, params: { cursor?: string | nu
   const { data } = await api.get<FeedPage>(`/api/v1/feed/users/${uid}/posts`, {
     params: { cursor: params.cursor ?? undefined, limit: params.limit ?? 20 },
   })
+  return data
+}
+
+export type EntityFeedTarget = 'negocio' | 'laboratorio' | 'iniciativa' | 'evento'
+
+export async function fetchEntityPosts(
+  targetType: EntityFeedTarget,
+  targetId: string,
+  params: { cursor?: string | null; limit?: number } = {},
+): Promise<FeedPage> {
+  const { data } = await api.get<FeedPage>(
+    `/api/v1/feed/entity/${targetType}/${targetId}/posts`,
+    { params: { cursor: params.cursor ?? undefined, limit: params.limit ?? 20 } },
+  )
   return data
 }
 

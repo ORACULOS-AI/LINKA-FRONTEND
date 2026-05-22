@@ -32,7 +32,7 @@ export const FormField = React.forwardRef<
         {...props}
       />
       {hint && !error ? (
-        <p id={hintId} className="mt-1 text-xs text-ink/60">
+        <p id={hintId} className="mt-1 text-xs text-fg-3">
           {hint}
         </p>
       ) : null}
@@ -85,13 +85,13 @@ export const PasswordField = React.forwardRef<HTMLInputElement, BaseFieldProps &
             type="button"
             onClick={() => setShow((s) => !s)}
             aria-label={show ? 'Ocultar senha' : 'Mostrar senha'}
-            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink/60 hover:text-ink"
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-fg-3 hover:text-fg-1"
           >
             {show ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
         {hint && !error ? (
-          <p id={hintId} className="mt-1 text-xs text-ink/60">
+          <p id={hintId} className="mt-1 text-xs text-fg-3">
             {hint}
           </p>
         ) : null}

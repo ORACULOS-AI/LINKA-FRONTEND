@@ -44,3 +44,69 @@ export async function updateTenantConfig(
   const { data } = await api.put<Envelope<TenantConfig>>('/api/v1/admin/tenant', payload)
   return data.data
 }
+
+// --- Claim tokens (email-based attribution) ---
+
+export type ClaimTokenAdmin = {
+  token: string
+  email: string
+  resource_type: string
+  resource_id: string
+  resource_name: string | null
+  created_at: string
+  expires_at: string
+  claimed: boolean
+  claimed_at?: string | null
+}
+
+export type ClaimTokenCreate = {
+  resource_type: 'laboratorio' | 'negocio'
+  resource_id: string
+  resource_name: string
+  email: string
+  expires_in_days?: number
+}
+
+export async function createClaimToken(payload: ClaimTokenCreate): Promise<ClaimTokenAdmin> {
+  const { data } = await api.post<Envelope<ClaimTokenAdmin>>('/api/v1/admin/claim-tokens/', payload)
+  return data.data
+}
+
+export async function listClaimTokens(params?: {
+  status?: 'ativo' | 'usado' | 'expirado'
+  limit?: number
+}): Promise<{ items: ClaimTokenAdmin[]; next_cursor?: string | null; has_more?: boolean }> {
+  const { data } = await api.get<{ items: ClaimTokenAdmin[]; next_cursor?: string | null; has_more?: boolean }>(
+    '/api/v1/admin/claim-tokens/',
+    { params },
+  )
+  return data
+}
+
+export async function deleteClaimToken(token: string): Promise<void> {
+  await api.delete(`/api/v1/admin/claim-tokens/${token}`)
+}
+
+// --- Audit log ---
+
+export type AuditLogEntry = {
+  id: string
+  actor_uid: string | null
+  action: string
+  resource_type: string | null
+  resource_id: string | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+}
+
+export async function listAuditLog(params?: {
+  actor?: string
+  resource_type?: string
+  resource_id?: string
+  action?: string
+  limit?: number
+  before_id?: string
+}): Promise<AuditLogEntry[]> {
+  const { data } = await api.get<Envelope<AuditLogEntry[]>>('/api/v1/audit-log', { params })
+  return data.data ?? []
+}

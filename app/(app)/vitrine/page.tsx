@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useMemo } from 'react'
+import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { Briefcase, FlaskConical, Lightbulb, Calendar } from 'lucide-react'
@@ -31,15 +31,15 @@ function VitrineInner() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 lg:py-8">
-      <header className="mb-6">
-        <h1 className="font-display text-2xl font-semibold">Vitrine</h1>
-        <p className="mt-1 text-sm text-[var(--color-fg-3)]">
-          Explore negócios, laboratórios, projetos e eventos da UFC.
-        </p>
-      </header>
+    <div className="page fade-in">
+      <div className="page-header">
+        <div>
+          <h1>Vitrine</h1>
+          <p className="sub">Explore negócios, laboratórios, projetos e eventos da UFC.</p>
+        </div>
+      </div>
 
-      <nav className="mb-6 flex gap-1 overflow-x-auto border-b border-[var(--color-border)]">
+      <div className="tabs-bar">
         {TABS.map((t) => {
           const Icon = t.icon
           const active = tab === t.id
@@ -48,26 +48,23 @@ function VitrineInner() {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={cn(
-                '-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors',
-                active
-                  ? 'border-[var(--color-ink)] text-[var(--color-ink)]'
-                  : 'border-transparent text-[var(--color-fg-3)] hover:text-[var(--color-fg-1)]',
-              )}
+              className={cn('tab', active && 'active')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              <Icon className="h-4 w-4" />
-              {t.label}
+              <Icon size={14} /> {t.label}
             </button>
           )
         })}
-      </nav>
+      </div>
 
-      <Suspense fallback={<SkeletonList count={6} />}>
-        {tab === 'negocios' && <NegociosTab />}
-        {tab === 'laboratorios' && <LaboratoriosTab />}
-        {tab === 'projetos' && <ProjetosTab />}
-        {tab === 'eventos' && <EventosTab />}
-      </Suspense>
+      <div style={{ marginTop: 24 }}>
+        <Suspense fallback={<SkeletonList count={6} />}>
+          {tab === 'negocios' && <NegociosTab />}
+          {tab === 'laboratorios' && <LaboratoriosTab />}
+          {tab === 'projetos' && <ProjetosTab />}
+          {tab === 'eventos' && <EventosTab />}
+        </Suspense>
+      </div>
     </div>
   )
 }
@@ -83,33 +80,22 @@ export default function VitrinePage() {
 const grid = 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
 
 function NegociosTab() {
-  const q = useQuery({
-    queryKey: ['vitrine', 'negocios'],
-    queryFn: () => listBusinesses({ limit: 24 }),
-  })
+  const q = useQuery({ queryKey: ['vitrine', 'negocios'], queryFn: () => listBusinesses({ limit: 24 }) })
   if (q.isLoading) return <SkeletonList count={6} />
   if (q.isError) return <EmptyState title="Erro ao carregar negócios" action={{ label: 'Tentar novamente', onClick: () => q.refetch() }} />
   const items = q.data?.items ?? []
   if (!items.length) {
-    return (
-      <EmptyState
-        icon={<Briefcase size={24} />}
-        title="Nenhum negócio encontrado"
-        description="Em breve novos negócios aparecerão aqui."
-      />
-    )
+    return <EmptyState icon={<Briefcase size={24} />} title="Nenhum negócio encontrado" description="Em breve novos negócios aparecerão aqui." />
   }
   return (
     <div className={grid}>
       {items.map((n) => (
         <EntityCard
-          key={n.uid}
-          id={n.uid}
-          kind="negocio"
-          href={`/vitrine/negocios/${n.uid}`}
-          nome={n.nome}
-          descricao={n.descricao}
-          categoria={n.categoria}
+          key={n.id} id={n.id} kind="negocio" href={`/vitrine/negocios/${n.id}`}
+          nome={n.nome} descricao={n.descricao} categoria={n.categoria}
+          imagem={n.foto_perfil ?? null}
+          followers={n.followers_count}
+          orphan={!n.uid_admin}
         />
       ))}
     </div>
@@ -117,33 +103,21 @@ function NegociosTab() {
 }
 
 function LaboratoriosTab() {
-  const q = useQuery({
-    queryKey: ['vitrine', 'laboratorios'],
-    queryFn: () => listLabs({ limit: 24 }),
-  })
+  const q = useQuery({ queryKey: ['vitrine', 'laboratorios'], queryFn: () => listLabs({ limit: 24 }) })
   if (q.isLoading) return <SkeletonList count={6} />
   if (q.isError) return <EmptyState title="Erro ao carregar laboratórios" action={{ label: 'Tentar novamente', onClick: () => q.refetch() }} />
   const items = q.data?.items ?? []
   if (!items.length) {
-    return (
-      <EmptyState
-        icon={<FlaskConical size={24} />}
-        title="Nenhum laboratório encontrado"
-        description="Em breve novos laboratórios aparecerão aqui."
-      />
-    )
+    return <EmptyState icon={<FlaskConical size={24} />} title="Nenhum laboratório encontrado" description="Em breve novos laboratórios aparecerão aqui." />
   }
   return (
     <div className={grid}>
       {items.map((l) => (
         <EntityCard
-          key={l.uid}
-          id={l.uid}
-          kind="laboratorio"
-          href={`/vitrine/laboratorios/${l.uid}`}
-          nome={l.nome}
-          descricao={l.unidade + (l.campus ? ` · ${l.campus}` : '')}
+          key={l.uid} id={l.uid} kind="laboratorio" href={`/vitrine/laboratorios/${l.uid}`}
+          nome={l.nome} descricao={l.unidade + (l.campus ? ` · ${l.campus}` : '')}
           categoria={l.tipo}
+          orphan={!l.uid_admin}
         />
       ))}
     </div>
@@ -151,34 +125,19 @@ function LaboratoriosTab() {
 }
 
 function ProjetosTab() {
-  const q = useQuery({
-    queryKey: ['vitrine', 'projetos'],
-    queryFn: () => listInitiatives({ limit: 24 }),
-  })
+  const q = useQuery({ queryKey: ['vitrine', 'projetos'], queryFn: () => listInitiatives({ limit: 24 }) })
   if (q.isLoading) return <SkeletonList count={6} />
   if (q.isError) return <EmptyState title="Erro ao carregar projetos" action={{ label: 'Tentar novamente', onClick: () => q.refetch() }} />
   const items = q.data?.items ?? []
   if (!items.length) {
-    return (
-      <EmptyState
-        icon={<Lightbulb size={24} />}
-        title="Nenhum projeto encontrado"
-        description="Crie o primeiro projeto."
-        action={{ label: 'Criar projeto', href: '/vitrine/projetos/novo' }}
-      />
-    )
+    return <EmptyState icon={<Lightbulb size={24} />} title="Nenhum projeto encontrado" description="Crie o primeiro projeto." action={{ label: 'Criar projeto', href: '/vitrine/projetos/novo' }} />
   }
   return (
     <div className={grid}>
       {items.map((p) => (
         <EntityCard
-          key={p.uid}
-          id={p.uid}
-          kind="projeto"
-          href={`/vitrine/projetos/${p.uid}`}
-          nome={p.titulo}
-          descricao={p.descricao}
-          categoria={p.tipo}
+          key={p.uid} id={p.uid} kind="projeto" href={`/vitrine/projetos/${p.uid}`}
+          nome={p.titulo} descricao={p.descricao} categoria={p.tipo}
         />
       ))}
     </div>
@@ -186,33 +145,19 @@ function ProjetosTab() {
 }
 
 function EventosTab() {
-  const q = useQuery({
-    queryKey: ['vitrine', 'eventos'],
-    queryFn: () => listEvents({ limit: 24 }),
-  })
+  const q = useQuery({ queryKey: ['vitrine', 'eventos'], queryFn: () => listEvents({ limit: 24 }) })
   if (q.isLoading) return <SkeletonList count={6} />
   if (q.isError) return <EmptyState title="Erro ao carregar eventos" action={{ label: 'Tentar novamente', onClick: () => q.refetch() }} />
   const items = q.data?.items ?? []
   if (!items.length) {
-    return (
-      <EmptyState
-        icon={<Calendar size={24} />}
-        title="Nenhum evento encontrado"
-        description="Em breve novos eventos aparecerão aqui."
-      />
-    )
+    return <EmptyState icon={<Calendar size={24} />} title="Nenhum evento encontrado" description="Em breve novos eventos aparecerão aqui." />
   }
   return (
     <div className={grid}>
       {items.map((e) => (
         <EntityCard
-          key={e.uid}
-          id={e.uid}
-          kind="evento"
-          href={`/vitrine/eventos/${e.uid}`}
-          nome={e.titulo}
-          descricao={e.descricao}
-          categoria={e.categoria}
+          key={e.uid} id={e.uid} kind="evento" href={`/vitrine/eventos/${e.uid}`}
+          nome={e.titulo} descricao={e.descricao} categoria={e.categoria}
           imagem={e.imagem_capa ?? undefined}
         />
       ))}

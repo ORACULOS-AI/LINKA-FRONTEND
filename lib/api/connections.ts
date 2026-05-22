@@ -136,11 +136,25 @@ export async function getUserConnections(uid: string): Promise<ConnectionUser[]>
 }
 
 /**
- * Sugestões de quem seguir — backend ainda não tem endpoint dedicado
- * (`/follow/suggestions` é roadmap). Por ora retorna vazio.
+ * Sugestões de quem seguir — `/api/v1/users/suggestions` no backend.
  */
-export async function getSuggestions(_limit = 5): Promise<SuggestedUser[]> {
-  return []
+export async function getSuggestions(limit = 5): Promise<SuggestedUser[]> {
+  try {
+    const { data } = await api.get<{ data: Array<Record<string, unknown>> }>(
+      '/api/v1/users/suggestions',
+      { params: { limit } },
+    )
+    return (data.data ?? []).map((u) => ({
+      uid: String(u.uid),
+      nome: String(u.nome ?? ''),
+      foto_url: (u.foto_perfil ?? u.foto_url ?? null) as string | null,
+      tipo_usuario: u.tipo_usuario as string | undefined,
+      campus: (u.campus ?? null) as string | null,
+      mutual_count: (u.mutual_count ?? undefined) as number | undefined,
+    }))
+  } catch {
+    return []
+  }
 }
 
 /** Pedidos de conexão não existem mais — retorna vazio. */

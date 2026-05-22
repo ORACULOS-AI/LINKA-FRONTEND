@@ -32,6 +32,17 @@ const WS_URL =
 
 const MAX_BACKOFF_MS = 30_000
 
+async function fetchWsToken(): Promise<string | null> {
+  try {
+    const res = await fetch('/api/auth/ws-ticket', { credentials: 'same-origin' })
+    if (!res.ok) return null
+    const data = (await res.json()) as { token?: string }
+    return data.token ?? null
+  } catch {
+    return null
+  }
+}
+
 export type WSStatus = 'idle' | 'connecting' | 'open' | 'closed'
 
 export function useWS(enabled: boolean = true) {
@@ -48,9 +59,16 @@ export function useWS(enabled: boolean = true) {
 
     closedByUserRef.current = false
 
-    const connect = () => {
+    const connect = async () => {
       setStatus('connecting')
-      const ws = new WebSocket(WS_URL)
+      const token = await fetchWsToken()
+      if (!token) {
+        // sem token → não tenta conectar agora; aguarda próximo ciclo
+        setStatus('closed')
+        return
+      }
+      const sep = WS_URL.includes('?') ? '&' : '?'
+      const ws = new WebSocket(`${WS_URL}${sep}token=${encodeURIComponent(token)}`)
       wsRef.current = ws
 
       ws.onopen = () => {
@@ -71,35 +89,56 @@ export function useWS(enabled: boolean = true) {
           case 'notification': {
             const p = msg.payload as { titulo?: string; mensagem?: string } | undefined
             queryClient.invalidateQueries({ queryKey: ['notifications'] })
+            queryClient.invalidateQueries({ queryKey: ['notif-unread'] })
+            queryClient.invalidateQueries({ queryKey: ['unread-count'] })
             if (p?.titulo || p?.mensagem) {
               toast.info(p.titulo ?? p.mensagem ?? 'Nova notificação')
             }
             break
           }
           case 'message.new':
-          case 'thread.message': {
-            const p = msg.payload as { thread_id?: string } | undefined
+          case 'thread.message':
+          case 'NOVA_MENSAGEM': {
+            const p = (msg.payload ?? {}) as { thread_id?: string }
             queryClient.invalidateQueries({ queryKey: ['threads'] })
+            queryClient.invalidateQueries({ queryKey: ['notif-unread'] })
+            queryClient.invalidateQueries({ queryKey: ['unread-count'] })
             if (p?.thread_id) {
               queryClient.invalidateQueries({ queryKey: ['messages', p.thread_id] })
+              queryClient.invalidateQueries({ queryKey: ['thread', p.thread_id, 'messages'] })
             }
             break
           }
-          case 'message.read': {
-            const p = msg.payload as { thread_id?: string } | undefined
+          case 'message.read':
+          case 'READ_RECEIPT': {
+            const p = (msg.payload ?? {}) as { thread_id?: string }
             if (p?.thread_id) {
               queryClient.invalidateQueries({ queryKey: ['messages', p.thread_id] })
+              queryClient.invalidateQueries({ queryKey: ['thread', p.thread_id, 'messages'] })
             }
+            break
+          }
+          case 'NOVA_CONVERSA': {
+            queryClient.invalidateQueries({ queryKey: ['threads'] })
+            queryClient.invalidateQueries({ queryKey: ['notif-unread'] })
             break
           }
           case 'presence.online':
           case 'presence.offline': {
-            const p = msg.payload as { user_uid?: string } | undefined
+            const p = msg.payload as { user_uid?: string; nome?: string } | undefined
             if (p?.user_uid) {
-              queryClient.setQueryData(
-                ['presence', p.user_uid],
-                msg.type === 'presence.online',
-              )
+              const wasOnline = queryClient.getQueryData<boolean>(['presence', p.user_uid])
+              const isOnline = msg.type === 'presence.online'
+              queryClient.setQueryData(['presence', p.user_uid], isOnline)
+              // Mostra toast só na transição offline→online (evita repetir em reconexões)
+              if (isOnline && !wasOnline) {
+                // Verifica se é conexão mútua antes de notificar
+                const mutual = queryClient.getQueryData<boolean>(['is-mutual', p.user_uid])
+                if (mutual) {
+                  const nome = p.nome ?? 'Uma conexão sua'
+                  toast.info(`${nome} está online agora`)
+                }
+              }
             }
             break
           }
@@ -114,8 +153,11 @@ export function useWS(enabled: boolean = true) {
             break
           }
           case 'feed.new_post':
-          case 'feed.update': {
+          case 'feed.update':
+          case 'POST_CREATED':
+          case 'POST_DELETED': {
             queryClient.setQueryData(['feed', 'new-badge'], (prev: number = 0) => prev + 1)
+            queryClient.invalidateQueries({ queryKey: ['feed'] })
             break
           }
           case 'meeting.invited':
@@ -167,7 +209,7 @@ export function useWS(enabled: boolean = true) {
         attemptRef.current = attempt
         const backoff = Math.min(MAX_BACKOFF_MS, 1000 * 2 ** (attempt - 1))
         const jitter = Math.random() * 250
-        timerRef.current = setTimeout(connect, backoff + jitter)
+        timerRef.current = setTimeout(() => { void connect() }, backoff + jitter)
       }
 
       ws.onerror = () => {
@@ -175,7 +217,7 @@ export function useWS(enabled: boolean = true) {
       }
     }
 
-    connect()
+    void connect()
 
     return () => {
       closedByUserRef.current = true

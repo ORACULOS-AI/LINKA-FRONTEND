@@ -3,22 +3,43 @@
 import { useEffect, useRef } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Inbox, RefreshCw } from 'lucide-react'
-import { fetchFeed, fetchUserPosts, type FeedPage } from '@/lib/api/feed'
+import {
+  fetchFeed,
+  fetchUserPosts,
+  fetchEntityPosts,
+  type FeedPage,
+  type EntityFeedTarget,
+} from '@/lib/api/feed'
 import { EmptyState, SkeletonList } from '@/components/primitives'
 import { PostCard } from './PostCard'
+import { FeedEmptyState } from './FeedEmptyState'
 
 type Props = {
-  /** Quando setado, lista posts deste usuário (perfil); caso contrário, feed home */
+  /** Quando setado, lista posts deste usuário (perfil); caso contrário, feed home. */
   userUid?: string
+  /** Quando setado junto com targetId, lista posts que referenciam essa entidade. */
+  targetType?: EntityFeedTarget
+  targetId?: string
   emptyText?: string
 }
 
-export function FeedTimeline({ userUid, emptyText = 'Nada por aqui ainda.' }: Props) {
+export function FeedTimeline({
+  userUid,
+  targetType,
+  targetId,
+  emptyText = 'Nada por aqui ainda.',
+}: Props) {
   const sentinelRef = useRef<HTMLDivElement>(null)
 
-  const queryKey = userUid ? ['feed', 'user', userUid] : ['feed', 'home']
+  const isEntity = !!(targetType && targetId)
+  const queryKey = isEntity
+    ? ['feed', 'entity', targetType, targetId]
+    : userUid
+      ? ['feed', 'user', userUid]
+      : ['feed', 'home']
   const queryFn = ({ pageParam }: { pageParam: string | null | undefined }): Promise<FeedPage> => {
     const params = { cursor: pageParam ?? null, limit: 20 }
+    if (isEntity) return fetchEntityPosts(targetType!, targetId!, params)
     return userUid ? fetchUserPosts(userUid, params) : fetchFeed(params)
   }
 
@@ -59,14 +80,16 @@ export function FeedTimeline({ userUid, emptyText = 'Nada por aqui ainda.' }: Pr
   const posts = q.data?.pages.flatMap((p) => p.items) ?? []
 
   if (posts.length === 0) {
-    return (
-      <EmptyState
-        icon={<Inbox size={24} />}
-        title={emptyText}
-        description={userUid ? undefined : 'Siga pessoas, laboratórios e projetos para começar a ver publicações.'}
-        action={userUid ? undefined : { label: 'Ir para a Vitrine', href: '/vitrine' }}
-      />
-    )
+    if (userUid || isEntity) {
+      return (
+        <EmptyState
+          icon={<Inbox size={24} />}
+          title={emptyText}
+        />
+      )
+    }
+    // Feed home vazio = empty state rico com sugestões, showcase e CTA por papel.
+    return <FeedEmptyState />
   }
 
   return (
@@ -74,7 +97,7 @@ export function FeedTimeline({ userUid, emptyText = 'Nada por aqui ainda.' }: Pr
       {posts.map((p) => <PostCard key={p.id} post={p} />)}
       <div ref={sentinelRef} className="h-8" />
       {q.isFetchingNextPage && (
-        <div className="text-center text-xs text-ink/50">Carregando mais…</div>
+        <div className="text-center text-xs text-fg-3">Carregando mais…</div>
       )}
     </div>
   )

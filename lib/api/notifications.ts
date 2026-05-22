@@ -3,12 +3,15 @@ import type { ApiResp } from './feed'
 
 export type Notif = {
   id: string
+  user_id: string
   tipo: string
   titulo: string
-  mensagem: string | null
+  mensagem: string
   lida: boolean
   data: Record<string, unknown> | null
+  data_leitura?: string | null
   created_at: string
+  updated_at?: string
 }
 
 export type NotifPage = {

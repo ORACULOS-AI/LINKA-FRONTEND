@@ -19,13 +19,13 @@ export default function SmokePage() {
   return (
     <section className="mx-auto max-w-article p-6 lg:p-12">
       <header className="mb-8">
-        <p className="font-display text-xs uppercase tracking-wider text-ink/50">
+        <p className="font-display text-xs uppercase tracking-wider text-fg-3">
           Fundação · SLK-245
         </p>
         <h1 className="mt-1 font-display text-3xl font-semibold">
           Olá, {me.nome.split(' ')[0]}
         </h1>
-        <p className="mt-2 text-sm text-ink/70">
+        <p className="mt-2 text-sm text-fg-2">
           Esta é a tela de smoke do novo frontend. Confirma que autenticação,
           axios, TanStack Query, Zustand, Sentry e a Shell estão de pé.
         </p>
@@ -56,7 +56,7 @@ function Row({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <dt className="text-xs uppercase tracking-wider text-ink/50">{label}</dt>
+      <dt className="text-xs uppercase tracking-wider text-fg-3">{label}</dt>
       <dd className={mono ? 'font-mono text-sm' : 'text-sm'}>{children}</dd>
     </div>
   )

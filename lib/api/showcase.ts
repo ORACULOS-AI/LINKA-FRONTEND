@@ -16,11 +16,16 @@ export type ShowcaseEvento = {
 }
 
 export type ShowcaseNegocio = {
-  uid: string
+  id: string
   nome: string
   descricao?: string | null
   categoria?: string | null
-  status?: string | null
+  tipo_negocio?: string | null
+  area_atuacao?: string | null
+  foto_perfil?: string | null
+  foto_capa?: string | null
+  website?: string | null
+  created_at?: string
 }
 
 export type ShowcaseLab = {

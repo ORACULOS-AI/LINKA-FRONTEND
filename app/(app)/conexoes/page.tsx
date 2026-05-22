@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/lib/stores/auth'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { PresenceDot } from '@/components/social/PresenceDot'
 
 type Tab = 'conectados' | 'recebidas' | 'enviadas'
 
@@ -120,8 +121,11 @@ export default function ConexoesPage() {
             <div className="col" style={{ gap: 12 }}>
               {filteredConnections.map((c: ConnectionUser) => (
                 <div key={c.uid} className="person-row">
-                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--color-purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 18px var(--font-display)', flex: 'none' }}>
-                    {getInitials(c.nome)}
+                  <div style={{ position: 'relative', flex: 'none' }}>
+                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--color-purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 18px var(--font-display)' }}>
+                      {getInitials(c.nome)}
+                    </div>
+                    <PresenceDot uid={c.uid} className="absolute right-0 bottom-0" />
                   </div>
                   <div className="body">
                     <div className="nm">{c.nome}</div>

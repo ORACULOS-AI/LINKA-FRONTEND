@@ -51,12 +51,28 @@ export function PostCard({ post }: Props) {
 
   const deleteM = useMutation({
     mutationFn: () => deletePost(post.id),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['feed'] })
+      // Remove o post de todas as páginas do feed (infinite query)
+      qc.setQueriesData<unknown>({ queryKey: ['feed'] }, (old: unknown) => {
+        if (!old || typeof old !== 'object') return old
+        const data = old as { pages?: Array<{ items: { id: string }[] }> }
+        if (!data.pages) return old
+        return {
+          ...data,
+          pages: data.pages.map((pg) => ({
+            ...pg,
+            items: pg.items.filter((p) => p.id !== post.id),
+          })),
+        }
+      })
+    },
     onSuccess: () => { toast.success('Post removido'); invalidateFeed() },
-    onError: () => toast.error('Falha ao remover'),
+    onError: () => { toast.error('Falha ao remover'); invalidateFeed() },
   })
 
   return (
-    <article className="rounded-lg border border-border bg-paper p-5">
+    <article className="rounded-lg border border-border bg-surface p-5">
       <header className="flex items-start gap-3">
         <Link href={`/perfil/${post.autor_uid}`}>
           <Avatar nome={author.data?.nome ?? '?'} src={author.data?.foto_perfil ?? author.data?.foto_url} size={44} />
@@ -67,10 +83,10 @@ export function PostCard({ post }: Props) {
               {author.data?.nome ?? '…'}
             </Link>
             {author.data?.is_verified && (
-              <BadgeCheck className="h-4 w-4 text-selinka-blue" aria-label="Verificado" />
+              <BadgeCheck className="h-4 w-4 text-blue" aria-label="Verificado" />
             )}
           </div>
-          <p className="text-xs text-ink/60">
+          <p className="text-xs text-fg-3">
             {author.data?.tipo_usuario && (
               <span className="capitalize">{author.data.tipo_usuario.replace('_', ' ')}</span>
             )}
@@ -83,13 +99,13 @@ export function PostCard({ post }: Props) {
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
-              className="rounded p-1.5 text-ink/60 hover:bg-surface-2 hover:text-ink"
+              className="rounded p-1.5 text-fg-3 hover:bg-surface-2 hover:text-fg-1"
               aria-label="Opções"
             >
               <MoreHorizontal className="h-5 w-5" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-border bg-paper py-1 shadow-lg">
+              <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-border bg-surface py-1 shadow-lg">
                 <button
                   type="button"
                   onClick={() => { setMenuOpen(false); if (confirm('Remover post?')) deleteM.mutate() }}
@@ -104,7 +120,7 @@ export function PostCard({ post }: Props) {
       </header>
 
       {post.conteudo && (
-        <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-ink">{post.conteudo}</p>
+        <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-fg-1">{post.conteudo}</p>
       )}
 
       {post.midia && post.midia.length > 0 && (
@@ -119,11 +135,11 @@ export function PostCard({ post }: Props) {
         </div>
       )}
 
-      <footer className="mt-4 flex items-center gap-1 border-t border-border pt-3 text-sm text-ink/70">
+      <footer className="mt-4 flex items-center gap-1 border-t border-border pt-3 text-sm text-fg-2">
         <LikeButton
           type="post"
           id={post.id}
-          initialCount={post.reactions_count}
+          initialCount={post.likes_count}
           size="sm"
         />
         <button
@@ -203,7 +219,7 @@ function CommentsThread({ postId }: { postId: string }) {
       </div>
 
       {isLoading ? (
-        <p className="mt-3 text-xs text-ink/50">Carregando…</p>
+        <p className="mt-3 text-xs text-fg-3">Carregando…</p>
       ) : (
         <ul className="mt-3 space-y-3">
           {comments.map((c) => <CommentItem key={c.id} comment={c} />)}
@@ -227,9 +243,9 @@ function CommentItem({ comment }: { comment: { id: string; autor_uid: string; co
           <Link href={`/perfil/${comment.autor_uid}`} className="font-semibold hover:underline">
             {author.data?.nome ?? '…'}
           </Link>
-          <span className="text-xs text-ink/50">{timeAgo(comment.created_at)}</span>
+          <span className="text-xs text-fg-3">{timeAgo(comment.created_at)}</span>
         </div>
-        <p className="text-sm text-ink">{comment.conteudo}</p>
+        <p className="text-sm text-fg-1">{comment.conteudo}</p>
       </div>
     </li>
   )

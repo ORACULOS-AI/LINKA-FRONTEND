@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Shield, Lightbulb, BadgeAlert, BadgeCheck, Upload, Plus, MapPin, Check, X } from 'lucide-react'
 import {
@@ -10,16 +11,11 @@ import {
   type BusinessClaim, type LabClaim,
 } from '@/lib/api/claims'
 import { getDashboard } from '@/lib/api/dashboard'
+import { listAdminInitiatives } from '@/lib/api/initiatives'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 type AdminTab = 'claims' | 'iniciativas' | 'visibilidade' | 'tokens'
-
-const STATIC_TOKENS = [
-  { tok: 'SELK-9F2A-AERO-2026', ent: 'AeroLab',                   val: '28/03/2026', usos: '0/1', st: 'ATIVA' },
-  { tok: 'SELK-LBA1-EMBR-2026', ent: 'Lab. Eletrônica Embarcada', val: '12/04/2026', usos: '0/1', st: 'ATIVA' },
-  { tok: 'SELK-77JX-SERT-2026', ent: 'SertãoTech',                val: '05/03/2026', usos: '1/1', st: 'CANCELADO' },
-]
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
@@ -59,6 +55,11 @@ export default function AdminPage() {
     queryFn: listLabClaims,
   })
 
+  const { data: pendingInitiatives = [] } = useQuery({
+    queryKey: ['admin', 'initiatives', 'pending'],
+    queryFn: listAdminInitiatives,
+  })
+
   const approveBiz = useMutation({
     mutationFn: (id: string) => approveBusinessClaim(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['claims'] }); toast.success('Claim aprovado!') },
@@ -86,11 +87,64 @@ export default function AdminPage() {
   ]
   const pendingClaims = allClaims.filter(c => c.status === 'pendente')
 
+  const now = new Date()
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+  const claimsAging = pendingClaims.filter(
+    (c) => now.getTime() - new Date(c.created_at).getTime() >= SEVEN_DAYS_MS,
+  ).length
+
+  const projetosPendentes = pendingInitiatives.filter((i) => i.status === 'PENDENTE')
+  const projetosNovosEstaSemana = projetosPendentes.filter(
+    (i) => now.getTime() - new Date(i.created_at).getTime() < SEVEN_DAYS_MS,
+  ).length
+
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const approvedThisMonth = allClaims.filter(
+    (c) => c.status === 'aprovado' && new Date(c.updated_at) >= startOfMonth,
+  ).length
+  const approvedPrevMonth = allClaims.filter(
+    (c) =>
+      c.status === 'aprovado' &&
+      new Date(c.updated_at) >= startOfPrevMonth &&
+      new Date(c.updated_at) < startOfMonth,
+  ).length
+  const monthDelta = approvedPrevMonth
+    ? Math.round(((approvedThisMonth - approvedPrevMonth) / approvedPrevMonth) * 100)
+    : null
+  const monthDeltaLabel = monthDelta === null
+    ? approvedThisMonth > 0 ? 'sem comparativo anterior' : 'nenhuma no mês anterior'
+    : `${monthDelta >= 0 ? '+' : ''}${monthDelta}% vs. mês anterior`
+
   const KPI_CARDS = [
-    { l: 'Claims pendentes',            v: pendingClaims.length, d: '2 vencendo em 7 dias', cor: 'orange', Icon: Shield },
-    { l: 'Projetos para aprovar',        v: 2,                    d: 'submetidos esta semana', cor: 'blue', Icon: Lightbulb },
-    { l: 'Entidades não reivindicadas',  v: 14,                   d: 'em pré-cadastro', cor: 'purple', Icon: BadgeAlert },
-    { l: 'Verificações concluídas (mês)',v: 28,                   d: '+12% vs. mês anterior', cor: 'mint', Icon: BadgeCheck },
+    {
+      l: 'Claims pendentes',
+      v: pendingClaims.length,
+      d: claimsAging > 0 ? `${claimsAging} aberto${claimsAging === 1 ? '' : 's'} há 7+ dias` : 'todos dentro do prazo',
+      cor: 'orange',
+      Icon: Shield,
+    },
+    {
+      l: 'Projetos para aprovar',
+      v: projetosPendentes.length,
+      d: projetosNovosEstaSemana > 0 ? `${projetosNovosEstaSemana} submetido${projetosNovosEstaSemana === 1 ? '' : 's'} esta semana` : 'sem novidades esta semana',
+      cor: 'blue',
+      Icon: Lightbulb,
+    },
+    {
+      l: 'Entidades não reivindicadas',
+      v: '—',
+      d: 'endpoint dedicado pendente',
+      cor: 'purple',
+      Icon: BadgeAlert,
+    },
+    {
+      l: 'Verificações concluídas (mês)',
+      v: approvedThisMonth,
+      d: monthDeltaLabel,
+      cor: 'mint',
+      Icon: BadgeCheck,
+    },
   ]
 
   return (
@@ -129,7 +183,7 @@ export default function AdminPage() {
       <div className="tabs-bar">
         {([
           { id: 'claims' as AdminTab,      l: `Claims de entidades · ${pendingClaims.length} pendentes` },
-          { id: 'iniciativas' as AdminTab, l: 'Projetos pendentes · 2' },
+          { id: 'iniciativas' as AdminTab, l: `Projetos pendentes · ${projetosPendentes.length}` },
           { id: 'visibilidade' as AdminTab, l: 'Visibilidade pública' },
           { id: 'tokens' as AdminTab,      l: 'Tokens de claim' },
         ]).map(t => (
@@ -210,19 +264,41 @@ export default function AdminPage() {
               <tr>
                 <th>Projeto</th>
                 <th>Tipo</th>
-                <th>Coordenação</th>
-                <th>Campus</th>
+                <th>Host</th>
                 <th>Submetida</th>
                 <th>Status</th>
                 <th style={{ textAlign: 'right' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td colSpan={7} style={{ textAlign: 'center', color: 'var(--color-fg-3)', padding: '24px 0' }}>
-                  Nenhum projeto pendente
-                </td>
-              </tr>
+              {projetosPendentes.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--color-fg-3)', padding: '24px 0' }}>
+                    Nenhum projeto pendente
+                  </td>
+                </tr>
+              ) : projetosPendentes.map((p) => (
+                <tr key={p.uid}>
+                  <td>
+                    <div className="who">
+                      <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--color-blue-08)', color: 'var(--color-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                        <Lightbulb size={16} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{p.titulo}</div>
+                        <div className="muted">{p.nivel_maturidade}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span className="tag tag-purple">{p.tipo}</span></td>
+                  <td className="muted">{p.host_type} · {p.host_id.slice(0, 8)}…</td>
+                  <td className="muted">{formatDate(p.created_at)}</td>
+                  <td><StatusPill status="pendente" /></td>
+                  <td style={{ textAlign: 'right' }}>
+                    <a href={`/vitrine/projetos/${p.uid}`} className="btn btn-tertiary btn-sm">Revisar</a>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -271,42 +347,14 @@ export default function AdminPage() {
       {/* Tokens tab */}
       {tab === 'tokens' && (
         <div className="card">
-          <div className="card-body" style={{ padding: 24 }}>
-            <div className="row" style={{ justifyContent: 'space-between', marginBottom: 18 }}>
-              <div>
-                <h4 style={{ font: '600 17px var(--font-display)', margin: '0 0 4px' }}>Tokens de claim</h4>
-                <div className="muted">Gere um token único para que o responsável real reivindique a entidade em até 30 dias.</div>
-              </div>
-              <button className="btn btn-primary btn-sm">
-                <Plus size={14} />Gerar novo token
-              </button>
-            </div>
-            <div className="admin-table" style={{ borderRadius: 'var(--radius-md)' }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Token</th>
-                    <th>Entidade</th>
-                    <th>Validade</th>
-                    <th>Usos</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {STATIC_TOKENS.map((t, i) => (
-                    <tr key={i}>
-                      <td><code style={{ font: '500 12.5px var(--font-mono)' }}>{t.tok}</code></td>
-                      <td style={{ fontWeight: 600 }}>{t.ent}</td>
-                      <td>{t.val}</td>
-                      <td className="t-num">{t.usos}</td>
-                      <td>
-                        <StatusPill status={t.st === 'ATIVA' ? 'aprovado' : 'rejeitado'} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div className="card-body" style={{ padding: 24, textAlign: 'center' }}>
+            <h4 style={{ font: '600 17px var(--font-display)', margin: '0 0 8px' }}>Tokens de claim</h4>
+            <p className="muted" style={{ marginBottom: 16 }}>
+              A gestão completa de tokens (gerar, listar, revogar) foi movida para uma página dedicada.
+            </p>
+            <Link href="/admin/tokens" className="btn btn-primary btn-sm">
+              Abrir gestão de tokens
+            </Link>
           </div>
         </div>
       )}

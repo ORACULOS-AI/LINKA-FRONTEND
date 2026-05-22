@@ -344,7 +344,7 @@ export default function LaboratoriosPage() {
         <div>
           <div className="crumbs">
             <span>Vitrines</span>
-            <span style={{ color: 'var(--color-ink)' }}>{meta.label}</span>
+            <span style={{ color: 'var(--color-fg-1)' }}>{meta.label}</span>
           </div>
           <h1>{meta.label}</h1>
           <div className="sub">{subMap[activeTab]}</div>

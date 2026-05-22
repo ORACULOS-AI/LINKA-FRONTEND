@@ -28,6 +28,6 @@ export type AppConfig = {
 }
 
 export async function fetchConfig(): Promise<AppConfig> {
-  const { data } = await api.get<AppConfig>('/api/config')
+  const { data } = await api.get<AppConfig>('/api/v1/config')
   return data
 }

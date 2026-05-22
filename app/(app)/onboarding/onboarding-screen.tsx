@@ -21,6 +21,21 @@ import {
   Users,
 } from 'lucide-react'
 import { fetchMe } from '@/lib/api/client'
+import { api } from '@/lib/api/client'
+
+type OnboardingStats = {
+  people_count: number
+  projects_count: number
+  businesses_count: number
+  labs_count: number
+  events_count: number
+  campus: string | null
+}
+
+async function fetchOnboardingStats(): Promise<OnboardingStats> {
+  const { data } = await api.get<{ data: OnboardingStats }>('/api/v1/dashboard/onboarding-stats')
+  return data.data
+}
 
 type Persona = 'pesquisador' | 'estudante' | 'tecnico_admin' | 'externo'
 
@@ -102,6 +117,11 @@ export function OnboardingScreen() {
   const router = useRouter()
   const params = useSearchParams()
   const meQuery = useQuery({ queryKey: ['me'], queryFn: fetchMe })
+  const statsQuery = useQuery({
+    queryKey: ['onboarding-stats'],
+    queryFn: fetchOnboardingStats,
+    staleTime: 5 * 60_000,
+  })
 
   const me = meQuery.data
   const tipo: Persona = me?.tipo
@@ -479,9 +499,9 @@ export function OnboardingScreen() {
           <div className="col" style={{ gap: 18 }}>
             <div style={{ padding: 24, background: 'var(--color-mint)', borderRadius: 'var(--radius-lg)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', right: -40, top: -40, width: 220, height: 220, opacity: 0.18, background: 'url(/selinka/grafismo-1.svg) no-repeat center/contain' }} />
-              <CheckCircle2 size={32} style={{ color: 'var(--color-ink)' }} />
+              <CheckCircle2 size={32} style={{ color: 'var(--color-fg-1)' }} />
               <h3 style={{ font: '700 22px var(--font-display)', margin: '12px 0 6px', position: 'relative' }}>Perfil pronto!</h3>
-              <p style={{ margin: 0, color: 'var(--color-ink)', maxWidth: '50ch', position: 'relative' }}>
+              <p style={{ margin: 0, color: 'var(--color-fg-1)', maxWidth: '50ch', position: 'relative' }}>
                 {tipo === 'externo'
                   ? 'Sua conta de parceiro foi criada. Você já pode explorar as vitrines, seguir pesquisadores e participar de eventos abertos.'
                   : 'Verificamos seus dados e ativamos a marca verificada na sua conta. Já preparamos sugestões iniciais a partir das suas áreas de interesse.'}
@@ -491,23 +511,25 @@ export function OnboardingScreen() {
               <div style={{ padding: 16, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)' }}>
                 <Users size={20} style={{ color: 'var(--color-purple)' }} />
                 <div style={{ font: '600 14px Inter', margin: '8px 0 4px' }}>
-                  {tipo === 'estudante' ? 14 : tipo === 'externo' ? 6 : 18} pessoas para conhecer
+                  {statsQuery.data?.people_count ?? '…'} pessoas para conhecer
                 </div>
                 <div className="muted">
-                  {tipo === 'estudante' ? 'Veteranos do seu curso e do seu campus.' : 'Pessoas da sua área e campus.'}
+                  {statsQuery.data?.campus
+                    ? `No campus ${statsQuery.data.campus} e na sua área.`
+                    : 'Da sua área e da rede SeLinka.'}
                 </div>
               </div>
               <div style={{ padding: 16, border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)' }}>
                 <Lightbulb size={20} style={{ color: 'var(--color-mint)' }} />
                 <div style={{ font: '600 14px Inter', margin: '8px 0 4px' }}>
-                  {tipo === 'estudante' ? '12 projetos com vagas' : tipo === 'externo' ? '8 negócios afins' : '8 projetos abertos'}
+                  {tipo === 'externo'
+                    ? `${statsQuery.data?.businesses_count ?? '…'} negócios afins`
+                    : `${statsQuery.data?.projects_count ?? '…'} projetos abertos`}
                 </div>
                 <div className="muted">
-                  {tipo === 'estudante'
-                    ? 'Aceitando estudantes em IoT e biotec.'
-                    : tipo === 'externo'
-                    ? 'Startups e spin-offs em áreas próximas das suas.'
-                    : 'Aceitando colaboradores em sua área.'}
+                  {tipo === 'externo'
+                    ? 'Startups e spin-offs que aceitam parceria.'
+                    : 'Aceitando colaboradores em diversas áreas.'}
                 </div>
               </div>
             </div>

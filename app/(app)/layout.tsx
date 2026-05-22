@@ -1,14 +1,44 @@
 'use client'
 
 import { type ReactNode, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
+import { MessageCircle, Video } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fetchMe } from '@/lib/api/client'
 import { useAuth } from '@/lib/stores/auth'
 import { useWS } from '@/lib/ws/useWS'
 import { TopNav } from '@/components/shell/TopNav'
-import { Sidebar } from '@/components/shell/Sidebar'
 import { MobileTabBar } from '@/components/shell/MobileTabBar'
+
+function FloatingActions() {
+  const pathname = usePathname()
+  const onChat = pathname?.startsWith('/mensagens')
+  const onMeetings = pathname?.startsWith('/reunioes')
+
+  return (
+    <div className="fixed bottom-[calc(var(--nav-height-bottom,0px)+24px)] right-5 z-40 hidden flex-col gap-3 lg:flex">
+      {!onMeetings && (
+        <Link
+          href="/reunioes"
+          aria-label="Reuniões"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-surface border border-border shadow-md text-fg-2 transition-colors hover:bg-surface-2 hover:text-ink"
+        >
+          <Video size={20} aria-hidden />
+        </Link>
+      )}
+      {!onChat && (
+        <Link
+          href="/mensagens"
+          aria-label="Mensagens"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-ink text-paper shadow-md transition-opacity hover:opacity-90"
+        >
+          <MessageCircle size={20} aria-hidden />
+        </Link>
+      )}
+    </div>
+  )
+}
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
@@ -45,11 +75,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
       <TopNav />
-      <div className="mx-auto flex max-w-content">
-        <Sidebar />
-        <main className="flex-1 pb-20 lg:pb-8">{children}</main>
-      </div>
+      <main className="min-w-0 pb-[calc(var(--nav-height-bottom)+24px)] lg:pb-8">
+        {children}
+      </main>
       <MobileTabBar />
+      <FloatingActions />
     </div>
   )
 }

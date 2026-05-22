@@ -121,7 +121,7 @@ export default function NegociosPage() {
         <div>
           <div className="crumbs">
             <span>Vitrines</span>
-            <span style={{ color: 'var(--color-ink)' }}>Negócios</span>
+            <span style={{ color: 'var(--color-fg-1)' }}>Negócios</span>
           </div>
           <h1>Negócios</h1>
           <div className="sub">Startups, empresas juniores e spin-offs vinculados à UFC.</div>
@@ -267,8 +267,8 @@ export default function NegociosPage() {
             <div className={view === 'grid' ? 'grid-3' : 'col'} style={view === 'grid' ? { gap: 16 } : { gap: 12 }}>
               {filtered.map((n, i) => (
                 view === 'grid'
-                  ? <NegocioCard key={n.uid} negocio={n} idx={i} href={`/negocios/${n.uid}`} />
-                  : <NegocioRow  key={n.uid} negocio={n} idx={i} href={`/negocios/${n.uid}`} />
+                  ? <NegocioCard key={n.id} negocio={n} idx={i} href={`/negocios/${n.id}`} />
+                  : <NegocioRow  key={n.id} negocio={n} idx={i} href={`/negocios/${n.id}`} />
               ))}
             </div>
           )}

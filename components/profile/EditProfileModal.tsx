@@ -40,7 +40,7 @@ export function EditProfileModal({ profile, onClose, onSave, saving }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-lg rounded-xl border border-border bg-paper shadow-2xl">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-surface shadow-2xl">
         <header className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="font-display font-semibold">Editar perfil</h2>
           <button type="button" onClick={onClose} className="rounded p-1 hover:bg-surface-2">
@@ -129,7 +129,7 @@ export function EditProfileModal({ profile, onClose, onSave, saving }: Props) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-medium text-ink/60">{label}</label>
+      <label className="mb-1 block text-xs font-medium text-fg-3">{label}</label>
       {children}
     </div>
   )

@@ -4,15 +4,33 @@ import type { ApiResp } from './feed'
 export type NegocioStatus = 'pendente' | 'aprovado' | 'recusado'
 
 export type Negocio = {
-  uid: string
+  id: string
   nome: string
+  email: string
+  uid_admin: string | null
+  telefone: string
+  tipo_negocio: string
   descricao: string
+  area_atuacao: string
+  estagio: string
   categoria: string
+  palavras_chave?: string[]
   status: NegocioStatus
-  uid_owner: string
-  imagens?: string[]
-  documentos?: string[]
   visivel?: boolean
+  claimed?: boolean
+  foto_perfil?: string | null
+  foto_capa?: string | null
+  website?: string | null
+  midias_sociais?: Record<string, string> | null
+  cnpj?: string | null
+  razao_social?: string | null
+  campus?: string | null
+  endereco?: string | null
+  descricao_problema?: string | null
+  solucao_proposta?: string | null
+  likes_count?: number
+  followers_count?: number
+  data_cadastro?: string
   created_at: string
   updated_at: string
 }

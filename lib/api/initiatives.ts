@@ -111,6 +111,12 @@ export async function listInitiatives(params?: { limit?: number; offset?: number
   return data
 }
 
+// GET /api/v1/initiatives/admin  (admin only — pending approval queue)
+export async function listAdminInitiatives(): Promise<Iniciativa[]> {
+  const { data } = await api.get<ApiResp<Iniciativa[]>>('/api/v1/initiatives/admin')
+  return data.data
+}
+
 // GET /api/v1/initiatives/business/{business_id}
 export async function getInitiativesByBusiness(businessId: string): Promise<Iniciativa[]> {
   const { data } = await api.get<ApiResp<Iniciativa[]>>(`/api/v1/initiatives/business/${businessId}`)

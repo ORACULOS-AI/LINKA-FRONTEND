@@ -8,6 +8,7 @@ import { listThreads, listMessages, sendMessage, markThreadRead, type Message } 
 import { useAuth } from '@/lib/stores/auth'
 import { NewThreadModal } from '@/components/messages/NewThreadModal'
 import { EmptyState, SkeletonList } from '@/components/primitives'
+import { PresenceDot } from '@/components/social/PresenceDot'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -150,6 +151,7 @@ function MensagensInner() {
                 <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--color-purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 14px var(--font-display)', flex: 'none' }}>
                   {initials}
                 </div>
+                <PresenceDot uid={other} className="absolute right-0 bottom-0" />
               </div>
               <div className="body">
                 <div className="head">
@@ -174,8 +176,11 @@ function MensagensInner() {
       ) : (
         <div className="msg-pane">
           <div className="mp-head">
-            <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--color-purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 14px var(--font-display)', flex: 'none' }}>
-              {getInitials(otherParticipant)}
+            <div style={{ position: 'relative', flex: 'none' }}>
+              <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--color-purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 14px var(--font-display)' }}>
+                {getInitials(otherParticipant)}
+              </div>
+              {otherParticipant && <PresenceDot uid={otherParticipant} className="absolute right-0 bottom-0" />}
             </div>
             <div>
               <div className="nm">{otherParticipant}</div>

@@ -104,8 +104,8 @@ export function OtpInput({
           aria-invalid={invalid || undefined}
           aria-label={`Dígito ${idx + 1}`}
           className={cn(
-            'h-14 w-12 rounded-md border bg-white text-center text-xl font-semibold text-ink',
-            'border-ink/15 focus:border-selinka-blue focus:outline-none focus:ring-2 focus:ring-selinka-blue/30',
+            'h-14 w-12 rounded-md border bg-white text-center text-xl font-semibold text-fg-1',
+            'border-ink/15 focus:border-blue focus:outline-none focus:ring-2 focus:ring-blue/30',
             invalid && 'border-[#E5102E] focus:border-[#E5102E] focus:ring-[#E5102E]/30',
             disabled && 'opacity-60',
           )}

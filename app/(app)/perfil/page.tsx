@@ -6,6 +6,7 @@ import { BadgeCheck, MapPin, Mail, ExternalLink, Badge, Share2, MoreHorizontal, 
 import { fetchMyProfile, updateMyProfile, TIPO_LABEL, type UserProfile } from '@/lib/api/users'
 import { getMyConnections, getFollowCounts, type ConnectionUser } from '@/lib/api/connections'
 import { fetchFeed } from '@/lib/api/feed'
+import { getInitiativesByUser } from '@/lib/api/initiatives'
 import { EditProfileModal } from '@/components/profile/EditProfileModal'
 import { cn } from '@/lib/utils'
 
@@ -43,6 +44,12 @@ export default function MyProfilePage() {
     enabled: !!profile?.uid,
   })
   const posts = feedData?.items?.filter((p) => p.autor_uid === profile?.uid) ?? []
+
+  const { data: meusProjetos = [], isLoading: projetosLoading } = useQuery({
+    queryKey: ['profile', 'me', 'projetos', profile?.uid],
+    queryFn: () => getInitiativesByUser(profile!.uid),
+    enabled: !!profile?.uid && tab === 'projetos',
+  })
 
   const updateM = useMutation({
     mutationFn: updateMyProfile,
@@ -189,10 +196,38 @@ export default function MyProfilePage() {
             </>
           )}
 
-          {(tab === 'projetos' || tab === 'labs' || tab === 'negocios') && (
+          {tab === 'projetos' && (
+            projetosLoading ? (
+              <div className="empty"><p>Carregando projetos…</p></div>
+            ) : meusProjetos.length === 0 ? (
+              <div className="empty">
+                <h3>Nenhum projeto vinculado</h3>
+                <p>Você ainda não participa de iniciativas.</p>
+              </div>
+            ) : (
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {meusProjetos.map((p) => (
+                  <li key={p.uid}>
+                    <a
+                      href={`/vitrine/projetos/${p.uid}`}
+                      className="block rounded-md border border-border bg-surface p-4 transition-colors duration-fast ease-standard hover:bg-surface-2"
+                    >
+                      <div className="text-xs uppercase tracking-wide text-fg-3">{p.tipo}</div>
+                      <div className="mt-1 truncate text-sm font-semibold text-fg-1">{p.titulo}</div>
+                      {p.descricao && (
+                        <p className="mt-1 line-clamp-2 text-xs text-fg-2">{p.descricao}</p>
+                      )}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+
+          {(tab === 'labs' || tab === 'negocios') && (
             <div className="empty">
-              <h3>Em breve</h3>
-              <p>Esta seção estará disponível em breve.</p>
+              <h3>Listagem por usuário pendente</h3>
+              <p>O backend ainda não expõe {tab === 'labs' ? 'laboratórios' : 'negócios'} filtrados por membro. Sinalizado para o time de API.</p>
             </div>
           )}
 

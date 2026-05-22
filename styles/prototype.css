@@ -75,6 +75,49 @@
 .fade-in { animation: fadeIn 200ms ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
+/* ─── TopNav items (LinkedIn-style: icon + label below) ─────── */
+.nav-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;           /* icon ↔ label gap — fixed for all items */
+  min-width: 72px;
+  height: var(--nav-height-top);
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--color-fg-2);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--motion-fast), background var(--motion-fast);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  font: inherit;
+}
+.nav-item svg { width: 20px; height: 20px; flex: none; }  /* uniform 20px icons */
+.nav-item:hover { color: var(--color-fg-1); background: var(--color-surface-2); }
+.nav-item--active { color: var(--color-fg-1); border-bottom-color: var(--color-mint); }
+.nav-label { font-size: 11px; font-weight: 600; white-space: nowrap; line-height: 1; }
+
+/* Avatar com borda: preta no light, branca no dark */
+.avatar-ring { box-shadow: 0 0 0 2px var(--color-ink); transition: box-shadow var(--motion-fast); }
+.avatar-ring:hover { box-shadow: 0 0 0 2px var(--color-mint); }
+[data-theme='dark'] .avatar-ring { box-shadow: 0 0 0 2px #ffffff; }
+[data-theme='dark'] .avatar-ring:hover { box-shadow: 0 0 0 2px var(--color-mint); }
+
+/* ─── Post modal enter animation ────────────────────────────── */
+@keyframes modalEnter {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+.modal-enter {
+  animation: modalEnter 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  box-shadow:
+    0 24px 64px rgba(0,0,0,0.30),
+    0 4px  16px rgba(0,0,0,0.12);
+}
+
 /* ─── AUTH (login + cadastro) split screen ──────────────────── */
 .auth {
   display: grid;
@@ -280,7 +323,7 @@
 /* ─── Page layout ───────────────────────────────────────────── */
 .page {
   padding: 28px 48px 88px;
-  max-width: var(--content-max);
+  max-width: 1400px;
   width: 100%;
   margin: 0 auto;
 }
@@ -355,7 +398,9 @@
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
 .grid-feed { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; }
-.grid-feed-3 { display: grid; grid-template-columns: 260px minmax(0, 1fr) 320px; gap: 24px; }
+/* colunas simétricas: col1 = col3 = 240px → mesma distância das bordas ao feed */
+.grid-feed-3 { display: grid; grid-template-columns: 240px minmax(0, 1fr) 240px; gap: 24px; align-items: start; }
+.grid-feed-3 > * { min-width: 0; }
 .grid-detail { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; }
 
 /* ─── Empty state ───────────────────────────────────────────── */
@@ -1078,3 +1123,74 @@
 
 /* ─── Hint error ────────────────────────────────────────────── */
 .hint.is-error { color: #c50e29; }
+
+/* ============================================================================
+   Dark-mode overrides for prototype.css hardcoded colors.
+   Maps fixed dark text / light hovers / white backgrounds to semantic tokens.
+   ============================================================================ */
+[data-theme='dark'] .pill-ativo,
+[data-theme='dark'] .pill-aprovado,
+[data-theme='dark'] .tag-mint,
+[data-theme='dark'] .metric .delta.up,
+[data-theme='dark'] .compose-card .compose-act.mint { color: var(--color-mint); }
+
+[data-theme='dark'] .pill-pendente,
+[data-theme='dark'] .tag-orange,
+[data-theme='dark'] .compose-card .compose-act.orange { color: var(--color-orange); }
+
+[data-theme='dark'] .pill-cancelado,
+[data-theme='dark'] .pill-recusado,
+[data-theme='dark'] .metric .delta.down,
+[data-theme='dark'] .hint.is-error,
+[data-theme='dark'] .field .error,
+[data-theme='dark'] .btn-danger { color: #FF6B7E; }
+
+[data-theme='dark'] .btn-danger { background: var(--color-surface); border-color: rgba(255,107,126,0.3); }
+
+[data-theme='dark'] .compose-card .top .stub:hover,
+[data-theme='dark'] .post-attach:hover,
+[data-theme='dark'] .ss-pill:hover { background: var(--color-surface-2); }
+
+[data-theme='dark'] .ss-pill.on { background: var(--color-surface-2); color: var(--color-fg-1); }
+
+[data-theme='dark'] .btn-primary:hover { background: #04c46c; }
+[data-theme='dark'] .btn-secondary:hover { background: var(--color-surface-2); }
+
+/* Compose-act buttons: in dark mode, tint background so colored text stays legible. */
+.compose-card .compose-act.mint   { background: var(--color-mint-08); }
+.compose-card .compose-act.purple { background: var(--color-purple-08); }
+.compose-card .compose-act.blue   { background: var(--color-blue-08); }
+.compose-card .compose-act.orange { background: var(--color-orange-08); }
+.compose-card .compose-act.mint:hover,
+.compose-card .compose-act.purple:hover,
+.compose-card .compose-act.blue:hover,
+.compose-card .compose-act.orange:hover { background: var(--color-surface-2); }
+
+[data-theme='dark'] .btn-tertiary { background: var(--color-surface); color: var(--color-fg-1); }
+[data-theme='dark'] .btn-tertiary:hover { background: var(--color-surface-2); }
+
+/* Form controls dark variant */
+[data-theme='dark'] .input,
+[data-theme='dark'] .select,
+[data-theme='dark'] .textarea { background: var(--color-surface); color: var(--color-fg-1); border-color: var(--color-border-strong); }
+[data-theme='dark'] .input::placeholder,
+[data-theme='dark'] .textarea::placeholder { color: var(--color-fg-4); }
+[data-theme='dark'] .input:focus,
+[data-theme='dark'] .select:focus,
+[data-theme='dark'] .textarea:focus { box-shadow: 0 0 0 3px rgba(0,34,255,0.35); }
+
+[data-theme='dark'] .tabs-bar .tab.active,
+[data-theme='dark'] .tabs-bar .tab:hover { color: var(--color-fg-1); }
+[data-theme='dark'] .tabs-bar .tab.active::after { background: var(--color-mint); }
+
+[data-theme='dark'] .auth-form .tab.active { background: var(--color-surface-2); color: var(--color-fg-1); }
+
+/* Headings & strong text inherit fg-1 automatically; ensure no literal black overrides */
+[data-theme='dark'] h1,
+[data-theme='dark'] h2,
+[data-theme='dark'] h3,
+[data-theme='dark'] h4,
+[data-theme='dark'] h5,
+[data-theme='dark'] h6,
+[data-theme='dark'] strong,
+[data-theme='dark'] b { color: var(--color-fg-1); }

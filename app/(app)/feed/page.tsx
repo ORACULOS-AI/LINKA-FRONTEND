@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import {
   Newspaper, Lightbulb, Briefcase, FlaskConical, Calendar,
-  PlusCircle, Shield, ArrowDownUp, UserPlus,
+  PlusCircle, Shield, ArrowDownUp, UserPlus, PenSquare, Search,
 } from 'lucide-react'
 import { useAuth } from '@/lib/stores/auth'
 import { FeedTimeline } from '@/components/feed/FeedTimeline'
@@ -84,7 +84,7 @@ export default function FeedPage() {
       <div className="grid-feed-3">
 
         {/* Left sidebar: mini-profile + filters + shortcuts */}
-        <aside className="col" style={{ gap: 16 }}>
+        <aside className="col" style={{ gap: 16, position: 'sticky', top: 'calc(var(--nav-height-top) + 16px)', maxHeight: 'calc(100vh - var(--nav-height-top) - 32px)', overflowY: 'auto' }}>
           <div className="card" style={{ overflow: 'hidden' }}>
             <div style={{ height: 70, background: 'var(--color-purple)', backgroundImage: 'url(/selinka/pattern-mint-on-purple.png)', backgroundSize: 'cover' }} />
             <div className="card-body" style={{ paddingTop: 0, textAlign: 'center' }}>
@@ -142,6 +142,15 @@ export default function FeedPage() {
               </div>
             </div>
           </div>
+
+          {/* Publicar destaque */}
+          <button
+            className="btn btn-secondary"
+            style={{ width: '100%', justifyContent: 'center', gap: 8, borderRadius: 'var(--radius-full)' }}
+            onClick={() => setComposerOpen(true)}
+          >
+            <PenSquare size={16} /> Publicar post
+          </button>
         </aside>
 
         {/* Center: composer + timeline */}
@@ -178,8 +187,16 @@ export default function FeedPage() {
           <FeedTimeline emptyText="Seu feed está vazio. Siga colegas para ver posts aqui." />
         </main>
 
-        {/* Right sidebar: events + suggestions */}
-        <aside className="col" style={{ gap: 16 }}>
+        {/* Right sidebar: search + events + suggestions */}
+        <aside className="col" style={{ gap: 16, position: 'sticky', top: 'calc(var(--nav-height-top) + 16px)', maxHeight: 'calc(100vh - var(--nav-height-top) - 32px)', overflowY: 'auto' }}>
+          <label className="relative flex">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-3 pointer-events-none" aria-hidden />
+            <input
+              type="search"
+              placeholder="Buscar pessoas, iniciativas, laboratórios…"
+              className="h-[40px] w-full rounded-full border border-border bg-surface-2 pl-9 pr-4 text-sm text-fg-1 placeholder:text-fg-4 transition-colors hover:border-border-strong hover:bg-[#efeff2] focus:border-border-strong focus:bg-surface focus:outline-none"
+            />
+          </label>
           <div className="card">
             <div className="card-body">
               <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>

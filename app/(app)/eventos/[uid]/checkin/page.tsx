@@ -63,7 +63,7 @@ function CheckinOrganizador({ event, stats }: { event: Event; stats: EventStats 
             Aponte a câmera para fazer check-in
           </h3>
           <div className="muted" style={{ marginBottom: 24 }}>
-            Cada participante deve escanear o QR e bater o botão "Confirmar" no celular. O token roda a cada 5 minutos.
+            Cada participante deve escanear o QR e bater o botão &ldquo;Confirmar&rdquo; no celular. O token roda a cada 5 minutos.
           </div>
 
           <div className="qr-frame">
@@ -136,11 +136,52 @@ function CheckinParticipante({ event, eventId }: { event: Event; eventId: string
   const [phase, setPhase] = useState<CheckinPhase>('scan')
   const [code, setCode] = useState('')
 
+  // Backend só aceita check-in com evento `ativo`. Espelhar a janela na UI:
+  // 30min antes do início até 2h depois do fim.
+  const now = Date.now()
+  const inicio = new Date(event.data_inicio).getTime()
+  const fim = new Date(event.data_fim).getTime()
+  const janelaAberta =
+    event.status === 'ativo' && now >= inicio - 30 * 60_000 && now <= fim + 2 * 60 * 60_000
+
   const checkinMut = useMutation({
     mutationFn: () => checkInEvent(eventId),
     onSuccess: () => setPhase('success'),
     onError: () => toast.error('Erro ao registrar check-in'),
   })
+
+  if (!janelaAberta) {
+    const antes = now < inicio - 30 * 60_000
+    const concluido = event.status === 'concluido'
+    const cancelado = event.status === 'cancelado'
+    let titulo = 'Check-in indisponível'
+    let descricao = ''
+    if (cancelado) {
+      titulo = 'Evento cancelado'
+      descricao = 'Este evento foi cancelado pelo organizador.'
+    } else if (concluido) {
+      titulo = 'Evento concluído'
+      descricao = 'Se você participou, seu certificado já está disponível.'
+    } else if (antes) {
+      const inicioStr = new Date(event.data_inicio).toLocaleString('pt-BR')
+      titulo = 'Check-in ainda não liberado'
+      descricao = `Volte a partir de ${inicioStr} (30 min antes do início).`
+    } else {
+      titulo = 'Janela de check-in encerrada'
+      descricao = 'A janela de check-in (até 2h após o fim) já foi fechada.'
+    }
+    return (
+      <div style={{ maxWidth: 480, margin: '0 auto' }}>
+        <div className="card">
+          <div className="card-body" style={{ padding: '28px 24px', textAlign: 'center' }}>
+            <Info size={28} style={{ color: 'var(--color-orange)' }} />
+            <h3 style={{ font: '700 18px var(--font-display)', margin: '12px 0 4px' }}>{titulo}</h3>
+            <div className="muted">{descricao}</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ maxWidth: 480, margin: '0 auto' }}>

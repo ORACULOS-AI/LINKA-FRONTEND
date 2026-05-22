@@ -84,6 +84,32 @@ export async function getUserFollowing(uid: string): Promise<UserProfile[]> {
   return data.data
 }
 
+// --- Admin ---
+
+// GET /api/v1/users/  (admin) — listagem geral
+export async function listAllUsers(): Promise<UserProfile[]> {
+  const { data } = await api.get<ApiResp<UserProfile[]>>('/api/v1/users/')
+  return data.data
+}
+
+// GET /api/v1/users/tipo/{tipo}  (admin)
+export async function listUsersByTipo(tipo: UserTipo): Promise<UserProfile[]> {
+  const { data } = await api.get<ApiResp<UserProfile[]>>(`/api/v1/users/tipo/${tipo}`)
+  return data.data
+}
+
+// PATCH /api/v1/users/{uid}/verify  (admin)
+export async function setUserVerified(uid: string, is_verified: boolean): Promise<UserProfile> {
+  const { data } = await api.patch<ApiResp<UserProfile>>(`/api/v1/users/${uid}/verify`, { is_verified })
+  return data.data
+}
+
+// PATCH /api/v1/users/{uid}/admin  (admin)
+export async function setUserAdmin(uid: string, is_admin: boolean): Promise<UserProfile> {
+  const { data } = await api.patch<ApiResp<UserProfile>>(`/api/v1/users/${uid}/admin`, { is_admin })
+  return data.data
+}
+
 export const TIPO_LABEL: Record<UserTipo, string> = {
   pesquisador: 'Pesquisador(a)',
   estudante: 'Estudante',

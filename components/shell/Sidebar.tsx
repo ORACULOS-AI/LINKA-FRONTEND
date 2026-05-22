@@ -11,6 +11,7 @@ import {
   Bell,
   Search,
   Settings,
+  FolderKanban,
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react'
@@ -30,6 +31,7 @@ const primary: NavItem[] = [
 ]
 
 const secondary: NavItem[] = [
+  { href: '/meus-itens', label: 'Meus itens', icon: FolderKanban },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
@@ -48,8 +50,8 @@ export function Sidebar() {
   const items = [...primary, ...secondary, ...(isAdmin ? [adminItem] : [])]
 
   return (
-    <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 border-r border-border lg:block">
-      <nav className="flex h-full flex-col gap-1 p-4">
+    <aside className="sticky top-[var(--nav-height-top)] hidden h-[calc(100vh-var(--nav-height-top))] w-[var(--sidebar-width)] shrink-0 border-r border-border lg:block">
+      <nav className="flex h-full flex-col gap-2 p-4">
         {items.map((item) => {
           const Icon = item.icon
           const active = isActive(pathname, item)
@@ -59,8 +61,10 @@ export function Sidebar() {
               href={item.href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150',
-                active ? 'bg-ink text-paper' : 'text-ink hover:bg-surface-2',
+                'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all duration-fast ease-standard active:scale-[0.98]',
+                active
+                  ? 'bg-mint-15 text-fg-1'
+                  : 'text-fg-2 hover:bg-surface-2 hover:text-fg-1',
               )}
             >
               <Icon className="h-5 w-5" aria-hidden />

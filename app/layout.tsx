@@ -19,7 +19,10 @@ const exo2 = Exo_2({
 })
 
 export const metadata: Metadata = {
-  title: 'SeLinka — UFC',
+  title: {
+    default: 'SeLinka',
+    template: '%s | SeLinka',
+  },
   description:
     'Plataforma que conecta pesquisadores, estudantes, negócios, laboratórios, projetos e eventos da Universidade Federal do Ceará.',
   manifest: '/manifest.json',
@@ -29,8 +32,16 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
   },
   icons: {
-    icon: '/icons/icon-192.png',
-    apple: '/icons/icon-192.png',
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
+  openGraph: {
+    siteName: 'SeLinka',
+    locale: 'pt_BR',
+    type: 'website',
   },
 }
 
@@ -46,7 +57,14 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${exo2.variable}`}>
+    <html lang="pt-BR" className={`${inter.variable} ${exo2.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=location.pathname;var brandLocked=p==='/'||p.startsWith('/entrar')||p.startsWith('/cadastro')||p.startsWith('/esqueci-senha')||p.startsWith('/resetar-senha')||p.startsWith('/verificar-email');if(brandLocked){document.documentElement.setAttribute('data-theme','light');return;}var t=localStorage.getItem('selinka-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body>
         <Providers>
           {children}

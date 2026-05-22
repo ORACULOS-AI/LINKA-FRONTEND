@@ -8,8 +8,8 @@
 @layer base {
   html,
   body {
-    background: var(--color-paper);
-    color: var(--color-ink);
+    background: var(--color-bg);
+    color: var(--color-fg-1);
     font-family: var(--font-ui), Inter, sans-serif;
     font-feature-settings: 'cv11', 'ss01';
   }

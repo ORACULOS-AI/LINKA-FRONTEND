@@ -48,7 +48,7 @@ export function HostPicker({
   }
   if (allowedTypes.includes('negocio')) {
     for (const b of businessQ.data?.items ?? []) {
-      options.push({ type: 'negocio', id: b.uid, label: b.nome, sub: 'Negócio' })
+      options.push({ type: 'negocio', id: b.id, label: b.nome, sub: 'Negócio' })
     }
   }
   if (allowedTypes.includes('laboratorio')) {

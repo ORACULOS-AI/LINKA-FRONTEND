@@ -25,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <h1 className="font-display text-2xl font-semibold">
               Algo inesperado aconteceu
             </h1>
-            <p className="text-sm text-ink/70">
+            <p className="text-sm text-fg-2">
               Tente recarregar a página. Se persistir, nossa equipe já foi notificada.
             </p>
             <button

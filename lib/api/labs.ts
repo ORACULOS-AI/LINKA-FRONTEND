@@ -14,6 +14,8 @@ export type LabSummary = {
   campus?: string | null
   areas_pesquisa: string[]
   created_at: string
+  uid_admin?: string | null
+  claimed?: boolean
 }
 
 export type Lab = LabSummary & {

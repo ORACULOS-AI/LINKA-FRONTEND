@@ -41,14 +41,14 @@ export function NotifPanel({ onClose }: Props) {
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-12 z-40 w-[360px] rounded-lg border border-border bg-paper shadow-xl"
+      className="absolute right-0 top-12 z-40 w-[360px] rounded-lg border border-border bg-surface shadow-xl"
     >
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <h3 className="font-display font-semibold">Notificações</h3>
         <button
           type="button"
           onClick={() => allM.mutate()}
-          className="flex items-center gap-1 text-xs text-selinka-blue hover:underline"
+          className="flex items-center gap-1 text-xs text-blue hover:underline"
         >
           <Check className="h-3 w-3" /> Marcar todas
         </button>
@@ -56,7 +56,7 @@ export function NotifPanel({ onClose }: Props) {
 
       <div className="max-h-[480px] overflow-y-auto">
         {isLoading ? (
-          <div className="p-6 text-center text-sm text-ink/50">Carregando…</div>
+          <div className="p-6 text-center text-sm text-fg-3">Carregando…</div>
         ) : data && data.items.length > 0 ? (
           <ul>
             {data.items.map((n) => (
@@ -68,15 +68,15 @@ export function NotifPanel({ onClose }: Props) {
             ))}
           </ul>
         ) : (
-          <div className="flex flex-col items-center gap-2 p-10 text-center text-sm text-ink/50">
-            <Bell className="h-8 w-8 text-ink/30" />
+          <div className="flex flex-col items-center gap-2 p-10 text-center text-sm text-fg-3">
+            <Bell className="h-8 w-8 text-fg-4" />
             <p>Sem notificações por enquanto.</p>
           </div>
         )}
       </div>
 
       <footer className="border-t border-border px-4 py-2 text-center">
-        <Link href="/notifs" onClick={onClose} className="text-sm text-selinka-blue hover:underline">
+        <Link href="/notifs" onClick={onClose} className="text-sm text-blue hover:underline">
           Ver todas
         </Link>
       </footer>
@@ -102,11 +102,11 @@ export function NotifRow({ notif, onRead, onClick }: { notif: Notif; onRead?: ()
           <Icon className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm text-ink">{notif.titulo}</p>
+          <p className="text-sm text-fg-1">{notif.titulo}</p>
           {notif.mensagem && (
-            <p className="line-clamp-2 text-xs text-ink/60">{notif.mensagem}</p>
+            <p className="line-clamp-2 text-xs text-fg-3">{notif.mensagem}</p>
           )}
-          <p className="mt-0.5 text-[11px] text-ink/40">{timeAgo(notif.created_at)}</p>
+          <p className="mt-0.5 text-[11px] text-fg-4">{timeAgo(notif.created_at)}</p>
         </div>
         {!notif.lida && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-purple" aria-label="Não lida" />}
       </button>
