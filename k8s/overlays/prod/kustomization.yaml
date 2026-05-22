@@ -5,9 +5,18 @@ namespace: linka-prod
 
 resources:
   - ../../base
+  - ingress.yaml
 
 patches:
   - path: replica-patch.yaml
     target:
       kind: Deployment
+      name: linka-frontend
+  - path: resources-patch.yaml
+    target:
+      kind: Deployment
+      name: linka-frontend
+  - path: hpa-patch.yaml
+    target:
+      kind: HorizontalPodAutoscaler
       name: linka-frontend
