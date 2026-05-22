@@ -37,7 +37,10 @@ jobs:
 
       - name: Build frontend image
         run: |
+          docker builder prune -af || true
           docker build \
+            --no-cache \
+            --pull \
             --build-arg NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }} \
             -t linka-frontend:${{ steps.tag.outputs.tag }} \
             -t linka-frontend:${{ github.ref_name }} .
