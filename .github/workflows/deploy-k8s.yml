@@ -60,7 +60,7 @@ jobs:
           kubectl set image deployment/linka-frontend \
             linka-frontend=linka-frontend:${{ needs.build-and-push.outputs.image_tag }} \
             -n linka-staging
-          kubectl rollout status deployment/linka-frontend -n linka-staging --timeout=120s
+          kubectl rollout status deployment/linka-frontend -n linka-staging --timeout=300s
 
       - name: Health check staging
         run: |
@@ -90,7 +90,7 @@ jobs:
           kubectl set image deployment/linka-frontend \
             linka-frontend=linka-frontend:${{ needs.build-and-push.outputs.image_tag }} \
             -n linka-prod
-          kubectl rollout status deployment/linka-frontend -n linka-prod --timeout=180s
+          kubectl rollout status deployment/linka-frontend -n linka-prod --timeout=300s
 
       - name: Health check prod
         run: |
