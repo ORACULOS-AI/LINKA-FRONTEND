@@ -21,6 +21,16 @@ patches:
     target:
       kind: Deployment
       name: linka-frontend
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+    target:
+      kind: HorizontalPodAutoscaler
+      name: linka-frontend
 
 images:
   - name: linka-frontend
