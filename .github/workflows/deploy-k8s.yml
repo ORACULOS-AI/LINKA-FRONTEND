@@ -61,6 +61,7 @@ jobs:
             --restart unless-stopped \
             -p 3000:3000 \
             -e NODE_ENV=production \
+            -e LINKA_API_URL=http://200.129.40.162:8000 \
             linka-frontend:${{ needs.build.outputs.image_tag }}
 
       - name: Apply k8s routing (Service + Endpoints + Ingress)
@@ -105,6 +106,7 @@ jobs:
             --restart unless-stopped \
             -p 3001:3000 \
             -e NODE_ENV=production \
+            -e LINKA_API_URL=http://200.129.40.162:8000 \
             linka-frontend:${{ needs.build.outputs.image_tag }}
 
       - name: Health check (local container)
