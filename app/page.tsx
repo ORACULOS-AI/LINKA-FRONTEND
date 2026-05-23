@@ -164,7 +164,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="landing-foot">
-        <span>© 2026 Universidade Federal do Ceará · SeLinka · linka.ufc.br</span>
+        <span>© 2026 Universidade Federal do Ceará · SeLinka · selinka.ufc.br</span>
         <div className="row">
           <a href="#">Termos</a>
           <a href="#">Privacidade</a>

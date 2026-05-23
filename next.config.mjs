@@ -7,9 +7,7 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'storage.linka.ufc.br' },
-      { protocol: 'https', hostname: 'linka-profile-images.s3.amazonaws.com' },
-      { protocol: 'https', hostname: 'linka-profile-images.s3.sa-east-1.amazonaws.com' },
+      { protocol: 'https', hostname: 'storage.selinka.ufc.br' },
     ],
   },
 }
