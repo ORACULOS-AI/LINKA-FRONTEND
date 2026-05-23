@@ -49,6 +49,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ensure shared external network
+        run: |
+          docker network inspect linka-prod-network >/dev/null 2>&1 \
+            || docker network create --driver bridge linka-prod-network
+
+      - name: Wait for backend ready
+        run: |
+          # O BFF chama o backend pelo service name na rede compartilhada.
+          # Garante que o backend está de pé e pronto (DB+Redis) antes de subir,
+          # evitando janela em que o frontend aponta para um backend ausente
+          # (ex.: durante redeploy do backend). Checa via host (mesmo servidor).
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health/ready -o /dev/null; then
+              echo "backend ready"; exit 0
+            fi
+            echo "[$i/30] backend não pronto — aguardando 5s..."; sleep 5
+          done
+          echo "Backend não ficou ready a tempo."; exit 1
+
       - name: Stop old container
         run: |
           docker stop linka-frontend-prod 2>/dev/null || true
@@ -59,9 +78,10 @@ jobs:
           docker run -d \
             --name linka-frontend-prod \
             --restart unless-stopped \
+            --network linka-prod-network \
             -p 3000:3000 \
             -e NODE_ENV=production \
-            -e LINKA_API_URL=http://200.129.40.162:8000 \
+            -e LINKA_API_URL=http://linka-backend-prod:8000 \
             linka-frontend:${{ needs.build.outputs.image_tag }}
 
       - name: Apply k8s routing (Service + Endpoints + Ingress)
@@ -94,6 +114,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ensure shared external network
+        run: |
+          docker network inspect linka-prod-network >/dev/null 2>&1 \
+            || docker network create --driver bridge linka-prod-network
+
+      - name: Wait for backend ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health/ready -o /dev/null; then
+              echo "backend ready"; exit 0
+            fi
+            echo "[$i/30] backend não pronto — aguardando 5s..."; sleep 5
+          done
+          echo "Backend não ficou ready a tempo."; exit 1
+
       - name: Stop old container
         run: |
           docker stop linka-frontend-staging 2>/dev/null || true
@@ -104,9 +139,10 @@ jobs:
           docker run -d \
             --name linka-frontend-staging \
             --restart unless-stopped \
+            --network linka-prod-network \
             -p 3001:3000 \
             -e NODE_ENV=production \
-            -e LINKA_API_URL=http://200.129.40.162:8000 \
+            -e LINKA_API_URL=http://linka-backend-prod:8000 \
             linka-frontend:${{ needs.build.outputs.image_tag }}
 
       - name: Health check (local container)
