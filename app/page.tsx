@@ -99,12 +99,6 @@ export default async function LandingPage() {
                 <PlayCircle size={18} /> Explorar vitrines
               </Link>
             </div>
-            <div className="marks">
-              <span className="m">PRPPG · UFC</span>
-              <span className="m">PADETEC</span>
-              <span className="m">FUNCAP</span>
-              <span className="m">Sebrae · CE</span>
-            </div>
           </div>
 
           <div className="landing-showcase" style={{ position: 'relative', height: 480, borderRadius: 'var(--radius-xl)', overflow: 'hidden' }}>
