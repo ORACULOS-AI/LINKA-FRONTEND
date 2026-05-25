@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
+import { fetchMyProfile } from '@/lib/api/users'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
@@ -22,7 +23,7 @@ import {
 } from 'lucide-react'
 import { fetchMe } from '@/lib/api/client'
 import { api } from '@/lib/api/client'
-import { useEnum } from '@/lib/hooks/useEnum'
+// fetch enums direto — sem depender do config store global
 
 type OnboardingStats = {
   people_count: number
@@ -110,6 +111,10 @@ export function OnboardingScreen() {
     staleTime: 5 * 60_000,
   })
 
+  // Perfil completo: para pré-preencher campos já existentes (usuários que
+  // reentram no onboarding por dados incompletos não recomeçam do zero).
+  const profileQuery = useQuery({ queryKey: ['profile', 'me'], queryFn: fetchMyProfile })
+
   const me = meQuery.data
   const tipo: Persona = me?.tipo
     ? (me.tipo as Persona)
@@ -117,8 +122,18 @@ export function OnboardingScreen() {
   const cfg = PERSONA_CONFIG[tipo]
   const PersonaIcon = cfg.Icon
 
-  const campiEnum = useEnum('campus')
-  const cursosEnum = useEnum('curso')
+  // Fetch campus e cursos direto do backend
+  type EnumItem = { value: string; label: string; metadata?: Record<string, unknown> | null }
+  const { data: enumsData } = useQuery({
+    queryKey: ['onboarding-enums'],
+    queryFn: async () => {
+      const { data } = await api.get<{ enums: Record<string, EnumItem[]> }>('/api/config')
+      return data.enums ?? data
+    },
+    staleTime: 10 * 60_000,
+  })
+  const campiEnum: EnumItem[] = (enumsData as Record<string, EnumItem[]>)?.campus ?? []
+  const cursosEnum: EnumItem[] = (enumsData as Record<string, EnumItem[]>)?.curso ?? []
 
   const [step, setStep] = useState<0 | 1 | 2>(0)
   const [saving, setSaving] = useState(false)
@@ -144,6 +159,29 @@ export function OnboardingScreen() {
   const [interests, setInterests] = useState<Set<string>>(new Set())
   const [odsSel, setOdsSel] = useState<Set<string>>(new Set())
 
+  // Semeia os campos a partir do perfil existente (uma vez, ao carregar).
+  const [seeded, setSeeded] = useState(false)
+  useEffect(() => {
+    const p = profileQuery.data
+    if (!p || seeded) return
+    setSeeded(true)
+    if (p.siape) setSiape(p.siape)
+    if (p.lattes) setLattes(p.lattes)
+    if (p.curso) setCurso(p.curso)
+    if (p.matricula) setMatricula(p.matricula)
+    if (p.semestre) setSemestre(p.semestre)
+    if (p.cargo) setCargo(p.cargo)
+    if (p.setor) setSetor(p.setor)
+    if (p.telefone_ramal) setRamal(p.telefone_ramal)
+    if (p.empresa) setEmpresa(p.empresa)
+    if (p.campus) setCampus(p.campus)
+    if (p.telefone) setTelefone(p.telefone)
+    if (p.bio) setBio(p.bio)
+    if (p.foto_perfil) setAvatar(p.foto_perfil)
+    if (p.palavras_chave?.length) setInterests(new Set(p.palavras_chave))
+    if (p.ods_interesse?.length) setOdsSel(new Set(p.ods_interesse))
+  }, [profileQuery.data, seeded])
+
   function toggle(set: Set<string>, key: string, setter: (s: Set<string>) => void) {
     const next = new Set(set)
     if (next.has(key)) next.delete(key)
@@ -151,28 +189,58 @@ export function OnboardingScreen() {
     setter(next)
   }
 
+  // Campos obrigatórios por tipo — espelha REQUIRED_BY_TIPO do backend
+  // (app/schemas/user.py). Se faltar algum, o backend devolve
+  // onboarding_complete=false e o usuário volta para cá.
+  function missingRequired(): string[] {
+    const miss: string[] = []
+    if (tipo === 'estudante') {
+      if (!curso) miss.push('Curso')
+      if (!campus) miss.push('Campus')
+      if (!matricula) miss.push('Matrícula')
+      if (!semestre) miss.push('Semestre')
+    } else if (tipo === 'pesquisador') {
+      if (!lattes) miss.push('Lattes')
+      if (!siape) miss.push('SIAPE')
+      if (interests.size === 0) miss.push('Áreas de pesquisa')
+      if (!campus) miss.push('Campus')
+    } else if (tipo === 'tecnico_admin') {
+      if (!setor) miss.push('Setor')
+      if (!cargo) miss.push('Cargo')
+      if (!campus) miss.push('Campus')
+    } else if (tipo === 'externo') {
+      if (!empresa) miss.push('Empresa')
+      if (!cargo) miss.push('Cargo')
+    }
+    return miss
+  }
+
   async function finish() {
+    const miss = missingRequired()
+    if (miss.length) {
+      toast.error(`Preencha os campos obrigatórios: ${miss.join(', ')}.`)
+      setStep(0)
+      return
+    }
     setSaving(true)
     try {
       const payload: Record<string, unknown> = {
         onboarding_complete: true,
-        avatar_url: avatar || undefined,
+        foto_perfil: avatar || undefined,
         bio: bio || undefined,
         campus: tipo !== 'externo' ? campus : undefined,
         telefone: telefone || undefined,
-        areas_interesse: interests.size ? Array.from(interests) : undefined,
+        palavras_chave: interests.size ? Array.from(interests) : undefined,
         ods_interesse: odsSel.size ? Array.from(odsSel) : undefined,
         siape: tipo === 'pesquisador' || tipo === 'tecnico_admin' ? siape || undefined : undefined,
-        lattes_url: tipo === 'pesquisador' ? lattes || undefined : undefined,
-        departamento: tipo === 'pesquisador' ? departamento || undefined : undefined,
+        lattes: tipo === 'pesquisador' ? lattes || undefined : undefined,
         curso: tipo === 'estudante' ? (curso || undefined) : undefined,
         matricula: tipo === 'estudante' ? matricula || undefined : undefined,
-        semestre: tipo === 'estudante' ? semestre : undefined,
+        semestre: tipo === 'estudante' ? semestre || undefined : undefined,
         cargo: tipo === 'tecnico_admin' || tipo === 'externo' ? cargo || undefined : undefined,
         setor: tipo === 'tecnico_admin' ? setor || undefined : undefined,
-        ramal: tipo === 'tecnico_admin' ? ramal || undefined : undefined,
+        telefone_ramal: tipo === 'tecnico_admin' ? ramal || undefined : undefined,
         empresa: tipo === 'externo' ? empresa || undefined : undefined,
-        cnpj: tipo === 'externo' ? cnpj || undefined : undefined,
       }
       const res = await fetch('/api/users/me', {
         method: 'PUT',
@@ -289,6 +357,21 @@ export function OnboardingScreen() {
 
             {tipo === 'estudante' && (
               <>
+                <div className="field">
+                  <label>Campus</label>
+                  <div className="chip-pickset">
+                    {campiEnum.map((c) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => { setCampus(c.value); setCurso('') }}
+                        className={'chip-pick' + (campus === c.value ? ' active' : '')}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
                   <div className="field">
                     <label>Curso</label>
@@ -375,7 +458,7 @@ export function OnboardingScreen() {
               </>
             )}
 
-            {tipo !== 'externo' && (
+            {tipo !== 'externo' && tipo !== 'estudante' && (
               <div className="field">
                 <label>Campus</label>
                 <div className="chip-pickset">

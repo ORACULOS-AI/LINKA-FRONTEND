@@ -52,16 +52,20 @@ export function useWS(enabled: boolean = true) {
   const wsRef = useRef<WebSocket | null>(null)
   const attemptRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const closedByUserRef = useRef(false)
 
   useEffect(() => {
     if (!enabled) return
 
-    closedByUserRef.current = false
+    // Cancelamento com escopo nesta execução do effect — sob React StrictMode
+    // o effect monta/desmonta/monta, e um ref compartilhado entre montagens
+    // deixa o estado de "fechado pelo usuário" não confiável.
+    let cancelled = false
 
     const connect = async () => {
       setStatus('connecting')
       const token = await fetchWsToken()
+      // Se desmontou durante o await, aborta antes de abrir um socket órfão.
+      if (cancelled) return
       if (!token) {
         // sem token → não tenta conectar agora; aguarda próximo ciclo
         setStatus('closed')
@@ -204,7 +208,7 @@ export function useWS(enabled: boolean = true) {
 
       ws.onclose = () => {
         setStatus('closed')
-        if (closedByUserRef.current) return
+        if (cancelled) return
         const attempt = attemptRef.current + 1
         attemptRef.current = attempt
         const backoff = Math.min(MAX_BACKOFF_MS, 1000 * 2 ** (attempt - 1))
@@ -220,8 +224,10 @@ export function useWS(enabled: boolean = true) {
     void connect()
 
     return () => {
-      closedByUserRef.current = true
+      cancelled = true
       if (timerRef.current) clearTimeout(timerRef.current)
+      // Fecha o socket desta execução mesmo se ainda estiver em CONNECTING,
+      // evitando o socket órfão e o erro "connection failed" no console.
       wsRef.current?.close()
     }
   }, [enabled, queryClient, setConfig])

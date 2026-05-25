@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, BadgeCheck,
@@ -19,7 +20,7 @@ import { getEvent } from '@/lib/api/events'
 import { useAuth } from '@/lib/stores/auth'
 import { Avatar } from '@/components/ui/avatar'
 import { LikeButton } from '@/components/social/LikeButton'
-import { PostDetailModal } from './PostDetailModal'
+import { sharePostLink } from '@/lib/share'
 import { timeAgo } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -36,13 +37,14 @@ const REF_META: Record<string, { label: string; Icon: typeof Briefcase; href: (i
 export function PostCard({ post }: Props) {
   const me = useAuth((s) => s.me)
   const qc = useQueryClient()
+  const router = useRouter()
   const isOwner = me?.id === post.autor_uid
   const [bookmarked, setBookmarked] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [detailOpen, setDetailOpen] = useState(false)
-  const [detailMediaIdx, setDetailMediaIdx] = useState(0)
 
-  // Abre o modal, mas ignora cliques em botões/links/inputs
+  const postHref = `/feed/post/${post.id}`
+
+  // Navega para o post (rota interceptada → overlay), ignorando cliques em botões/links/inputs
   function handleCardClick(e: React.MouseEvent<HTMLElement>) {
     const target = e.target as HTMLElement
     if (target.closest('button, a, input, textarea, [role="button"]')) return
@@ -50,8 +52,7 @@ export function PostCard({ post }: Props) {
   }
 
   function openDetail(mediaIdx = 0) {
-    setDetailMediaIdx(mediaIdx)
-    setDetailOpen(true)
+    router.push(mediaIdx > 0 ? `${postHref}?m=${mediaIdx}` : postHref)
   }
 
   // Autor inline; fallback apenas para posts em cache sem autor
@@ -73,17 +74,30 @@ export function PostCard({ post }: Props) {
   const isEntity = post.tipo !== 'PESSOAL' && !!post.ref_id && !!post.ref_tipo
   const refMeta = post.ref_tipo ? REF_META[post.ref_tipo] : undefined
 
-  const entityName = useQuery({
+  const entity = useQuery({
     queryKey: ['ref-entity', post.ref_tipo, post.ref_id],
     enabled: isEntity && !!refMeta,
     staleTime: 5 * 60_000,
-    queryFn: async () => {
+    queryFn: async (): Promise<{ nome: string; foto: string | null } | null> => {
       switch (post.ref_tipo) {
-        case 'negocio':     return (await getBusiness(post.ref_id!)).nome
-        case 'laboratorio': return (await getLab(post.ref_id!)).nome
-        case 'iniciativa':  return (await getInitiative(post.ref_id!)).titulo
-        case 'evento':      return (await getEvent(post.ref_id!)).titulo
-        default:            return null
+        case 'negocio': {
+          const b = await getBusiness(post.ref_id!)
+          return { nome: b.nome, foto: b.foto_perfil ?? null }
+        }
+        case 'laboratorio': {
+          const l = await getLab(post.ref_id!)
+          return { nome: l.nome, foto: (l.foto_perfil as string | undefined) ?? null }
+        }
+        case 'iniciativa': {
+          const i = await getInitiative(post.ref_id!)
+          return { nome: i.titulo, foto: null }
+        }
+        case 'evento': {
+          const e = await getEvent(post.ref_id!)
+          return { nome: e.titulo, foto: e.logo_url ?? null }
+        }
+        default:
+          return null
       }
     },
   })
@@ -97,16 +111,15 @@ export function PostCard({ post }: Props) {
     onSuccess: () => toast.success(bookmarked ? 'Removido dos salvos' : 'Post salvo'),
   })
 
-  // Share: chama API + abre o modal do post
+  // Share: copia o permalink do post + registra o compartilhamento (contador)
   const shareM = useMutation({
     mutationFn: () => sharePost(post.id),
-    onSuccess: () => {
-      toast.success('Compartilhado')
-      invalidateFeed()
-      openDetail(0)
-    },
-    onError: () => toast.error('Falha ao compartilhar'),
+    onSuccess: () => invalidateFeed(),
   })
+  function handleShare() {
+    void sharePostLink(post.id)
+    shareM.mutate()
+  }
 
   const deleteM = useMutation({
     mutationFn: () => deletePost(post.id),
@@ -129,9 +142,10 @@ export function PostCard({ post }: Props) {
     onError: () => { toast.error('Falha ao remover'); invalidateFeed() },
   })
 
-  const headerName = isEntity && refMeta ? (entityName.data ?? refMeta.label) : (autor?.nome ?? '…')
+  const headerName = isEntity && refMeta ? (entity.data?.nome ?? refMeta.label) : (autor?.nome ?? '…')
   const headerHref = isEntity && refMeta && post.ref_id ? refMeta.href(post.ref_id) : `/perfil/${post.autor_uid}`
   const EntityIcon = refMeta?.Icon
+  const entityFoto = entity.data?.foto ?? null
 
   return (
     <>
@@ -142,9 +156,17 @@ export function PostCard({ post }: Props) {
         <header className="flex items-start gap-3">
           <Link href={headerHref} onClick={(e) => e.stopPropagation()}>
             {isEntity && EntityIcon ? (
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-2 border border-border text-fg-2 shrink-0">
-                <EntityIcon className="h-5 w-5" />
-              </div>
+              entityFoto ? (
+                <img
+                  src={entityFoto}
+                  alt={headerName}
+                  className="h-11 w-11 shrink-0 rounded-full border border-border object-cover"
+                />
+              ) : (
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-2 border border-border text-fg-2 shrink-0">
+                  <EntityIcon className="h-5 w-5" />
+                </div>
+              )
             ) : (
               <Avatar nome={autor?.nome ?? '?'} src={autor?.foto ?? undefined} size={44} />
             )}
@@ -246,7 +268,7 @@ export function PostCard({ post }: Props) {
           </button>
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); shareM.mutate() }}
+            onClick={(e) => { e.stopPropagation(); handleShare() }}
             className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 hover:bg-surface-2"
           >
             <Share2 className="h-4 w-4" />
@@ -263,14 +285,6 @@ export function PostCard({ post }: Props) {
           </button>
         </footer>
       </article>
-
-      {detailOpen && (
-        <PostDetailModal
-          post={post}
-          initialMediaIndex={detailMediaIdx}
-          onClose={() => setDetailOpen(false)}
-        />
-      )}
     </>
   )
 }

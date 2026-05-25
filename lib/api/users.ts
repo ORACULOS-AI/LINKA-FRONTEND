@@ -19,6 +19,7 @@ export type UserProfile = {
   onboarding_complete?: boolean
   bio?: string | null
   telefone?: string | null
+  ods_interesse?: string[] | null
   // pesquisador
   lattes?: string | null
   siape?: string | null
@@ -27,6 +28,7 @@ export type UserProfile = {
   // estudante
   curso?: string | null
   matricula?: string | null
+  semestre?: string | null
   // técnico
   setor?: string | null
   cargo?: string | null
@@ -47,7 +49,7 @@ export async function fetchMyProfile(): Promise<UserProfile> {
 }
 
 export async function updateMyProfile(patch: Partial<UserProfile>): Promise<UserProfile> {
-  const { data } = await api.put<ApiResp<UserProfile>>('/api/v1/users/', { user: patch })
+  const { data } = await api.put<ApiResp<UserProfile>>('/api/v1/users', { user: patch })
   return data.data
 }
 

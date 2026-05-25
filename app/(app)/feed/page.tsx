@@ -1,30 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
 import {
-  Newspaper, Lightbulb, Briefcase, FlaskConical, Calendar, Image as ImageIcon,
-  PlusCircle, Shield, ArrowDownUp, UserPlus, PenSquare, Search,
+  Lightbulb, Calendar, Image as ImageIcon, ArrowDownUp,
 } from 'lucide-react'
 import { useAuth } from '@/lib/stores/auth'
 import { Avatar } from '@/components/ui/avatar'
 import { FeedTimeline } from '@/components/feed/FeedTimeline'
 import { PostComposer } from '@/components/feed/PostComposer'
+import { FeedShell } from '@/components/feed/FeedShell'
+import { FeedLeftSidebar } from '@/components/feed/FeedLeftSidebar'
+import { FeedRightSidebar } from '@/components/feed/FeedRightSidebar'
 import type { TipoPost } from '@/lib/api/feed'
-import { fetchShowcaseEventos } from '@/lib/api/showcase'
-import { getSuggestions, getMyConnectionCount, sendConnectionRequest, getFollowCounts } from '@/lib/api/connections'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
-
-const FEED_FILTERS = [
-  { id: 'all',      label: 'Tudo',          Icon: Newspaper },
-  { id: 'projetos', label: 'Projetos',       Icon: Lightbulb },
-  { id: 'negocios', label: 'Negócios',       Icon: Briefcase },
-  { id: 'labs',     label: 'Laboratórios',   Icon: FlaskConical },
-  { id: 'eventos',  label: 'Eventos',        Icon: Calendar },
-]
 
 // Mapeia o filtro do feed → contexto (tipo) de post no backend.
 const FILTER_TO_TIPO: Record<string, TipoPost | undefined> = {
@@ -35,301 +23,66 @@ const FILTER_TO_TIPO: Record<string, TipoPost | undefined> = {
   eventos: 'EVENTO',
 }
 
-function daysUntil(dateStr: string): number {
-  return Math.max(0, Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86_400_000))
-}
-
-function getInitials(nome: string) {
-  return nome.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
-}
-
 export default function FeedPage() {
-  const router = useRouter()
   const me = useAuth((s) => s.me)
   const [composerOpen, setComposerOpen] = useState(false)
   const [composerInitialKind, setComposerInitialKind] = useState<'projeto' | 'negocio' | 'laboratorio' | 'evento' | undefined>(undefined)
   const [filter, setFilter] = useState('all')
   const [sortRecent, setSortRecent] = useState(true)
-  const [search, setSearch] = useState('')
 
   function openComposer(kind?: 'projeto' | 'negocio' | 'laboratorio' | 'evento') {
     setComposerInitialKind(kind)
     setComposerOpen(true)
   }
 
-  const { data: counts } = useQuery({
-    queryKey: ['follow-counts', me?.id],
-    queryFn: () => getFollowCounts(me!.id),
-    enabled: !!me?.id,
-  })
-
-  const { data: connectionCount = 0 } = useQuery({
-    queryKey: ['my-connection-count', me?.id],
-    queryFn: async () => (await getMyConnectionCount(me!.id)) ?? 0,
-    enabled: !!me?.id,
-    staleTime: 60_000,
-  })
-
-  const { data: eventos = [] } = useQuery({
-    queryKey: ['showcase', 'eventos', 3],
-    queryFn: async () => {
-      const list = await fetchShowcaseEventos(3)
-      return Array.isArray(list) ? list : []
-    },
-    staleTime: 5 * 60_000,
-  })
-
-  const { data: sugestoes = [] } = useQuery({
-    queryKey: ['connections', 'suggestions'],
-    queryFn: async () => {
-      const list = await getSuggestions(3)
-      return Array.isArray(list) ? list : []
-    },
-    staleTime: 2 * 60_000,
-  })
-
   if (!me) return null
 
   const firstName = me.nome.split(' ')[0]
-  const initials = getInitials(me.nome)
-
-  // Laboratório só pode ser cadastrado por pesquisador/admin (backend: check_pesquisador_or_admin).
-  const canManageLab = me.tipo === 'pesquisador' || me.is_admin
-  const shortcuts = [
-    { Icon: PlusCircle,   label: 'Cadastrar negócio',     href: '/vitrine/negocios/novo' },
-    ...(canManageLab ? [{ Icon: FlaskConical, label: 'Cadastrar laboratório', href: '/vitrine/laboratorios/novo' }] : []),
-    { Icon: Calendar,     label: 'Publicar evento',        href: '/vitrine/eventos/novo' },
-    { Icon: Shield,       label: 'Reivindicar entidade',   href: '/reivindicar' },
-  ]
 
   return (
-    <div className="page fade-in">
-      <div className="grid-feed-3">
-
-        {/* Left sidebar: mini-profile + filters + shortcuts */}
-        <aside className="col" style={{ gap: 16, position: 'sticky', top: 'calc(var(--nav-height-top) + 16px)', maxHeight: 'calc(100vh - var(--nav-height-top) - 32px)', overflowY: 'auto' }}>
-          <div className="card" style={{ overflow: 'hidden' }}>
-            <div style={{ height: 70, background: 'var(--color-purple)', backgroundImage: 'url(/selinka/pattern-mint-on-purple.png)', backgroundSize: 'cover' }} />
-            <div className="card-body" style={{ paddingTop: 0, textAlign: 'center' }}>
-              <div style={{ marginTop: -32, display: 'inline-block', border: '3px solid #fff', borderRadius: '9999px', lineHeight: 0 }}>
-                <Avatar nome={me.nome} src={me.avatar_url ?? undefined} size={64} />
-              </div>
-              <Link href="/perfil" style={{ display: 'block', font: '700 15px var(--font-display)', marginTop: 10 }}>
-                {me.nome}
-              </Link>
-              <div className="muted" style={{ marginTop: 2 }}>{me.tipo?.replace('_', ' ')}</div>
-              <div style={{ borderTop: '1px solid var(--color-border)', margin: '14px -22px' }} />
-              <div className="row" style={{ justifyContent: 'space-between', fontSize: 12.5 }}>
-                <span style={{ color: 'var(--color-fg-3)' }}>Conexões</span>
-                <span style={{ fontWeight: 700, color: 'var(--color-blue)' }}>{connectionCount}</span>
-              </div>
-              <div className="row" style={{ justifyContent: 'space-between', fontSize: 12.5, marginTop: 6 }}>
-                <span style={{ color: 'var(--color-fg-3)' }}>Seguidores</span>
-                <span style={{ fontWeight: 700, color: 'var(--color-blue)' }}>{counts?.followers ?? 0}</span>
-              </div>
-            </div>
+    <FeedShell
+      left={<FeedLeftSidebar filter={filter} onFilterChange={setFilter} onCompose={() => openComposer()} />}
+      right={<FeedRightSidebar />}
+    >
+      <div className="compose-card">
+        <div className="top">
+          <Avatar nome={me.nome} src={me.avatar_url ?? undefined} size={44} />
+          <div className="stub" onClick={() => openComposer()}>
+            Compartilhe uma novidade, {firstName}…
           </div>
-
-          <div className="card">
-            <div className="card-body">
-              <div className="eyebrow" style={{ marginBottom: 10 }}>Filtros do feed</div>
-              <div className="col" style={{ gap: 8 }}>
-                {FEED_FILTERS.map(({ id, label, Icon }) => (
-                  <div
-                    key={id}
-                    className="row"
-                    style={{ gap: 10, padding: '6px 0', cursor: 'pointer', color: filter === id ? 'var(--color-ink)' : 'var(--color-fg-2)' }}
-                    onClick={() => setFilter(id)}
-                  >
-                    <Icon size={16} />
-                    <span style={{ fontSize: 13.5, fontWeight: filter === id ? 600 : 500, flex: 1 }}>{label}</span>
-                    {filter === id && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-mint)' }} />}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-body">
-              <div className="eyebrow">Atalhos</div>
-              <div className="col" style={{ marginTop: 10, gap: 10 }}>
-                {shortcuts.map(({ Icon, label, href }) => (
-                  <Link key={href} href={href} className="row" style={{ gap: 10, fontSize: 13.5, color: 'var(--color-fg-1)' }}>
-                    <Icon size={16} style={{ color: 'var(--color-fg-3)' }} /> {label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Publicar destaque */}
-          <button
-            className="btn btn-secondary"
-            style={{ width: '100%', justifyContent: 'center', gap: 8, borderRadius: 'var(--radius-full)' }}
-            onClick={() => openComposer()}
-          >
-            <PenSquare size={16} /> Publicar post
+        </div>
+        <div className="actions">
+          <button className="compose-act" style={{ color: 'var(--color-fg-3)' }} onClick={() => openComposer()}>
+            <ImageIcon size={16} /> Foto/Vídeo
           </button>
-        </aside>
-
-        {/* Center: composer + timeline */}
-        <main className="col" style={{ gap: 14 }}>
-          <div className="compose-card">
-            <div className="top">
-              <Avatar nome={me.nome} src={me.avatar_url ?? undefined} size={44} />
-              <div className="stub" onClick={() => openComposer()}>
-                Compartilhe uma novidade, {firstName}…
-              </div>
-            </div>
-            <div className="actions">
-              <button className="compose-act" style={{ color: 'var(--color-fg-3)' }} onClick={() => openComposer()}>
-                <ImageIcon size={16} /> Foto/Vídeo
-              </button>
-              <button className="compose-act mint" onClick={() => openComposer('projeto')}>
-                <Lightbulb size={16} /> Projeto
-              </button>
-              <button className="compose-act orange" onClick={() => openComposer('evento')}>
-                <Calendar size={16} /> Evento
-              </button>
-            </div>
-          </div>
-
-          <div className="row" style={{ justifyContent: 'space-between', padding: '8px 4px 0' }}>
-            <div className="eyebrow">{sortRecent ? 'Feed mais recentes' : 'Feed relevante'}</div>
-            <button
-              className={cn('btn btn-ghost btn-sm', sortRecent && 'text-mint')}
-              style={{ padding: '4px 8px' }}
-              onClick={() => setSortRecent((v) => !v)}
-              title={sortRecent ? 'Alternando para relevância' : 'Alternando para mais recentes'}
-            >
-              <ArrowDownUp size={13} /> {sortRecent ? 'Mais recentes' : 'Relevância'}
-            </button>
-          </div>
-
-          <FeedTimeline
-            tipo={FILTER_TO_TIPO[filter]}
-            sortRecent={sortRecent}
-            emptyText="Nenhum post ainda. Seja o primeiro a compartilhar!"
-          />
-        </main>
-
-        {/* Right sidebar: search + events + suggestions */}
-        <aside className="col" style={{ gap: 16, position: 'sticky', top: 'calc(var(--nav-height-top) + 16px)', maxHeight: 'calc(100vh - var(--nav-height-top) - 32px)', overflowY: 'auto' }}>
-          <form
-            className="relative flex"
-            onSubmit={(e) => {
-              e.preventDefault()
-              const q = search.trim()
-              if (q) router.push(`/busca?q=${encodeURIComponent(q)}`)
-            }}
-          >
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-3 pointer-events-none" aria-hidden />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar pessoas, iniciativas, laboratórios…"
-              className="h-[40px] w-full rounded-full border border-border bg-surface-2 pl-9 pr-4 text-sm text-fg-1 placeholder:text-fg-4 transition-colors hover:border-border-strong hover:bg-[#efeff2] focus:border-border-strong focus:bg-surface focus:outline-none"
-            />
-          </form>
-          <div className="card">
-            <div className="card-body">
-              <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-                <div className="eyebrow">Eventos próximos</div>
-                <Link href="/eventos" style={{ fontSize: 12, color: 'var(--color-fg-3)' }}>Agenda →</Link>
-              </div>
-              {eventos.length === 0 ? (
-                <p style={{ fontSize: 13, color: 'var(--color-fg-3)', marginTop: 10 }}>Nenhum evento próximo.</p>
-              ) : (
-                <div className="col" style={{ gap: 12, marginTop: 10 }}>
-                  {eventos.map((ev) => {
-                    const days = daysUntil(ev.data_inicio)
-                    const dateStr = new Date(ev.data_inicio).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-                    return (
-                      <Link key={ev.uid} href={`/eventos/${ev.uid}`} className="row" style={{ gap: 12 }}>
-                        <div style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', background: 'var(--color-orange-15)', color: '#8c5500', display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
-                          <Calendar size={18} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.titulo}</div>
-                          <div className="muted" style={{ marginTop: 2 }}>{dateStr}{days > 0 ? ` · em ${days} dias` : ' · hoje'}</div>
-                        </div>
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="card-body">
-              <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-                <div className="eyebrow">Quem conhecer</div>
-                <Link href="/conexoes/sugestoes" style={{ fontSize: 12, color: 'var(--color-fg-3)' }}>Ver todas →</Link>
-              </div>
-              {sugestoes.length === 0 ? (
-                <p style={{ fontSize: 13, color: 'var(--color-fg-3)', marginTop: 10 }}>Sem sugestões no momento.</p>
-              ) : (
-                <div className="col" style={{ gap: 0, borderTop: '1px solid var(--color-border)', marginTop: 10 }}>
-                  {sugestoes.map((s) => (
-                    <SuggestionRow key={s.uid} user={s} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </aside>
+          <button className="compose-act mint" onClick={() => openComposer('projeto')}>
+            <Lightbulb size={16} /> Projeto
+          </button>
+          <button className="compose-act orange" onClick={() => openComposer('evento')}>
+            <Calendar size={16} /> Evento
+          </button>
+        </div>
       </div>
+
+      <div className="row" style={{ justifyContent: 'space-between', padding: '8px 4px 0' }}>
+        <div className="eyebrow">{sortRecent ? 'Feed mais recentes' : 'Feed relevante'}</div>
+        <button
+          className={cn('btn btn-ghost btn-sm', sortRecent && 'text-mint')}
+          style={{ padding: '4px 8px' }}
+          onClick={() => setSortRecent((v) => !v)}
+          title={sortRecent ? 'Alternando para relevância' : 'Alternando para mais recentes'}
+        >
+          <ArrowDownUp size={13} /> {sortRecent ? 'Mais recentes' : 'Relevância'}
+        </button>
+      </div>
+
+      <FeedTimeline
+        tipo={FILTER_TO_TIPO[filter]}
+        sortRecent={sortRecent}
+        emptyText="Nenhum post ainda. Seja o primeiro a compartilhar!"
+      />
 
       <PostComposer open={composerOpen} onClose={() => setComposerOpen(false)} initialKind={composerInitialKind} />
-    </div>
-  )
-}
-
-function SuggestionRow({
-  user,
-}: {
-  user: { uid: string; nome: string; foto_url?: string | null; tipo_usuario?: string; campus?: string | null }
-}) {
-  const [requested, setRequested] = useState(false)
-
-  async function handleConnect() {
-    try {
-      await sendConnectionRequest(user.uid)
-      setRequested(true)
-      toast.success('Solicitação enviada')
-    } catch {
-      toast.error('Não foi possível enviar solicitação')
-    }
-  }
-
-  const initials = user.nome.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
-
-  return (
-    <div className="row" style={{ gap: 10, padding: '10px 0', borderBottom: '1px solid var(--color-border)' }}>
-      <Link href={`/perfil/${user.uid}`} style={{ flex: 'none' }}>
-        <div className="avatar" style={{ width: 36, height: 36, fontSize: 13, background: 'var(--color-purple)', color: '#fff' }}>
-          {initials}
-        </div>
-      </Link>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <Link href={`/perfil/${user.uid}`} style={{ display: 'block', fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {user.nome}
-        </Link>
-        <div className="muted" style={{ fontSize: 11.5, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {user.tipo_usuario?.replace('_', ' ')}{user.campus ? ` · ${user.campus}` : ''}
-        </div>
-      </div>
-      <button
-        className={cn('btn-icon', requested && 'opacity-50')}
-        disabled={requested}
-        onClick={handleConnect}
-        title={requested ? 'Solicitação enviada' : `Conectar com ${user.nome}`}
-      >
-        <UserPlus size={14} />
-      </button>
-    </div>
+    </FeedShell>
   )
 }

@@ -4,9 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  X, BadgeCheck, Briefcase, FlaskConical, Lightbulb, Calendar,
-  MessageCircle, Share2, Bookmark, ChevronLeft, ChevronRight,
-  ChevronDown, CornerDownRight,
+  BadgeCheck, Briefcase, FlaskConical, Lightbulb, Calendar,
+  MessageCircle, Share2, Bookmark, ChevronDown, CornerDownRight,
 } from 'lucide-react'
 import {
   type FeedPost, type AutorInfo, type PostComment,
@@ -22,6 +21,7 @@ import { useAuth } from '@/lib/stores/auth'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { LikeButton } from '@/components/social/LikeButton'
+import { sharePostLink } from '@/lib/share'
 import { timeAgo } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -37,54 +37,20 @@ const REF_META: Record<string, { label: string; Icon: typeof Briefcase; profileH
 
 type Props = {
   post: FeedPost
-  initialMediaIndex?: number
-  onClose: () => void
+  /** Chamado quando um link interno é clicado (fecha overlay, se houver). */
+  onNavigate?: () => void
 }
 
-export function PostDetailModal({ post, initialMediaIndex = 0, onClose }: Props) {
-  const me = useAuth((s) => s.me)
+/**
+ * Corpo completo de um post: autor, conteúdo, timestamp, barra de ações e
+ * comentários paginados. Reutilizado pelo overlay (PostOverlay) e pela página
+ * permalink (/feed/post/[id]). Não inclui a mídia — quando há mídia, ela é
+ * renderizada por PostMediaCarousel ao lado/acima deste componente.
+ */
+export function PostDetailView({ post, onNavigate }: Props) {
   const qc = useQueryClient()
-  const [mediaIdx, setMediaIdx] = useState(initialMediaIndex)
   const [bookmarked, setBookmarked] = useState(false)
 
-  // ── Swipe to close (mobile) ───────────────────────────────────────────────
-  const touchStartY = useRef<number | null>(null)
-  const touchStartX = useRef<number | null>(null)
-  const [dragY, setDragY] = useState(0)
-
-  function onTouchStart(e: React.TouchEvent) {
-    touchStartY.current = e.touches[0]?.clientY ?? null
-    touchStartX.current = e.touches[0]?.clientX ?? null
-    setDragY(0)
-  }
-
-  function onTouchMove(e: React.TouchEvent) {
-    if (touchStartY.current === null || touchStartX.current === null) return
-    const touch = e.touches[0]
-    if (!touch) return
-    const dy = touch.clientY - touchStartY.current
-    const dx = Math.abs(touch.clientX - touchStartX.current)
-    if (Math.abs(dy) > dx) setDragY(dy)
-  }
-
-  function onTouchEnd() {
-    if (Math.abs(dragY) > 90) onClose()
-    else setDragY(0)
-    touchStartY.current = null
-    touchStartX.current = null
-  }
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', onKey)
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.removeEventListener('keydown', onKey)
-      document.body.style.overflow = ''
-    }
-  }, [onClose])
-
-  // ── Autor ─────────────────────────────────────────────────────────────────
   const authorFallback = useQuery({
     queryKey: ['user', post.autor_uid],
     queryFn: () => fetchUser(post.autor_uid),
@@ -103,31 +69,48 @@ export function PostDetailModal({ post, initialMediaIndex = 0, onClose }: Props)
   const isEntity = post.tipo !== 'PESSOAL' && !!post.ref_id && !!post.ref_tipo
   const refMeta = post.ref_tipo ? REF_META[post.ref_tipo] : undefined
 
-  const entityName = useQuery({
+  const entity = useQuery({
     queryKey: ['ref-entity', post.ref_tipo, post.ref_id],
     enabled: isEntity && !!refMeta,
     staleTime: 5 * 60_000,
-    queryFn: async () => {
+    queryFn: async (): Promise<{ nome: string; foto: string | null } | null> => {
       switch (post.ref_tipo) {
-        case 'negocio':     return (await getBusiness(post.ref_id!)).nome
-        case 'laboratorio': return (await getLab(post.ref_id!)).nome
-        case 'iniciativa':  return (await getInitiative(post.ref_id!)).titulo
-        case 'evento':      return (await getEvent(post.ref_id!)).titulo
-        default:            return null
+        case 'negocio': {
+          const b = await getBusiness(post.ref_id!)
+          return { nome: b.nome, foto: b.foto_perfil ?? null }
+        }
+        case 'laboratorio': {
+          const l = await getLab(post.ref_id!)
+          return { nome: l.nome, foto: (l.foto_perfil as string | undefined) ?? null }
+        }
+        case 'iniciativa': {
+          const i = await getInitiative(post.ref_id!)
+          return { nome: i.titulo, foto: null }
+        }
+        case 'evento': {
+          const e = await getEvent(post.ref_id!)
+          return { nome: e.titulo, foto: e.logo_url ?? null }
+        }
+        default:
+          return null
       }
     },
   })
 
-  const headerName = isEntity && refMeta ? (entityName.data ?? refMeta.label) : (autor?.nome ?? '…')
+  const headerName = isEntity && refMeta ? (entity.data?.nome ?? refMeta.label) : (autor?.nome ?? '…')
   const headerHref = isEntity && refMeta && post.ref_id ? refMeta.profileHref(post.ref_id) : `/perfil/${post.autor_uid}`
   const EntityIcon = refMeta?.Icon
+  const entityFoto = entity.data?.foto ?? null
 
-  // ── Ações ─────────────────────────────────────────────────────────────────
+  // Share: copia o permalink + registra o compartilhamento (contador).
   const shareM = useMutation({
     mutationFn: () => sharePost(post.id),
-    onSuccess: () => { toast.success('Compartilhado'); qc.invalidateQueries({ queryKey: ['feed'] }) },
-    onError: () => toast.error('Falha ao compartilhar'),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['feed'] }),
   })
+  function handleShare() {
+    void sharePostLink(post.id)
+    shareM.mutate()
+  }
 
   const bookmarkM = useMutation({
     mutationFn: () => (bookmarked ? unbookmarkPost(post.id) : bookmarkPost(post.id)),
@@ -136,187 +119,84 @@ export function PostDetailModal({ post, initialMediaIndex = 0, onClose }: Props)
     onSuccess: () => toast.success(bookmarked ? 'Removido' : 'Post salvo'),
   })
 
-  const media = post.midia ?? []
-  const currentMedia = media[mediaIdx]
-
   return (
-    <div
-      // z-[300] garante ficar acima de qualquer navbar/toast da app
-      className="fixed inset-0 z-[300] flex"
-      style={{
-        transform: dragY !== 0 ? `translateY(${dragY * 0.3}px)` : undefined,
-        opacity: dragY !== 0 ? Math.max(0.4, 1 - Math.abs(dragY) / 350) : 1,
-        transition: dragY === 0 ? 'transform 0.2s ease, opacity 0.2s ease' : 'none',
-      }}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-    >
-      {/* ── Lado esquerdo: imagem em fundo preto (desktop only) ───────────── */}
-      {media.length > 0 && (
-        <div className="hidden md:flex flex-1 bg-black items-center justify-center relative select-none min-w-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-4 left-4 z-10 rounded-full p-2 bg-black/40 text-white hover:bg-black/70 transition-colors"
-            aria-label="Fechar"
-          >
-            <X className="h-5 w-5" />
-          </button>
-
-          {currentMedia?.tipo === 'video' ? (
-            <video src={currentMedia.url} controls autoPlay className="max-h-full max-w-full object-contain" />
-          ) : (
-            <img
-              src={currentMedia?.url}
-              alt={currentMedia?.legenda ?? ''}
-              className="max-h-full max-w-full object-contain"
-              draggable={false}
-            />
-          )}
-
-          {media.length > 1 && (
-            <>
-              <button type="button" onClick={() => setMediaIdx((i) => Math.max(0, i - 1))} disabled={mediaIdx === 0}
-                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white disabled:opacity-20 hover:bg-black/70 transition-colors">
-                <ChevronLeft className="h-6 w-6" />
-              </button>
-              <button type="button" onClick={() => setMediaIdx((i) => Math.min(media.length - 1, i + 1))} disabled={mediaIdx === media.length - 1}
-                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white disabled:opacity-20 hover:bg-black/70 transition-colors">
-                <ChevronRight className="h-6 w-6" />
-              </button>
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {media.map((_, i) => (
-                  <button key={i} type="button" onClick={() => setMediaIdx(i)}
-                    className={cn('h-1.5 rounded-full transition-all', i === mediaIdx ? 'w-5 bg-white' : 'w-1.5 bg-white/40')} />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ── Painel direito: detalhes + comentários ────────────────────────── */}
-      <div className={cn(
-        'flex flex-col bg-surface h-full overflow-hidden',
-        media.length > 0
-          ? 'w-full md:w-[400px] md:border-l md:border-border shrink-0'
-          : 'w-full md:max-w-2xl md:mx-auto md:border-x md:border-border',
-      )}>
-        {/* Header do painel */}
-        <div className="flex items-center gap-3 border-b border-border px-4 py-3 shrink-0 bg-surface">
-          <button type="button" onClick={onClose}
-            className="rounded-full p-1.5 hover:bg-surface-2 transition-colors" aria-label="Fechar">
-            <X className="h-5 w-5" />
-          </button>
-          <span className="font-display font-semibold text-[15px]">Publicação</span>
-        </div>
-
-        {/* Mídia mobile (empilhado) */}
-        {media.length > 0 && (
-          <div className="md:hidden relative bg-black shrink-0">
-            <div className="absolute top-1.5 left-1/2 -translate-x-1/2 h-1 w-10 rounded-full bg-white/30 z-10" />
-            {currentMedia?.tipo === 'video' ? (
-              <video src={currentMedia.url} controls autoPlay className="w-full max-h-[45vh] object-contain" />
+    <div className="px-4 py-4 space-y-4">
+      {/* Autor */}
+      <div className="flex items-center gap-3">
+        <Link href={headerHref} onClick={onNavigate} className="shrink-0">
+          {isEntity && EntityIcon ? (
+            entityFoto ? (
+              <img
+                src={entityFoto}
+                alt={headerName}
+                className="h-11 w-11 rounded-full border border-border object-cover"
+              />
             ) : (
-              <img src={currentMedia?.url} alt={currentMedia?.legenda ?? ''} className="w-full max-h-[45vh] object-contain" />
-            )}
-            {media.length > 1 && (
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-2 border border-border text-fg-2">
+                <EntityIcon className="h-5 w-5" />
+              </div>
+            )
+          ) : (
+            <Avatar nome={autor?.nome ?? '?'} src={autor?.foto ?? undefined} size={44} />
+          )}
+        </Link>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1">
+            <Link href={headerHref} onClick={onNavigate} className="font-display font-semibold text-[15px] hover:underline truncate">
+              {headerName}
+            </Link>
+            {!isEntity && autor?.is_verified && <BadgeCheck className="h-4 w-4 text-blue shrink-0" />}
+          </div>
+          <p className="text-xs text-fg-3">
+            {isEntity ? (
               <>
-                <button type="button" onClick={() => setMediaIdx((i) => Math.max(0, i - 1))} disabled={mediaIdx === 0}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white disabled:opacity-20">
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <button type="button" onClick={() => setMediaIdx((i) => Math.min(media.length - 1, i + 1))} disabled={mediaIdx === media.length - 1}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white disabled:opacity-20">
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                  {media.map((_, i) => (
-                    <button key={i} type="button" onClick={() => setMediaIdx(i)}
-                      className={cn('h-1.5 rounded-full transition-all', i === mediaIdx ? 'w-4 bg-white' : 'w-1.5 bg-white/40')} />
-                  ))}
-                </div>
+                {refMeta?.label}
+                {autor?.nome ? <> · por <Link href={`/perfil/${post.autor_uid}`} onClick={onNavigate} className="hover:underline">{autor.nome}</Link></> : null}
+              </>
+            ) : (
+              <>
+                {autor?.tipo_usuario && <span className="capitalize">{autor.tipo_usuario.replace('_', ' ')}</span>}
+                {autor?.campus ? <> · {autor.campus}</> : null}
               </>
             )}
-          </div>
-        )}
-
-        {/* Corpo scrollável */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
-          <div className="px-4 py-4 space-y-4">
-
-            {/* Autor */}
-            <div className="flex items-center gap-3">
-              <Link href={headerHref} onClick={onClose} className="shrink-0">
-                {isEntity && EntityIcon ? (
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-surface-2 border border-border text-fg-2">
-                    <EntityIcon className="h-5 w-5" />
-                  </div>
-                ) : (
-                  <Avatar nome={autor?.nome ?? '?'} src={autor?.foto ?? undefined} size={44} />
-                )}
-              </Link>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1">
-                  <Link href={headerHref} onClick={onClose} className="font-display font-semibold text-[15px] hover:underline truncate">
-                    {headerName}
-                  </Link>
-                  {!isEntity && autor?.is_verified && <BadgeCheck className="h-4 w-4 text-blue shrink-0" />}
-                </div>
-                <p className="text-xs text-fg-3">
-                  {isEntity ? (
-                    <>
-                      {refMeta?.label}
-                      {autor?.nome ? <> · por <Link href={`/perfil/${post.autor_uid}`} onClick={onClose} className="hover:underline">{autor.nome}</Link></> : null}
-                    </>
-                  ) : (
-                    <>
-                      {autor?.tipo_usuario && <span className="capitalize">{autor.tipo_usuario.replace('_', ' ')}</span>}
-                      {autor?.campus ? <> · {autor.campus}</> : null}
-                    </>
-                  )}
-                </p>
-              </div>
-            </div>
-
-            {/* Texto completo */}
-            {post.conteudo && (
-              <p className="text-[15px] leading-relaxed text-fg-1 whitespace-pre-wrap">{post.conteudo}</p>
-            )}
-
-            {/* Timestamp */}
-            <p className="text-xs text-fg-4">
-              {new Date(post.created_at).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })}
-            </p>
-
-            {/* Action bar */}
-            <div className="flex items-center gap-1 border-y border-border py-2">
-              <LikeButton type="post" id={post.id} initialCount={post.likes_count} size="sm" />
-              <button type="button" className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-fg-2 hover:bg-surface-2">
-                <MessageCircle className="h-4 w-4" /><span>{post.comments_count}</span>
-              </button>
-              <button type="button" onClick={() => shareM.mutate()} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-fg-2 hover:bg-surface-2">
-                <Share2 className="h-4 w-4" /><span>{post.shares_count}</span>
-              </button>
-              <div className="flex-1" />
-              <button type="button" onClick={() => bookmarkM.mutate()} className={cn('rounded-md p-1.5 hover:bg-surface-2', bookmarked && 'text-mint')} aria-label="Salvar">
-                <Bookmark className={cn('h-4 w-4', bookmarked && 'fill-current')} />
-              </button>
-            </div>
-
-            {/* Comentários paginados + threads */}
-            <CommentsSection postId={post.id} onNavigate={onClose} />
-          </div>
+          </p>
         </div>
       </div>
+
+      {/* Texto completo */}
+      {post.conteudo && (
+        <p className="text-[15px] leading-relaxed text-fg-1 whitespace-pre-wrap">{post.conteudo}</p>
+      )}
+
+      {/* Timestamp */}
+      <p className="text-xs text-fg-4">
+        {new Date(post.created_at).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' })}
+      </p>
+
+      {/* Action bar */}
+      <div className="flex items-center gap-1 border-y border-border py-2">
+        <LikeButton type="post" id={post.id} initialCount={post.likes_count} size="sm" />
+        <button type="button" className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-fg-2 hover:bg-surface-2">
+          <MessageCircle className="h-4 w-4" /><span>{post.comments_count}</span>
+        </button>
+        <button type="button" onClick={handleShare} className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-fg-2 hover:bg-surface-2">
+          <Share2 className="h-4 w-4" /><span>{post.shares_count}</span>
+        </button>
+        <div className="flex-1" />
+        <button type="button" onClick={() => bookmarkM.mutate()} className={cn('rounded-md p-1.5 hover:bg-surface-2', bookmarked && 'text-mint')} aria-label="Salvar">
+          <Bookmark className={cn('h-4 w-4', bookmarked && 'fill-current')} />
+        </button>
+      </div>
+
+      {/* Comentários paginados + threads */}
+      <CommentsSection postId={post.id} onNavigate={onNavigate} />
     </div>
   )
 }
 
 // ─── Seção de comentários paginada ────────────────────────────────────────────
 
-function CommentsSection({ postId, onNavigate }: { postId: string; onNavigate: () => void }) {
+function CommentsSection({ postId, onNavigate }: { postId: string; onNavigate?: () => void }) {
   const qc = useQueryClient()
   const me = useAuth((s) => s.me)
   const [text, setText] = useState('')
@@ -325,7 +205,6 @@ function CommentsSection({ postId, onNavigate }: { postId: string; onNavigate: (
   const [hasMore, setHasMore] = useState(true)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
-  // Primeira página
   const { data: firstPage, isLoading } = useQuery({
     queryKey: ['comments', postId, 0],
     queryFn: () => listComments(postId, PAGE, 0),
@@ -340,7 +219,6 @@ function CommentsSection({ postId, onNavigate }: { postId: string; onNavigate: (
     }
   }, [firstPage])
 
-  // IntersectionObserver para carregar mais
   const loadingMore = useRef(false)
   useEffect(() => {
     const el = sentinelRef.current
@@ -350,7 +228,10 @@ function CommentsSection({ postId, onNavigate }: { postId: string; onNavigate: (
       loadingMore.current = true
       try {
         const more = await listComments(postId, PAGE, offset)
-        setAllComments((prev) => [...prev, ...more])
+        setAllComments((prev) => {
+          const seen = new Set(prev.map((c) => c.id))
+          return [...prev, ...more.filter((c) => !seen.has(c.id))]
+        })
         setHasMore(more.length === PAGE)
         setOffset((o) => o + PAGE)
       } finally {
@@ -365,9 +246,7 @@ function CommentsSection({ postId, onNavigate }: { postId: string; onNavigate: (
     mutationFn: () => createComment(postId, text),
     onSuccess: (newComment) => {
       setText('')
-      // Adiciona no topo da lista
-      setAllComments((prev) => [newComment, ...prev])
-      // Atualiza o count no feed cache
+      setAllComments((prev) => (prev.some((c) => c.id === newComment.id) ? prev : [newComment, ...prev]))
       qc.setQueriesData<unknown>({ queryKey: ['feed'] }, (old: unknown) => {
         if (!old || typeof old !== 'object') return old
         const data = old as { pages?: Array<{ items: FeedPost[] }> }
@@ -389,7 +268,6 @@ function CommentsSection({ postId, onNavigate }: { postId: string; onNavigate: (
 
   return (
     <div className="space-y-4">
-      {/* Input */}
       <form onSubmit={(e) => { e.preventDefault(); if (text.trim()) addM.mutate() }} className="flex items-start gap-3">
         <Avatar nome={me?.nome ?? '?'} src={me?.avatar_url ?? undefined} size={36} />
         <div className="flex-1">
@@ -408,7 +286,6 @@ function CommentsSection({ postId, onNavigate }: { postId: string; onNavigate: (
         </div>
       </form>
 
-      {/* Lista */}
       {isLoading ? (
         <p className="text-xs text-fg-3 py-4 text-center">Carregando…</p>
       ) : allComments.length === 0 ? (
@@ -421,7 +298,6 @@ function CommentsSection({ postId, onNavigate }: { postId: string; onNavigate: (
         </ul>
       )}
 
-      {/* Sentinel de scroll para carregar mais */}
       {hasMore && <div ref={sentinelRef} className="h-4" />}
     </div>
   )
@@ -437,7 +313,7 @@ function CommentRow({
 }: {
   comment: PostComment
   postId: string
-  onNavigate: () => void
+  onNavigate?: () => void
   indent?: boolean
 }) {
   const qc = useQueryClient()
@@ -466,7 +342,6 @@ function CommentRow({
       setShowReplyInput(false)
       setExpanded(true)
       refetchReplies()
-      // Incrementa count no feed cache
       qc.setQueriesData<unknown>({ queryKey: ['feed'] }, (old: unknown) => {
         if (!old || typeof old !== 'object') return old
         const data = old as { pages?: Array<{ items: FeedPost[] }> }
@@ -525,7 +400,6 @@ function CommentRow({
             )}
           </div>
 
-          {/* Input de resposta */}
           {showReplyInput && (
             <form
               onSubmit={(e) => { e.preventDefault(); if (replyText.trim()) replyM.mutate() }}
@@ -551,7 +425,6 @@ function CommentRow({
             </form>
           )}
 
-          {/* Respostas expandidas */}
           {expanded && replies.length > 0 && (
             <ul className="mt-2 space-y-1 border-l-2 border-border pl-3">
               {replies.map((r) => (
@@ -562,7 +435,6 @@ function CommentRow({
         </div>
       </div>
 
-      {/* Ícone de thread connector */}
       {!indent && repliesCount > 0 && !expanded && (
         <div className="flex items-center gap-1 pl-10 mt-1">
           <CornerDownRight className="h-3 w-3 text-fg-4" />

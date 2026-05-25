@@ -159,6 +159,15 @@ export default function PublicProfilePage({ params }: { params: Promise<{ uid: s
             )}
           </div>
 
+          {isMe && (
+            <div className="actions" style={{ gap: 8 }}>
+              <Link href="/perfil" className="btn btn-tertiary btn-sm">
+                Editar perfil
+              </Link>
+              <ShareButton />
+            </div>
+          )}
+
           {!isMe && me && (
             <div className="actions" style={{ gap: 8 }}>
               <FollowButton type="user" id={uid} size="sm" />
