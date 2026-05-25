@@ -30,6 +30,9 @@ import {
   type UserPreferences,
 } from '@/lib/api/preferences'
 import { Avatar } from '@/components/ui/avatar'
+import { AvatarCropModal } from '@/components/ui/AvatarCropModal'
+import { CoverPatternPicker } from '@/components/ui/CoverPatternPicker'
+import { updateMyCoverUrl } from '@/lib/api/users'
 import { toast, toastApiError } from '@/lib/toast'
 import { cn } from '@/lib/utils'
 
@@ -70,8 +73,9 @@ export default function ConfiguracoesPage() {
           ))}
         </nav>
 
-        <section>
+        <section className="space-y-4">
           {tab === 'foto' && <PhotoPanel />}
+          {tab === 'foto' && <CoverPanel />}
           {tab === 'senha' && <PasswordPanel />}
           {tab === 'sessoes' && <SessionsPanel />}
           {tab === 'preferencias' && <PreferencesPanel />}
@@ -84,6 +88,7 @@ export default function ConfiguracoesPage() {
 function PhotoPanel() {
   const qc = useQueryClient()
   const fileInput = useRef<HTMLInputElement>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   const meQ = useQuery({ queryKey: ['me-profile'], queryFn: fetchMyProfile })
 
   const uploadM = useMutation({
@@ -106,40 +111,80 @@ function PhotoPanel() {
 
   const me = meQ.data
   return (
-    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
-      <h2 className="font-display text-lg font-semibold">Foto de perfil</h2>
-      <p className="mt-1 text-sm text-[var(--color-fg-3)]">PNG ou JPG, até 5MB.</p>
+    <>
+      {pendingFile && (
+        <AvatarCropModal
+          file={pendingFile}
+          onConfirm={(blob) => {
+            setPendingFile(null)
+            uploadM.mutate(new File([blob], 'avatar.jpg', { type: 'image/jpeg' }))
+          }}
+          onCancel={() => setPendingFile(null)}
+        />
+      )}
+      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+        <h2 className="font-display text-lg font-semibold">Foto de perfil</h2>
+        <p className="mt-1 text-sm text-[var(--color-fg-3)]">PNG ou JPG — recortado para 400×400 px antes do envio.</p>
 
-      <div className="mt-4 flex items-center gap-4">
-        <Avatar nome={me?.nome ?? '?'} src={me?.foto_perfil ?? null} size={88} />
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={() => fileInput.current?.click()}
-            disabled={uploadM.isPending}
-            className="inline-flex h-10 items-center justify-center rounded-md bg-[var(--color-ink)] px-4 text-sm font-medium text-[var(--color-on-dark-1)] hover:opacity-90 disabled:opacity-50"
-          >
-            {uploadM.isPending ? 'Enviando…' : 'Trocar foto'}
-          </button>
-          {me?.foto_perfil && (
+        <div className="mt-4 flex items-center gap-4">
+          <Avatar nome={me?.nome ?? '?'} src={me?.foto_perfil ?? null} size={88} />
+          <div className="flex flex-col gap-2">
             <button
-              onClick={() => deleteM.mutate()}
-              disabled={deleteM.isPending}
-              className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-red-200 px-3 text-sm text-red-700 hover:bg-red-50"
+              onClick={() => fileInput.current?.click()}
+              disabled={uploadM.isPending}
+              className="inline-flex h-10 items-center justify-center rounded-md bg-[var(--color-ink)] px-4 text-sm font-medium text-[var(--color-on-dark-1)] hover:opacity-90 disabled:opacity-50"
             >
-              <Trash2 className="h-4 w-4" /> Remover
+              {uploadM.isPending ? 'Enviando…' : 'Trocar foto'}
             </button>
-          )}
-          <input
-            type="file"
-            ref={fileInput}
-            accept="image/png,image/jpeg"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) uploadM.mutate(f)
-            }}
-          />
+            {me?.foto_perfil && (
+              <button
+                onClick={() => deleteM.mutate()}
+                disabled={deleteM.isPending}
+                className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-red-200 px-3 text-sm text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" /> Remover
+              </button>
+            )}
+            <input
+              type="file"
+              ref={fileInput}
+              accept="image/png,image/jpeg"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) { setPendingFile(f); e.target.value = '' }
+              }}
+            />
+          </div>
         </div>
+      </div>
+    </>
+  )
+}
+
+function CoverPanel() {
+  const qc = useQueryClient()
+  const meQ = useQuery({ queryKey: ['me-profile'], queryFn: fetchMyProfile })
+
+  const coverM = useMutation({
+    mutationFn: updateMyCoverUrl,
+    onSuccess: () => {
+      toast.success('Capa atualizada')
+      qc.invalidateQueries({ queryKey: ['me-profile'] })
+    },
+    onError: (e) => toastApiError(e, 'Falha ao salvar capa.'),
+  })
+
+  return (
+    <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+      <h2 className="font-display text-lg font-semibold">Capa do perfil</h2>
+      <p className="mt-1 text-sm text-[var(--color-fg-3)]">Escolha um padrão visual para a sua capa.</p>
+      <div className="mt-4">
+        <CoverPatternPicker
+          value={meQ.data?.foto_capa ?? null}
+          onChange={(url) => coverM.mutate(url)}
+        />
+        {coverM.isPending && <p className="mt-2 text-xs text-[var(--color-fg-3)]">Salvando…</p>}
       </div>
     </div>
   )
@@ -286,20 +331,30 @@ function PreferencesPanel() {
     <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-6 space-y-3">
       <h2 className="font-display text-lg font-semibold">Preferências</h2>
       <Toggle
-        label="Notificações por e-mail"
-        value={!!prefs.notificacoes_email}
-        onChange={(v) => m.mutate({ notificacoes_email: v })}
+        label="Resumo por e-mail"
+        value={prefs.email_digest_optin ?? true}
+        onChange={(v) => m.mutate({ email_digest_optin: v })}
       />
       <Toggle
-        label="Notificações push"
-        value={!!prefs.notificacoes_push}
-        onChange={(v) => m.mutate({ notificacoes_push: v })}
+        label="Som de notificações"
+        value={prefs.sound_enabled ?? true}
+        onChange={(v) => m.mutate({ sound_enabled: v })}
+      />
+      <Toggle
+        label="Perfil público"
+        value={prefs.profile_public ?? true}
+        onChange={(v) => m.mutate({ profile_public: v })}
+      />
+      <Toggle
+        label="Aparecer em buscas"
+        value={prefs.searchable ?? true}
+        onChange={(v) => m.mutate({ searchable: v })}
       />
       <Field label="Idioma">
         <select
           className="input"
-          value={prefs.idioma ?? 'pt-BR'}
-          onChange={(e) => m.mutate({ idioma: e.target.value })}
+          value={prefs.locale ?? 'pt-BR'}
+          onChange={(e) => m.mutate({ locale: e.target.value })}
         >
           <option value="pt-BR">Português (Brasil)</option>
           <option value="en">English</option>

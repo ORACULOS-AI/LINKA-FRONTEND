@@ -237,9 +237,13 @@ export async function getEventCertificate(id: string): Promise<unknown> {
   return data.data
 }
 
-// POST /api/v1/events/{id}/validar-presenca
+// POST /api/v1/events/{id}/validar-presenca?uid_usuario= — uid vai na QUERY, não no body
 export async function validatePresence(id: string, participanteUid: string): Promise<Participante> {
-  const { data } = await api.post<ApiResp<Participante>>(`/api/v1/events/${id}/validar-presenca`, { uid_usuario: participanteUid })
+  const { data } = await api.post<ApiResp<Participante>>(
+    `/api/v1/events/${id}/validar-presenca`,
+    null,
+    { params: { uid_usuario: participanteUid } },
+  )
   return data.data
 }
 

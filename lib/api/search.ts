@@ -28,9 +28,22 @@ export type SearchFilters = {
   offset?: number
 }
 
-// GET /api/v1/search
+export type SearchResult = {
+  items: SearchHit[]
+  total: number
+  next_offset: number | null
+  has_more: boolean
+}
+
+// GET /api/v1/search — backend envelopa: { data: { items, total, next_offset, has_more } }
 export async function search(filters: SearchFilters): Promise<SearchHit[]> {
-  const { data } = await api.get<ApiResp<SearchHit[]>>('/api/v1/search', { params: filters })
+  const { data } = await api.get<ApiResp<SearchResult>>('/api/v1/search', { params: filters })
+  return data.data?.items ?? []
+}
+
+// Variante paginada (offset-based) para quando total/has_more forem necessários.
+export async function searchPaged(filters: SearchFilters): Promise<SearchResult> {
+  const { data } = await api.get<ApiResp<SearchResult>>('/api/v1/search', { params: filters })
   return data.data
 }
 

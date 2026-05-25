@@ -64,9 +64,9 @@ export async function listMessages(threadId: string, params?: { limit?: number; 
   return data
 }
 
-// POST /api/v1/messages/threads/{thread_id}/read
-export async function markThreadRead(threadId: string): Promise<void> {
-  await api.post(`/api/v1/messages/threads/${threadId}/read`)
+// POST /api/v1/messages/threads/{thread_id}/read — message_id é obrigatório (400 sem)
+export async function markThreadRead(threadId: string, messageId: string): Promise<void> {
+  await api.post(`/api/v1/messages/threads/${threadId}/read`, { message_id: messageId })
 }
 
 // POST /api/v1/messages/threads/{thread_id}/start-meeting

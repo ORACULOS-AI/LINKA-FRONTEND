@@ -87,6 +87,12 @@ export async function getMyLabs(): Promise<LabSummary[]> {
   return data.data
 }
 
+// GET /api/v1/laboratorios/user/{uid} — labs administrados por um usuário (perfil de terceiros)
+export async function getLabsByUser(uid: string): Promise<LabSummary[]> {
+  const { data } = await api.get<ApiResp<LabSummary[]>>(`/api/v1/laboratorios/user/${uid}`)
+  return data.data
+}
+
 // POST /api/v1/laboratorios/
 export async function createLab(payload: LabCreate): Promise<Lab> {
   const { data } = await api.post<ApiResp<Lab>>('/api/v1/laboratorios/', payload)
@@ -147,6 +153,11 @@ export async function approveLab(uid: string): Promise<Lab> {
 export async function rejectLab(uid: string): Promise<Lab> {
   const { data } = await api.put<ApiResp<Lab>>(`/api/v1/laboratorios/${uid}/reject`)
   return data.data
+}
+
+// PATCH /api/v1/laboratorios/{uid}/cover-url
+export async function updateLabCoverUrl(uid: string, foto_capa: string): Promise<void> {
+  await api.patch(`/api/v1/laboratorios/${uid}/cover-url`, { foto_capa })
 }
 
 // Claims → ver lib/api/claims.ts

@@ -143,26 +143,33 @@ export async function updateBusinessMemberRole(id: string, memberUid: string, pa
   await api.put(`/api/v1/business/${id}/members/${memberUid}`, { papel })
 }
 
-// --- Interactions ---
+// --- Interactions (grafo polimórfico) ---
+// As rotas legadas /business/{id}/like e /comment foram REMOVIDAS do backend.
+// Usar o grafo polimórfico: /like/negocio/{id} e /comments/negocio/{id}.
 
-// POST /api/v1/business/{id}/like
+// POST /api/v1/like/negocio/{id}
 export async function likeBusiness(id: string): Promise<void> {
-  await api.post(`/api/v1/business/${id}/like`)
+  await api.post(`/api/v1/like/negocio/${id}`)
 }
 
-// DELETE /api/v1/business/{id}/like
+// DELETE /api/v1/like/negocio/{id}
 export async function unlikeBusiness(id: string): Promise<void> {
-  await api.delete(`/api/v1/business/${id}/like`)
+  await api.delete(`/api/v1/like/negocio/${id}`)
 }
 
-// POST /api/v1/business/{id}/comment
+// POST /api/v1/comments/negocio/{id}
 export async function commentOnBusiness(id: string, conteudo: string): Promise<void> {
-  await api.post(`/api/v1/business/${id}/comment`, { conteudo })
+  await api.post(`/api/v1/comments/negocio/${id}`, { conteudo })
 }
 
-// DELETE /api/v1/business/{id}/comment/{comment_id}
-export async function deleteBusinessComment(id: string, commentId: string): Promise<void> {
-  await api.delete(`/api/v1/business/${id}/comment/${commentId}`)
+// DELETE /api/v1/comments/{comment_id}
+export async function deleteBusinessComment(_id: string, commentId: string): Promise<void> {
+  await api.delete(`/api/v1/comments/${commentId}`)
+}
+
+// PATCH /api/v1/business/{id}/cover-url
+export async function updateBusinessCoverUrl(id: string, foto_capa: string): Promise<void> {
+  await api.patch(`/api/v1/business/${id}/cover-url`, { foto_capa })
 }
 
 // --- Admin ---
@@ -179,8 +186,8 @@ export async function rejectBusiness(id: string): Promise<Negocio> {
   return data.data
 }
 
-// PUT /api/v1/business/{id}/visibility
+// PUT /api/v1/business/admin/{id}/visibility  (sub-router admin montado em /business/admin)
 export async function setBusinessVisibility(id: string, visivel: boolean): Promise<Negocio> {
-  const { data } = await api.put<ApiResp<Negocio>>(`/api/v1/business/${id}/visibility`, { visivel })
+  const { data } = await api.put<ApiResp<Negocio>>(`/api/v1/business/admin/${id}/visibility`, { visivel })
   return data.data
 }

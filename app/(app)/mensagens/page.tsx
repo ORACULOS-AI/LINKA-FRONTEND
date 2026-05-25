@@ -65,8 +65,11 @@ function MensagensInner() {
   }, [messages])
 
   useEffect(() => {
-    if (activeThreadId) markThreadRead(activeThreadId).catch(() => {})
-  }, [activeThreadId])
+    if (!activeThreadId || messages.length === 0) return
+    // Marca lida até a mensagem mais recente (maior created_at). message_id é obrigatório no backend.
+    const latest = messages.reduce((a, b) => (a.created_at >= b.created_at ? a : b))
+    markThreadRead(activeThreadId, latest.id).catch(() => {})
+  }, [activeThreadId, messages])
 
   const activeThread = threads.find(t => t.id === activeThreadId)
   const otherParticipant = activeThread?.participantes.find(p => p !== user?.id) ?? ''

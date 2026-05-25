@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { fetchMe } from '@/lib/api/client'
 import { api } from '@/lib/api/client'
+import { useEnum } from '@/lib/hooks/useEnum'
 
 type OnboardingStats = {
   people_count: number
@@ -79,8 +80,6 @@ const PERSONA_CONFIG: Record<
   },
 }
 
-const CAMPI = ['Pici', 'Quixadá', 'Sobral', 'Crateús', 'Russas', 'Benfica', 'Porangabussu', 'Itapajé']
-
 const AREAS = [
   'IoT', 'Sensoriamento ambiental', 'Edge AI', 'NLP', 'Visão computacional', 'Biotecnologia',
   'Energias renováveis', 'Telessaúde', 'Saúde coletiva', 'Cidades inteligentes', 'Sustentabilidade',
@@ -91,18 +90,6 @@ const AREAS = [
 const ODS = ['ODS 2', 'ODS 3', 'ODS 4', 'ODS 6', 'ODS 8', 'ODS 9', 'ODS 10', 'ODS 11', 'ODS 12', 'ODS 13', 'ODS 14']
 
 const SEMESTRES = ['1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º+']
-
-const CURSOS = [
-  'Engenharia da Computação',
-  'Ciência da Computação',
-  'Engenharia Elétrica',
-  'Engenharia Mecânica',
-  'Engenharia de Teleinformática',
-  'Engenharia Química',
-  'Medicina',
-  'Direito',
-  'Administração',
-]
 
 function inferPersona(email?: string | null, tipoFromUrl?: string | null): Persona {
   if (tipoFromUrl && tipoFromUrl in PERSONA_CONFIG) return tipoFromUrl as Persona
@@ -130,6 +117,9 @@ export function OnboardingScreen() {
   const cfg = PERSONA_CONFIG[tipo]
   const PersonaIcon = cfg.Icon
 
+  const campiEnum = useEnum('campus')
+  const cursosEnum = useEnum('curso')
+
   const [step, setStep] = useState<0 | 1 | 2>(0)
   const [saving, setSaving] = useState(false)
 
@@ -137,7 +127,7 @@ export function OnboardingScreen() {
   const [siape, setSiape] = useState('')
   const [lattes, setLattes] = useState('')
   const [departamento, setDepartamento] = useState('')
-  const [curso, setCurso] = useState(CURSOS[0])
+  const [curso, setCurso] = useState('')
   const [matricula, setMatricula] = useState('')
   const [semestre, setSemestre] = useState('1º')
   const [cargo, setCargo] = useState('')
@@ -175,7 +165,7 @@ export function OnboardingScreen() {
         siape: tipo === 'pesquisador' || tipo === 'tecnico_admin' ? siape || undefined : undefined,
         lattes_url: tipo === 'pesquisador' ? lattes || undefined : undefined,
         departamento: tipo === 'pesquisador' ? departamento || undefined : undefined,
-        curso: tipo === 'estudante' ? curso : undefined,
+        curso: tipo === 'estudante' ? (curso || undefined) : undefined,
         matricula: tipo === 'estudante' ? matricula || undefined : undefined,
         semestre: tipo === 'estudante' ? semestre : undefined,
         cargo: tipo === 'tecnico_admin' || tipo === 'externo' ? cargo || undefined : undefined,
@@ -303,9 +293,15 @@ export function OnboardingScreen() {
                   <div className="field">
                     <label>Curso</label>
                     <select className="select" value={curso} onChange={(e) => setCurso(e.target.value)}>
-                      {CURSOS.map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
+                      <option value="">Selecione…</option>
+                      {cursosEnum
+                        .filter((c) => {
+                          const list = c.metadata?.campus
+                          return !Array.isArray(list) || (list as string[]).includes(campus)
+                        })
+                        .map((c) => (
+                          <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
                     </select>
                   </div>
                   <div className="field">
@@ -383,14 +379,14 @@ export function OnboardingScreen() {
               <div className="field">
                 <label>Campus</label>
                 <div className="chip-pickset">
-                  {CAMPI.map((c) => (
+                  {campiEnum.map((c) => (
                     <button
-                      key={c}
+                      key={c.value}
                       type="button"
-                      onClick={() => setCampus(c)}
-                      className={'chip-pick' + (campus === c ? ' active' : '')}
+                      onClick={() => setCampus(c.value)}
+                      className={'chip-pick' + (campus === c.value ? ' active' : '')}
                     >
-                      {c}
+                      {c.label}
                     </button>
                   ))}
                 </div>

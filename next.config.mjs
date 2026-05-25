@@ -8,6 +8,7 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'storage.selinka.ufc.br' },
+      { protocol: 'https', hostname: 'pub-3cac961986b140068cc4a023b797f35c.r2.dev' },
     ],
   },
 }

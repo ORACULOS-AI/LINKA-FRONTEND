@@ -7,7 +7,7 @@ import {
   ArrowLeft, Users, MoreVertical, Mic, MicOff, Video, VideoOff,
   ScreenShare, Hand, MessageCircle, PhoneOff, Lock,
 } from 'lucide-react'
-import { getMeeting, getMeetingToken } from '@/lib/api/meetings'
+import { getMeeting, joinMeeting } from '@/lib/api/meetings'
 import { useAuth } from '@/lib/stores/auth'
 import { cn } from '@/lib/utils'
 
@@ -31,9 +31,11 @@ export default function SalaPage() {
     enabled: !!id,
   })
 
-  const { data: tokenData } = useQuery({
-    queryKey: ['meeting-token', id],
-    queryFn: () => getMeetingToken(id),
+  // Entrada validada: só quando o usuário "entra" (connected). Backend exige reunião
+  // aceita + janela válida, e só aqui devolve o location_link (sala Jitsi).
+  const { data: joinInfo } = useQuery({
+    queryKey: ['meeting-join', id],
+    queryFn: () => joinMeeting(id),
     enabled: !!id && phase === 'connected',
   })
 
@@ -49,7 +51,8 @@ export default function SalaPage() {
     ? (meeting.creator_id === user?.id ? meeting.participant_id : meeting.creator_id).slice(0, 8) + '…'
     : 'Participante'
 
-  const title = meeting?.location_link ?? `Reunião ${id?.slice(-6) ?? ''}`
+  // Quando conectado, usa o link real liberado pelo /join; senão cai no link do meeting.
+  const title = joinInfo?.location_link ?? meeting?.location_link ?? `Reunião ${id?.slice(-6) ?? ''}`
 
   return (
     <div className="sala-screen fade-in">

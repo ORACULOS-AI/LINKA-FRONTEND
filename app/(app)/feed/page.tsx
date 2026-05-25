@@ -2,14 +2,17 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Newspaper, Lightbulb, Briefcase, FlaskConical, Calendar,
+  Newspaper, Lightbulb, Briefcase, FlaskConical, Calendar, Image as ImageIcon,
   PlusCircle, Shield, ArrowDownUp, UserPlus, PenSquare, Search,
 } from 'lucide-react'
 import { useAuth } from '@/lib/stores/auth'
+import { Avatar } from '@/components/ui/avatar'
 import { FeedTimeline } from '@/components/feed/FeedTimeline'
 import { PostComposer } from '@/components/feed/PostComposer'
+import type { TipoPost } from '@/lib/api/feed'
 import { fetchShowcaseEventos } from '@/lib/api/showcase'
 import { getSuggestions, getMyConnectionCount, sendConnectionRequest, getFollowCounts } from '@/lib/api/connections'
 import { cn } from '@/lib/utils'
@@ -23,12 +26,14 @@ const FEED_FILTERS = [
   { id: 'eventos',  label: 'Eventos',        Icon: Calendar },
 ]
 
-const SHORTCUTS = [
-  { Icon: PlusCircle,   label: 'Cadastrar negócio',    href: '/negocios/novo' },
-  { Icon: FlaskConical, label: 'Cadastrar laboratório', href: '/laboratorios/novo' },
-  { Icon: Calendar,     label: 'Publicar evento',       href: '/eventos/novo' },
-  { Icon: Shield,       label: 'Reivindicar entidade',  href: '/reivindicar' },
-]
+// Mapeia o filtro do feed → contexto (tipo) de post no backend.
+const FILTER_TO_TIPO: Record<string, TipoPost | undefined> = {
+  all: undefined,
+  projetos: 'PROJETO',
+  negocios: 'NEGOCIO',
+  labs: 'LABORATORIO',
+  eventos: 'EVENTO',
+}
 
 function daysUntil(dateStr: string): number {
   return Math.max(0, Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86_400_000))
@@ -39,9 +44,18 @@ function getInitials(nome: string) {
 }
 
 export default function FeedPage() {
+  const router = useRouter()
   const me = useAuth((s) => s.me)
   const [composerOpen, setComposerOpen] = useState(false)
+  const [composerInitialKind, setComposerInitialKind] = useState<'projeto' | 'negocio' | 'laboratorio' | 'evento' | undefined>(undefined)
   const [filter, setFilter] = useState('all')
+  const [sortRecent, setSortRecent] = useState(true)
+  const [search, setSearch] = useState('')
+
+  function openComposer(kind?: 'projeto' | 'negocio' | 'laboratorio' | 'evento') {
+    setComposerInitialKind(kind)
+    setComposerOpen(true)
+  }
 
   const { data: counts } = useQuery({
     queryKey: ['follow-counts', me?.id],
@@ -79,6 +93,15 @@ export default function FeedPage() {
   const firstName = me.nome.split(' ')[0]
   const initials = getInitials(me.nome)
 
+  // Laboratório só pode ser cadastrado por pesquisador/admin (backend: check_pesquisador_or_admin).
+  const canManageLab = me.tipo === 'pesquisador' || me.is_admin
+  const shortcuts = [
+    { Icon: PlusCircle,   label: 'Cadastrar negócio',     href: '/vitrine/negocios/novo' },
+    ...(canManageLab ? [{ Icon: FlaskConical, label: 'Cadastrar laboratório', href: '/vitrine/laboratorios/novo' }] : []),
+    { Icon: Calendar,     label: 'Publicar evento',        href: '/vitrine/eventos/novo' },
+    { Icon: Shield,       label: 'Reivindicar entidade',   href: '/reivindicar' },
+  ]
+
   return (
     <div className="page fade-in">
       <div className="grid-feed-3">
@@ -88,11 +111,8 @@ export default function FeedPage() {
           <div className="card" style={{ overflow: 'hidden' }}>
             <div style={{ height: 70, background: 'var(--color-purple)', backgroundImage: 'url(/selinka/pattern-mint-on-purple.png)', backgroundSize: 'cover' }} />
             <div className="card-body" style={{ paddingTop: 0, textAlign: 'center' }}>
-              <div
-                className="avatar"
-                style={{ width: 64, height: 64, marginTop: -32, fontSize: 22, border: '3px solid #fff', background: 'var(--color-purple)', color: '#fff' }}
-              >
-                {initials}
+              <div style={{ marginTop: -32, display: 'inline-block', border: '3px solid #fff', borderRadius: '9999px', lineHeight: 0 }}>
+                <Avatar nome={me.nome} src={me.avatar_url ?? undefined} size={64} />
               </div>
               <Link href="/perfil" style={{ display: 'block', font: '700 15px var(--font-display)', marginTop: 10 }}>
                 {me.nome}
@@ -134,7 +154,7 @@ export default function FeedPage() {
             <div className="card-body">
               <div className="eyebrow">Atalhos</div>
               <div className="col" style={{ marginTop: 10, gap: 10 }}>
-                {SHORTCUTS.map(({ Icon, label, href }) => (
+                {shortcuts.map(({ Icon, label, href }) => (
                   <Link key={href} href={href} className="row" style={{ gap: 10, fontSize: 13.5, color: 'var(--color-fg-1)' }}>
                     <Icon size={16} style={{ color: 'var(--color-fg-3)' }} /> {label}
                   </Link>
@@ -147,7 +167,7 @@ export default function FeedPage() {
           <button
             className="btn btn-secondary"
             style={{ width: '100%', justifyContent: 'center', gap: 8, borderRadius: 'var(--radius-full)' }}
-            onClick={() => setComposerOpen(true)}
+            onClick={() => openComposer()}
           >
             <PenSquare size={16} /> Publicar post
           </button>
@@ -157,46 +177,62 @@ export default function FeedPage() {
         <main className="col" style={{ gap: 14 }}>
           <div className="compose-card">
             <div className="top">
-              <div className="avatar" style={{ width: 44, height: 44, background: 'var(--color-purple)', color: '#fff', fontSize: 16 }}>
-                {initials}
-              </div>
-              <div className="stub" onClick={() => setComposerOpen(true)}>
+              <Avatar nome={me.nome} src={me.avatar_url ?? undefined} size={44} />
+              <div className="stub" onClick={() => openComposer()}>
                 Compartilhe uma novidade, {firstName}…
               </div>
             </div>
             <div className="actions">
-              <button className="compose-act mint" onClick={() => setComposerOpen(true)}>
-                <Lightbulb size={16} /> Vincular projeto
+              <button className="compose-act" style={{ color: 'var(--color-fg-3)' }} onClick={() => openComposer()}>
+                <ImageIcon size={16} /> Foto/Vídeo
               </button>
-              <button className="compose-act orange" onClick={() => setComposerOpen(true)}>
+              <button className="compose-act mint" onClick={() => openComposer('projeto')}>
+                <Lightbulb size={16} /> Projeto
+              </button>
+              <button className="compose-act orange" onClick={() => openComposer('evento')}>
                 <Calendar size={16} /> Evento
-              </button>
-              <button className="compose-act purple" onClick={() => setComposerOpen(true)}>
-                <Briefcase size={16} /> Negócio
               </button>
             </div>
           </div>
 
           <div className="row" style={{ justifyContent: 'space-between', padding: '8px 4px 0' }}>
-            <div className="eyebrow">Feed cronológico</div>
-            <button className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }}>
-              <ArrowDownUp size={13} /> Mais recentes
+            <div className="eyebrow">{sortRecent ? 'Feed mais recentes' : 'Feed relevante'}</div>
+            <button
+              className={cn('btn btn-ghost btn-sm', sortRecent && 'text-mint')}
+              style={{ padding: '4px 8px' }}
+              onClick={() => setSortRecent((v) => !v)}
+              title={sortRecent ? 'Alternando para relevância' : 'Alternando para mais recentes'}
+            >
+              <ArrowDownUp size={13} /> {sortRecent ? 'Mais recentes' : 'Relevância'}
             </button>
           </div>
 
-          <FeedTimeline emptyText="Seu feed está vazio. Siga colegas para ver posts aqui." />
+          <FeedTimeline
+            tipo={FILTER_TO_TIPO[filter]}
+            sortRecent={sortRecent}
+            emptyText="Nenhum post ainda. Seja o primeiro a compartilhar!"
+          />
         </main>
 
         {/* Right sidebar: search + events + suggestions */}
         <aside className="col" style={{ gap: 16, position: 'sticky', top: 'calc(var(--nav-height-top) + 16px)', maxHeight: 'calc(100vh - var(--nav-height-top) - 32px)', overflowY: 'auto' }}>
-          <label className="relative flex">
+          <form
+            className="relative flex"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const q = search.trim()
+              if (q) router.push(`/busca?q=${encodeURIComponent(q)}`)
+            }}
+          >
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-3 pointer-events-none" aria-hidden />
             <input
               type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar pessoas, iniciativas, laboratórios…"
               className="h-[40px] w-full rounded-full border border-border bg-surface-2 pl-9 pr-4 text-sm text-fg-1 placeholder:text-fg-4 transition-colors hover:border-border-strong hover:bg-[#efeff2] focus:border-border-strong focus:bg-surface focus:outline-none"
             />
-          </label>
+          </form>
           <div className="card">
             <div className="card-body">
               <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
@@ -247,7 +283,7 @@ export default function FeedPage() {
         </aside>
       </div>
 
-      <PostComposer open={composerOpen} onClose={() => setComposerOpen(false)} />
+      <PostComposer open={composerOpen} onClose={() => setComposerOpen(false)} initialKind={composerInitialKind} />
     </div>
   )
 }

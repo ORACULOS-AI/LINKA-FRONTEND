@@ -162,16 +162,17 @@ export async function removeInitiativeParticipant(id: string, userUid: string): 
   await api.delete(`/api/v1/initiatives/${id}/participantes/${userUid}`)
 }
 
-// --- Interactions ---
+// --- Interactions (grafo polimórfico) ---
+// /initiatives/{id}/follow foi REMOVIDO (SLK-130). Usar /follow/iniciativa/{id}.
 
-// POST /api/v1/initiatives/{id}/follow
+// POST /api/v1/follow/iniciativa/{id}
 export async function followInitiative(id: string): Promise<void> {
-  await api.post(`/api/v1/initiatives/${id}/follow`)
+  await api.post(`/api/v1/follow/iniciativa/${id}`)
 }
 
-// DELETE /api/v1/initiatives/{id}/follow
+// DELETE /api/v1/follow/iniciativa/{id}
 export async function unfollowInitiative(id: string): Promise<void> {
-  await api.delete(`/api/v1/initiatives/${id}/follow`)
+  await api.delete(`/api/v1/follow/iniciativa/${id}`)
 }
 
 // --- Participants (invites) ---

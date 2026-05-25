@@ -33,15 +33,19 @@ export async function deleteEnumValue(enumKey: string, value: string): Promise<v
   await api.delete(`/api/v1/admin/enums/${enumKey}/values/${value}`)
 }
 
+// GET /api/v1/tenant-config — router `tenant` (público, lê do header X-Tenant ou 'default')
 export async function getTenantConfig(): Promise<TenantConfig> {
-  const { data } = await api.get<Envelope<TenantConfig>>('/api/v1/admin/tenant')
+  const { data } = await api.get<Envelope<TenantConfig>>('/api/v1/tenant-config')
   return data.data
 }
 
+// TODO(B-FE6): backend ainda não expõe escrita de tenant-config (router `tenant` é GET-only).
+// Mantido no namespace canônico /tenant-config para quando o PUT admin existir; até lá
+// a chamada falha graciosamente (toastApiError na página admin).
 export async function updateTenantConfig(
   payload: Partial<TenantConfig>,
 ): Promise<TenantConfig> {
-  const { data } = await api.put<Envelope<TenantConfig>>('/api/v1/admin/tenant', payload)
+  const { data } = await api.put<Envelope<TenantConfig>>('/api/v1/tenant-config', payload)
   return data.data
 }
 

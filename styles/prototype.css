@@ -101,7 +101,7 @@
 .nav-label { font-size: 11px; font-weight: 600; white-space: nowrap; line-height: 1; }
 
 /* Avatar com borda: preta no light, branca no dark */
-.avatar-ring { box-shadow: 0 0 0 2px var(--color-ink); transition: box-shadow var(--motion-fast); }
+.avatar-ring { box-shadow: 0 0 0 2px var(--color-ink); transition: box-shadow var(--motion-fast); border-radius: 9999px; }
 .avatar-ring:hover { box-shadow: 0 0 0 2px var(--color-mint); }
 [data-theme='dark'] .avatar-ring { box-shadow: 0 0 0 2px #ffffff; }
 [data-theme='dark'] .avatar-ring:hover { box-shadow: 0 0 0 2px var(--color-mint); }
@@ -142,10 +142,10 @@
   position: absolute; inset: 0;
   background:
     linear-gradient(180deg,
-      rgba(92,7,158,0.10) 0%,
-      rgba(92,7,158,0.10) 35%,
-      rgba(20,2,40,0.55) 65%,
-      rgba(20,2,40,0.82) 100%);
+      rgba(20,2,40,0.45) 0%,
+      rgba(20,2,40,0.55) 40%,
+      rgba(20,2,40,0.75) 70%,
+      rgba(20,2,40,0.92) 100%);
   z-index: 0;
 }
 .auth-pattern > * { position: relative; z-index: 1; }

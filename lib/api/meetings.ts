@@ -73,8 +73,16 @@ export async function updateMeeting(id: string, payload: MeetingUpdate): Promise
   return data.data
 }
 
-// POST /api/v1/webrtc/meetings/{id}/token
-export async function getMeetingToken(id: string): Promise<{ token: string }> {
-  const { data } = await api.post<ApiResp<{ token: string }>>(`/api/v1/webrtc/meetings/${id}/token`)
+export type MeetingJoinInfo = {
+  meeting_id: string
+  location_link: string | null
+  scheduled_start: string
+  scheduled_end: string
+}
+
+// GET /api/v1/meetings/{id}/join — único lugar que entrega location_link.
+// Exige reunião 'accepted' e dentro da janela [início-10min, fim] (senão 409).
+export async function joinMeeting(id: string): Promise<MeetingJoinInfo> {
+  const { data } = await api.get<ApiResp<MeetingJoinInfo>>(`/api/v1/meetings/${id}/join`)
   return data.data
 }

@@ -10,13 +10,33 @@ import {
   PlayCircle,
   UserPlus,
 } from 'lucide-react'
+import { backendFetch } from '@/lib/auth/backend'
 
-const HERO_STATS = [
-  { n: '2.314', l: 'Pessoas na rede' },
-  { n: '47', l: 'Negócios cadastrados' },
-  { n: '28', l: 'Laboratórios ativos' },
-  { n: '36', l: 'Projetos em andamento' },
-]
+interface PublicNumbers {
+  total_usuarios: number
+  total_negocios: number
+  total_laboratorios: number
+  total_iniciativas: number
+}
+
+async function getPublicNumbers(): Promise<PublicNumbers> {
+  try {
+    const res = await backendFetch('/api/v1/dashboard/public', {
+      next: { revalidate: 300 },
+    } as RequestInit)
+    if (!res.ok) throw new Error()
+    const body = await res.json()
+    const d = body?.data ?? body
+    return {
+      total_usuarios: d?.comunidade?.total_usuarios ?? 0,
+      total_negocios: d?.numeros?.total_negocios ?? 0,
+      total_laboratorios: d?.numeros?.total_laboratorios ?? 0,
+      total_iniciativas: d?.numeros?.total_iniciativas ?? 0,
+    }
+  } catch {
+    return { total_usuarios: 0, total_negocios: 0, total_laboratorios: 0, total_iniciativas: 0 }
+  }
+}
 
 const FEATURES = [
   {
@@ -45,7 +65,8 @@ const FEATURES = [
   },
 ]
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const nums = await getPublicNumbers()
   return (
     <div className="landing fade-in">
       <header className="landing-nav">
@@ -56,14 +77,7 @@ export default function LandingPage() {
             <span className="sub">UFC · 2026</span>
           </div>
         </div>
-        <nav className="nav-items">
-          <Link href="/negocios">Negócios</Link>
-          <Link href="/laboratorios">Laboratórios</Link>
-          <Link href="/projetos">Projetos</Link>
-          <Link href="/eventos">Eventos</Link>
-          <Link href="#sobre">Sobre</Link>
-        </nav>
-        <div className="row" style={{ gap: 8 }}>
+<div className="row" style={{ gap: 8 }}>
           <Link href="/entrar" className="btn btn-ghost btn-sm">Entrar</Link>
           <Link href="/entrar?mode=cadastro" className="btn btn-primary btn-sm btn-pill">Criar conta</Link>
         </div>
@@ -152,9 +166,14 @@ export default function LandingPage() {
       </section>
 
       <section className="landing-stats">
-        <div className="eyebrow" style={{ marginBottom: 22 }}>Em números · março/2026</div>
+        <div className="eyebrow" style={{ marginBottom: 22 }}>Em números · atualizado em tempo real</div>
         <div className="grid">
-          {HERO_STATS.map((s) => (
+          {[
+            { n: nums.total_usuarios.toLocaleString('pt-BR'), l: 'Pessoas na rede' },
+            { n: nums.total_negocios.toLocaleString('pt-BR'), l: 'Negócios cadastrados' },
+            { n: nums.total_laboratorios.toLocaleString('pt-BR'), l: 'Laboratórios ativos' },
+            { n: nums.total_iniciativas.toLocaleString('pt-BR'), l: 'Projetos em andamento' },
+          ].map((s) => (
             <div className="stat" key={s.l}>
               <div className="n">{s.n}</div>
               <div className="l">{s.l}</div>

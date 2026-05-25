@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Trash2, ImagePlus } from 'lucide-react'
-import { getBusiness, updateBusiness, deleteBusiness, updateBusinessFotos } from '@/lib/api/business'
+import { getBusiness, updateBusiness, deleteBusiness, updateBusinessFotos, updateBusinessCoverUrl } from '@/lib/api/business'
 import { useAuth } from '@/lib/stores/auth'
 import { useEnum } from '@/lib/hooks/useEnum'
 import { toast, toastApiError } from '@/lib/toast'
+import { AvatarCropModal } from '@/components/ui/AvatarCropModal'
+import { CoverPatternPicker } from '@/components/ui/CoverPatternPicker'
 
 export default function EditarNegocioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -16,6 +18,7 @@ export default function EditarNegocioPage({ params }: { params: Promise<{ id: st
   const qc = useQueryClient()
   const me = useAuth((s) => s.me)
   const catEnum = useEnum('negocio_categoria')
+  const [pendingPerfilFile, setPendingPerfilFile] = useState<File | null>(null)
 
   const q = useQuery({ queryKey: ['negocio', id], queryFn: () => getBusiness(id) })
 
@@ -50,6 +53,15 @@ export default function EditarNegocioPage({ params }: { params: Promise<{ id: st
     onError: (e) => toastApiError(e, 'Falha ao enviar foto.'),
   })
 
+  const coverUrlM = useMutation({
+    mutationFn: (url: string) => updateBusinessCoverUrl(id, url),
+    onSuccess: () => {
+      toast.success('Capa atualizada')
+      qc.invalidateQueries({ queryKey: ['negocio', id] })
+    },
+    onError: (e) => toastApiError(e, 'Falha ao salvar capa.'),
+  })
+
   const delM = useMutation({
     mutationFn: () => deleteBusiness(id),
     onSuccess: () => {
@@ -81,11 +93,22 @@ export default function EditarNegocioPage({ params }: { params: Promise<{ id: st
       </Link>
       <h1 className="font-display text-2xl font-semibold">Editar negócio</h1>
 
+      {pendingPerfilFile && (
+        <AvatarCropModal
+          file={pendingPerfilFile}
+          onConfirm={(blob) => {
+            setPendingPerfilFile(null)
+            fotosM.mutate({ perfil: new File([blob], 'perfil.jpg', { type: 'image/jpeg' }) })
+          }}
+          onCancel={() => setPendingPerfilFile(null)}
+        />
+      )}
+
       <section className="mt-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <h2 className="font-display text-base font-semibold flex items-center gap-2">
           <ImagePlus className="h-4 w-4" /> Fotos
         </h2>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mt-3 space-y-4">
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium">Foto de perfil</span>
             <input
@@ -94,26 +117,22 @@ export default function EditarNegocioPage({ params }: { params: Promise<{ id: st
               disabled={fotosM.isPending}
               onChange={(e) => {
                 const f = e.target.files?.[0]
-                if (f) fotosM.mutate({ perfil: f })
+                if (f) { setPendingPerfilFile(f); e.target.value = '' }
               }}
               className="text-xs"
             />
           </label>
-          <label className="block text-sm">
-            <span className="mb-1.5 block font-medium">Foto de capa</span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg"
-              disabled={fotosM.isPending}
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) fotosM.mutate({ capa: f })
-              }}
-              className="text-xs"
+          <div className="text-sm">
+            <span className="mb-2 block font-medium">Capa do negócio</span>
+            <CoverPatternPicker
+              value={q.data?.foto_capa ?? null}
+              onChange={(url) => coverUrlM.mutate(url)}
             />
-          </label>
+          </div>
         </div>
-        {fotosM.isPending && <p className="mt-2 text-xs text-[var(--color-fg-3)]">Enviando…</p>}
+        {(fotosM.isPending || coverUrlM.isPending) && (
+          <p className="mt-2 text-xs text-[var(--color-fg-3)]">Enviando…</p>
+        )}
       </section>
 
       <form onSubmit={(e) => { e.preventDefault(); mut.mutate() }} className="mt-6 space-y-5">

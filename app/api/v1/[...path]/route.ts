@@ -22,11 +22,13 @@ async function proxy(req: NextRequest, { params }: Ctx, method: string) {
 
   let body: BodyInit | undefined
   if (method !== 'GET' && method !== 'DELETE') {
-    body = await req.text()
-    if (!body) body = undefined
+    // Usar arrayBuffer() em vez de text() para preservar dados binários
+    // (multipart/form-data com imagens era corrompido por text())
+    const buf = await req.arrayBuffer()
+    if (buf.byteLength > 0) body = Buffer.from(buf)
   }
 
-  const backendRes = await backendFetch(url, { method, accessToken, headers, body })
+  const backendRes = await backendFetch(url, { method, accessToken, headers, body, redirect: 'manual' })
   const text = await backendRes.text()
   const isJson = backendRes.headers.get('content-type')?.includes('application/json')
   return new NextResponse(text || null, {
