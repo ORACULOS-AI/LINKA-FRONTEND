@@ -3,7 +3,7 @@
 import { use } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { BadgeCheck, MapPin, Mail, Users, Pencil, Share2, MoreHorizontal, ShieldAlert } from 'lucide-react'
+import { BadgeCheck, MapPin, Mail, Users, Pencil, Share2, ShieldAlert } from 'lucide-react'
 import { getLab } from '@/lib/api/labs'
 import { listInitiatives } from '@/lib/api/initiatives'
 import { listEvents } from '@/lib/api/events'
@@ -117,7 +117,6 @@ export default function LaboratorioDetailPage({ params }: { params: Promise<{ id
             </>
           )}
           <ShareButton />
-          <button className="btn-icon" aria-label="Mais opções"><MoreHorizontal size={16} /></button>
         </>
       }
       stats={[
@@ -149,6 +148,17 @@ export default function LaboratorioDetailPage({ params }: { params: Promise<{ id
                     <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
                       {l.areas_pesquisa.map((k, i) => <span key={i} className="tag tag-blue">{k}</span>)}
                     </div>
+                  </>
+                ) : null}
+                {l.equipamentos?.length ? (
+                  <>
+                    <div style={{ borderTop: '1px solid var(--color-border)', margin: '16px 0' }} />
+                    <div className="eyebrow" style={{ marginBottom: 8 }}>Equipamentos</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 4 }}>
+                      {l.equipamentos.map((eq, i) => (
+                        <li key={i} style={{ color: 'var(--color-fg-2)' }}>{eq}</li>
+                      ))}
+                    </ul>
                   </>
                 ) : null}
               </div>

@@ -106,7 +106,15 @@ export async function getMyInitiatives(): Promise<Iniciativa[]> {
 }
 
 // GET /api/v1/initiatives/
-export async function listInitiatives(params?: { limit?: number; offset?: number }): Promise<PaginatedIniciativas> {
+// Backend (initiative.py:132) suporta: host_type, host_id, tipo, status_filter (enums uppercase).
+export async function listInitiatives(params?: {
+  limit?: number
+  offset?: number
+  tipo?: TipoIniciativa
+  status_filter?: StatusIniciativa
+  host_type?: 'user' | 'negocio' | 'laboratorio'
+  host_id?: string
+}): Promise<PaginatedIniciativas> {
   const { data } = await api.get<PaginatedIniciativas>('/api/v1/initiatives/', { params })
   return data
 }

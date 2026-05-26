@@ -646,6 +646,12 @@
 .filter-pane .chip:hover { background: #efeff2; }
 .filter-pane .chip.active { background: var(--color-ink); color: #fff; border-color: var(--color-ink); }
 
+/* Layout listagem vitrine: filtros à esquerda, resultados à direita. */
+@media (max-width: 768px) {
+  .vitrine-grid { grid-template-columns: 1fr !important; }
+  .vitrine-grid .filter-pane { position: static; }
+}
+
 /* ─── Vitrine card ──────────────────────────────────────────── */
 .vcard {
   background: var(--color-surface);

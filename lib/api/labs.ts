@@ -23,6 +23,8 @@ export type Lab = LabSummary & {
   telefone: string
   email: string
   visivel: boolean
+  descricao?: string | null
+  equipamentos?: string[]
   pesquisadores?: string[]
   [key: string]: unknown
 }

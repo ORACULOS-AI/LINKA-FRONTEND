@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils'
 const VITRINE_LINKS = [
   { href: '/negocios',     label: 'Negócios',     icon: Briefcase },
   { href: '/laboratorios', label: 'Laboratórios', icon: FlaskConical },
+  { href: '/projetos',     label: 'Projetos',      icon: Lightbulb },
   { href: '/eventos',      label: 'Eventos',       icon: Calendar },
-  { href: '/iniciativas',  label: 'Iniciativas',   icon: Lightbulb },
 ]
 
 const VITRINE_MATCH = ['/vitrine', '/negocios', '/laboratorios', '/eventos', '/iniciativas', '/projetos']
@@ -39,7 +39,7 @@ export function VitrineDropdown() {
       onMouseLeave={() => setOpen(false)}
     >
       <Link
-        href="/vitrine"
+        href="/negocios"
         aria-current={active ? 'page' : undefined}
         className={cn('nav-item', active && 'nav-item--active')}
       >

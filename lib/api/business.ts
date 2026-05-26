@@ -26,6 +26,8 @@ export type Negocio = {
   razao_social?: string | null
   campus?: string | null
   endereco?: string | null
+  data_fundacao?: string | null
+  metricas?: Record<string, unknown> | null
   descricao_problema?: string | null
   solucao_proposta?: string | null
   likes_count?: number
@@ -66,7 +68,14 @@ export async function getMyBusinesses(): Promise<Negocio[]> {
 }
 
 // GET /api/v1/business/
-export async function listBusinesses(params?: { limit?: number; offset?: number }): Promise<PaginatedNegocios> {
+// Backend (business.py:60) suporta: categoria, tipo_negocio, status (alias).
+export async function listBusinesses(params?: {
+  limit?: number
+  offset?: number
+  categoria?: string
+  tipo_negocio?: string
+  status?: NegocioStatus
+}): Promise<PaginatedNegocios> {
   const { data } = await api.get<PaginatedNegocios>('/api/v1/business/', { params })
   return data
 }

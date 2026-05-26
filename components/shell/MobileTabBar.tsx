@@ -23,7 +23,7 @@ type Tab = { href: string; label: string; icon: LucideIcon; match?: string[] }
 
 const tabs: Tab[] = [
   { href: '/feed', label: 'Feed', icon: Home, match: ['/feed', '/inicio'] },
-  { href: '/vitrine', label: 'Vitrine', icon: Store, match: ['/vitrine', '/negocios', '/laboratorios', '/eventos', '/iniciativas', '/projetos'] },
+  { href: '/negocios', label: 'Vitrine', icon: Store, match: ['/vitrine', '/negocios', '/laboratorios', '/eventos', '/iniciativas', '/projetos'] },
   // FAB ocupa o slot do meio
   { href: '/mensagens', label: 'Mensagens', icon: MessageCircle },
   { href: '/perfil', label: 'Perfil', icon: User },

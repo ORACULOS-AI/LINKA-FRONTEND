@@ -3,7 +3,7 @@
 import { use } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { BadgeCheck, MapPin, Mail, Globe, Pencil, Share2, MoreHorizontal, ShieldAlert } from 'lucide-react'
+import { BadgeCheck, MapPin, Mail, Globe, Pencil, Share2, ShieldAlert } from 'lucide-react'
 import { getBusiness, getBusinessMembers } from '@/lib/api/business'
 import { listInitiatives } from '@/lib/api/initiatives'
 import { listEvents } from '@/lib/api/events'
@@ -20,6 +20,41 @@ import { useAuth } from '@/lib/stores/auth'
 
 function initials(nome: string) {
   return nome.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')
+}
+
+// Rótulos amigáveis para as chaves do JSONB `metricas` (campos do formulário sem
+// coluna própria). Startups e empresas juniores usam subconjuntos distintos.
+const METRICA_LABELS: Record<string, string> = {
+  lider_nome: 'Líder',
+  status_contrato: 'Status do contrato',
+  modelo_instalacao: 'Modelo de instalação',
+  modalidade_instalacao: 'Modalidade de instalação',
+  local_incubacao: 'Local de incubação',
+  observacao: 'Observação',
+  presidente: 'Presidente',
+  coordenador: 'Coordenador(a)',
+  email_presidente: 'E-mail do presidente',
+  regularizacao_prex: 'Regularização (PREX)',
+  destaque: 'Destaque',
+  servico_inovador: 'Serviço inovador',
+  faturamento_anual: 'Faturamento anual',
+  atendimento_externo: 'Atendimento externo',
+  capacitacao_interna: 'Capacitação interna',
+  acompanhamento_impacto: 'Acompanhamento de impacto',
+}
+
+type MetricaItem = { label: string; value: string }
+
+/** Extrai entradas escalares não vazias de `metricas`, na ordem dos rótulos conhecidos. */
+function scalarMetricas(metricas?: Record<string, unknown> | null): MetricaItem[] {
+  if (!metricas) return []
+  const out: MetricaItem[] = []
+  for (const [key, label] of Object.entries(METRICA_LABELS)) {
+    const v = metricas[key]
+    if (typeof v === 'string' && v.trim()) out.push({ label, value: v.trim() })
+    else if (typeof v === 'number') out.push({ label, value: String(v) })
+  }
+  return out
 }
 
 export default function NegocioDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -68,6 +103,11 @@ export default function NegocioDetailPage({ params }: { params: Promise<{ id: st
       && (e as { host_id?: string }).host_id === id,
   )
 
+  const detalhes = scalarMetricas(n.metricas)
+  const competencias = Array.isArray(n.metricas?.competencias_desenvolvidas)
+    ? (n.metricas!.competencias_desenvolvidas as unknown[]).filter((c): c is string => typeof c === 'string' && c.trim() !== '')
+    : []
+
   return (
     <EntityProfileShell
       accentColor="purple"
@@ -112,7 +152,6 @@ export default function NegocioDetailPage({ params }: { params: Promise<{ id: st
             </Link>
           )}
           <ShareButton />
-          <button className="btn-icon" aria-label="Mais opções"><MoreHorizontal size={16} /></button>
         </>
       }
       stats={[
@@ -141,6 +180,29 @@ export default function NegocioDetailPage({ params }: { params: Promise<{ id: st
                     <div className="eyebrow" style={{ marginBottom: 8 }}>Palavras-chave</div>
                     <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
                       {n.palavras_chave.map((k, i) => <span key={i} className="tag tag-purple">{k}</span>)}
+                    </div>
+                  </>
+                ) : null}
+                {detalhes.length ? (
+                  <>
+                    <div style={{ borderTop: '1px solid var(--color-border)', margin: '16px 0' }} />
+                    <div className="eyebrow" style={{ marginBottom: 8 }}>Detalhes</div>
+                    <dl style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '6px 16px', margin: 0, fontSize: 14 }}>
+                      {detalhes.map((d) => (
+                        <div key={d.label} style={{ display: 'contents' }}>
+                          <dt style={{ color: 'var(--color-fg-3)', whiteSpace: 'nowrap' }}>{d.label}</dt>
+                          <dd style={{ margin: 0, color: 'var(--color-fg-1)' }}>{d.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </>
+                ) : null}
+                {competencias.length ? (
+                  <>
+                    <div style={{ borderTop: '1px solid var(--color-border)', margin: '16px 0' }} />
+                    <div className="eyebrow" style={{ marginBottom: 8 }}>Competências desenvolvidas</div>
+                    <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+                      {competencias.map((c, i) => <span key={i} className="tag tag-mint">{c}</span>)}
                     </div>
                   </>
                 ) : null}
