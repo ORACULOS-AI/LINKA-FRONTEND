@@ -45,6 +45,7 @@ export type PostComment = {
   id: string
   post_id: string
   autor_uid: string
+  autor: AutorInfo | null
   parent_comment_id: string | null
   conteudo: string
   editado: boolean

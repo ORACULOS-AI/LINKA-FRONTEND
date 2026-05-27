@@ -62,7 +62,9 @@ export function FeedLeftSidebar({ filter, onFilterChange, onCompose }: Props) {
   return (
     <aside
       className="col feed-col-left"
-      style={{ gap: 16, position: 'sticky', top: 'calc(var(--nav-height-top) + 16px)', maxHeight: 'calc(100vh - var(--nav-height-top) - 32px)', overflowY: 'auto' }}
+      // scrollbar sempre visível: no zoom o conteúdo passa a rolar internamente e,
+      // com overlay scrollbar (GNOME/Linux), parecia "cortado". Ver #3c.
+      style={{ gap: 16, position: 'sticky', top: 'calc(var(--nav-height-top) + 16px)', maxHeight: 'calc(100vh - var(--nav-height-top) - 32px)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarGutter: 'stable' }}
     >
       <div className="card" style={{ overflow: 'hidden' }}>
         <div style={{ height: 70, background: 'var(--color-purple)', backgroundImage: 'url(/selinka/pattern-mint-on-purple.png)', backgroundSize: 'cover' }} />

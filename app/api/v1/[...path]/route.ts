@@ -5,11 +5,22 @@ import { ACCESS_COOKIE } from '@/lib/auth/cookies'
 
 type Ctx = { params: Promise<{ path: string[] }> }
 
+// Recursos cujas listagens são públicas (backend usa get_optional_current_user).
+// Consumidos anonimamente pela landing/vitrines públicas em /vitrines/*.
+const PUBLIC_GET_RESOURCES = new Set(['laboratorios', 'business', 'initiatives', 'events'])
+// Sub-rotas que exigem usuário autenticado mesmo nesses recursos.
+const PRIVATE_SUBPATHS = new Set(['me', 'admin', 'participating'])
+
+function isPublicGet(method: string, path: string[]): boolean {
+  if (method !== 'GET') return false
+  return PUBLIC_GET_RESOURCES.has(path[0] ?? '') && !PRIVATE_SUBPATHS.has(path[1] ?? '')
+}
+
 async function proxy(req: NextRequest, { params }: Ctx, method: string) {
   const { path } = await params
   const store = await cookies()
   const accessToken = store.get(ACCESS_COOKIE)?.value
-  if (!accessToken) {
+  if (!accessToken && !isPublicGet(method, path)) {
     return NextResponse.json({ detail: 'Não autenticado.' }, { status: 401 })
   }
 

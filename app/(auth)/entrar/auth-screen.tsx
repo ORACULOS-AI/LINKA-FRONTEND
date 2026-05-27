@@ -122,12 +122,6 @@ export function AuthScreen() {
               </div>
             ))}
           </div>
-
-          <div className="marks">
-            <span>PRPPG</span>
-            <span>PADETEC</span>
-            <span>FUNCAP</span>
-          </div>
         </div>
       </div>
 
@@ -161,11 +155,20 @@ export function AuthScreen() {
 
 function LoginPanel({ onSuccess }: { onSuccess: () => void }) {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const params = useSearchParams()
+  // Vem de /verificar-email: prefill do e-mail confirmado para o login fluir direto
+  // (evita form em branco e digitação repetida — fonte comum de "não consigo entrar").
+  const [email, setEmail] = useState(params.get('email') ?? '')
   const [pwd, setPwd] = useState('')
   const [showPwd, setShowPwd] = useState(false)
   const [remember, setRemember] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (params.get('verified') === '1') {
+      toast.success('E-mail confirmado. Entre com sua senha para continuar.')
+    }
+  }, [params])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -210,7 +213,7 @@ function LoginPanel({ onSuccess }: { onSuccess: () => void }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="voce@ufc.br"
-              autoFocus
+              autoFocus={!email}
             />
           </div>
         </div>
@@ -230,6 +233,7 @@ function LoginPanel({ onSuccess }: { onSuccess: () => void }) {
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
               placeholder="Sua senha"
+              autoFocus={!!email}
               style={{ paddingRight: 44 }}
             />
             <button

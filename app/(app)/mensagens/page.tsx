@@ -3,17 +3,21 @@
 import { Suspense, useState, useRef, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Plus, Send, Smile, Video, Phone, Info, MoreHorizontal } from 'lucide-react'
-import { listThreads, listMessages, sendMessage, markThreadRead, type Message } from '@/lib/api/messages'
+import { Search, Plus, Send, Smile, ArrowLeft } from 'lucide-react'
+import { listThreads, listMessages, sendMessage, markThreadRead, type Message, type ThreadParticipant } from '@/lib/api/messages'
 import { useAuth } from '@/lib/stores/auth'
 import { NewThreadModal } from '@/components/messages/NewThreadModal'
+import { Avatar } from '@/components/ui/avatar'
 import { EmptyState, SkeletonList } from '@/components/primitives'
 import { PresenceDot } from '@/components/social/PresenceDot'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
-function getInitials(str: string) {
-  return str.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+// Conjunto enxuto de emojis frequentes — picker leve, sem dependência externa.
+const EMOJIS = ['😀', '😂', '🙂', '😍', '😉', '😎', '🤔', '👍', '👏', '🙏', '🔥', '🎉', '❤️', '✅', '🚀', '💡']
+
+function displayName(p?: ThreadParticipant | null) {
+  return p?.nome?.trim() || 'Conversa'
 }
 
 function formatTs(iso: string) {
@@ -34,6 +38,7 @@ function MensagensInner() {
   const [searchT, setSearchT] = useState('')
   const [msgInput, setMsgInput] = useState('')
   const [filter, setFilter] = useState<'todas' | 'nao-lidas'>('todas')
+  const [emojiOpen, setEmojiOpen] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const qc = useQueryClient()
 
@@ -71,8 +76,12 @@ function MensagensInner() {
     markThreadRead(activeThreadId, latest.id).catch(() => {})
   }, [activeThreadId, messages])
 
+  // Em uma conversa 1:1, "o outro" é o participante que não sou eu.
+  const otherOf = (t: typeof threads[number]) =>
+    t.participantes?.find(p => p.uid !== user?.id) ?? t.participantes?.[0]
+
   const activeThread = threads.find(t => t.id === activeThreadId)
-  const otherParticipant = activeThread?.participantes.find(p => p !== user?.id) ?? ''
+  const otherParticipant = activeThread ? otherOf(activeThread) : undefined
 
   const handleSend = () => {
     if (!msgInput.trim() || !activeThreadId) return
@@ -84,12 +93,13 @@ function MensagensInner() {
   }
 
   const filteredThreads = threads.filter(t => {
-    if (searchT && !t.participantes.join(' ').toLowerCase().includes(searchT.toLowerCase())) return false
-    return true
+    if (!searchT) return true
+    const names = (t.participantes ?? []).map(p => p.nome ?? '').join(' ')
+    return names.toLowerCase().includes(searchT.toLowerCase())
   })
 
   return (
-    <div className="msg-grid fade-in">
+    <div className={cn('msg-grid fade-in', activeThreadId && 'has-active')}>
       {/* Thread list */}
       <div className="msg-list">
         <div className="ml-head">
@@ -142,23 +152,20 @@ function MensagensInner() {
             />
           </div>
         ) : filteredThreads.map(t => {
-          const other = t.participantes.find(p => p !== user?.id) ?? t.participantes[0] ?? ''
-          const initials = getInitials(other)
+          const other = otherOf(t)
           return (
             <div
               key={t.id}
               className={cn('thread', activeThreadId === t.id && 'active')}
               onClick={() => setActiveThreadId(t.id)}
             >
-              <div style={{ position: 'relative' }}>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--color-purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 14px var(--font-display)', flex: 'none' }}>
-                  {initials}
-                </div>
-                <PresenceDot uid={other} className="absolute right-0 bottom-0" />
+              <div style={{ position: 'relative', flex: 'none' }}>
+                <Avatar nome={other?.nome} src={other?.foto_perfil} size={44} />
+                {other?.uid && <PresenceDot uid={other.uid} className="absolute right-0 bottom-0" />}
               </div>
               <div className="body">
                 <div className="head">
-                  <span className="nm">{other}</span>
+                  <span className="nm">{displayName(other)}</span>
                   {t.last_message_at && <span className="ts">{formatTs(t.last_message_at)}</span>}
                 </div>
                 <div className="preview">{t.last_message ?? 'Sem mensagens'}</div>
@@ -170,7 +177,7 @@ function MensagensInner() {
 
       {/* Chat pane */}
       {!activeThreadId ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--color-fg-3)', fontSize: 14 }}>
+        <div className="msg-empty" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--color-fg-3)', fontSize: 14 }}>
           <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--color-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Search size={24} />
           </div>
@@ -179,21 +186,15 @@ function MensagensInner() {
       ) : (
         <div className="msg-pane">
           <div className="mp-head">
+            <button className="btn-icon mp-back" onClick={() => setActiveThreadId(null)} aria-label="Voltar">
+              <ArrowLeft size={18} />
+            </button>
             <div style={{ position: 'relative', flex: 'none' }}>
-              <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'var(--color-purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 14px var(--font-display)' }}>
-                {getInitials(otherParticipant)}
-              </div>
-              {otherParticipant && <PresenceDot uid={otherParticipant} className="absolute right-0 bottom-0" />}
+              <Avatar nome={otherParticipant?.nome} src={otherParticipant?.foto_perfil} size={42} />
+              {otherParticipant?.uid && <PresenceDot uid={otherParticipant.uid} className="absolute right-0 bottom-0" />}
             </div>
             <div>
-              <div className="nm">{otherParticipant}</div>
-              <div className="sub">Membro</div>
-            </div>
-            <div className="acts">
-              <button className="btn-icon" title="Iniciar reunião"><Video size={16} /></button>
-              <button className="btn-icon" title="Ligar"><Phone size={16} /></button>
-              <button className="btn-icon" title="Detalhes"><Info size={16} /></button>
-              <button className="btn-icon" title="Mais"><MoreHorizontal size={16} /></button>
+              <div className="nm">{displayName(otherParticipant)}</div>
             </div>
           </div>
 
@@ -214,14 +215,39 @@ function MensagensInner() {
           </div>
 
           <div className="mp-foot">
-            <button className="btn-icon"><Plus size={16} /></button>
             <input
-              placeholder={`Mensagem para ${otherParticipant}…`}
+              placeholder={`Mensagem para ${displayName(otherParticipant)}…`}
               value={msgInput}
               onChange={e => setMsgInput(e.target.value)}
               onKeyDown={handleKeyDown}
             />
-            <button className="btn-icon"><Smile size={16} /></button>
+            <div style={{ position: 'relative', flex: 'none' }}>
+              <button
+                className="btn-icon"
+                aria-label="Emojis"
+                aria-expanded={emojiOpen}
+                onClick={() => setEmojiOpen(o => !o)}
+              >
+                <Smile size={18} />
+              </button>
+              {emojiOpen && (
+                <>
+                  <div className="emoji-backdrop" onClick={() => setEmojiOpen(false)} />
+                  <div className="emoji-pop" role="menu">
+                    {EMOJIS.map(e => (
+                      <button
+                        key={e}
+                        type="button"
+                        className="emoji-item"
+                        onClick={() => { setMsgInput(v => v + e); setEmojiOpen(false) }}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
             <button
               className="btn btn-primary"
               style={{ gap: 8 }}

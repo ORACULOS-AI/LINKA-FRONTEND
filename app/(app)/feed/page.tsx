@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
   Lightbulb, Calendar, Image as ImageIcon, ArrowDownUp,
 } from 'lucide-react'
@@ -23,17 +24,33 @@ const FILTER_TO_TIPO: Record<string, TipoPost | undefined> = {
   eventos: 'EVENTO',
 }
 
-export default function FeedPage() {
+type ComposerKind = 'projeto' | 'negocio' | 'laboratorio' | 'evento'
+const COMPOSER_KINDS: ComposerKind[] = ['projeto', 'negocio', 'laboratorio', 'evento']
+
+function FeedInner() {
   const me = useAuth((s) => s.me)
+  const params = useSearchParams()
+  const router = useRouter()
   const [composerOpen, setComposerOpen] = useState(false)
-  const [composerInitialKind, setComposerInitialKind] = useState<'projeto' | 'negocio' | 'laboratorio' | 'evento' | undefined>(undefined)
+  const [composerInitialKind, setComposerInitialKind] = useState<ComposerKind | undefined>(undefined)
   const [filter, setFilter] = useState('all')
   const [sortRecent, setSortRecent] = useState(true)
 
-  function openComposer(kind?: 'projeto' | 'negocio' | 'laboratorio' | 'evento') {
+  function openComposer(kind?: ComposerKind) {
     setComposerInitialKind(kind)
     setComposerOpen(true)
   }
+
+  // Abre o composer quando navegado com ?compor=1 (ex.: ação "Publicar" do menu mobile).
+  // ?tipo= pré-seleciona o tipo de post. Limpa a query depois para não reabrir.
+  const wantCompose = params.get('compor') === '1'
+  const tipoParam = params.get('tipo')
+  useEffect(() => {
+    if (!wantCompose) return
+    const kind = COMPOSER_KINDS.includes(tipoParam as ComposerKind) ? (tipoParam as ComposerKind) : undefined
+    openComposer(kind)
+    router.replace('/feed')
+  }, [wantCompose, tipoParam, router])
 
   if (!me) return null
 
@@ -84,5 +101,13 @@ export default function FeedPage() {
 
       <PostComposer open={composerOpen} onClose={() => setComposerOpen(false)} initialKind={composerInitialKind} />
     </FeedShell>
+  )
+}
+
+export default function FeedPage() {
+  return (
+    <Suspense fallback={null}>
+      <FeedInner />
+    </Suspense>
   )
 }

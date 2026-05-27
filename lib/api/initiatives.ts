@@ -107,16 +107,39 @@ export async function getMyInitiatives(): Promise<Iniciativa[]> {
 
 // GET /api/v1/initiatives/
 // Backend (initiative.py:132) suporta: host_type, host_id, tipo, status_filter (enums uppercase).
-export async function listInitiatives(params?: {
+export type InitiativeListParams = {
   limit?: number
-  offset?: number
+  /** Paginação é cursor-based no backend; `offset` é ignorado. */
+  cursor?: string
   tipo?: TipoIniciativa
   status_filter?: StatusIniciativa
   host_type?: 'user' | 'negocio' | 'laboratorio'
   host_id?: string
-}): Promise<PaginatedIniciativas> {
+}
+
+export async function listInitiatives(params?: InitiativeListParams): Promise<PaginatedIniciativas> {
   const { data } = await api.get<PaginatedIniciativas>('/api/v1/initiatives/', { params })
   return data
+}
+
+/**
+ * Busca TODAS as iniciativas caminhando pelo cursor até `has_more` ser falso.
+ * A vitrine filtra/ordena no client. Ver `listAllLabs` em labs.ts.
+ */
+export async function listAllInitiatives(
+  filters?: Omit<InitiativeListParams, 'limit' | 'cursor'>,
+  pageSize = 100,
+  maxPages = 100,
+): Promise<Iniciativa[]> {
+  const all: Iniciativa[] = []
+  let cursor: string | undefined
+  for (let i = 0; i < maxPages; i++) {
+    const page = await listInitiatives({ ...filters, limit: pageSize, cursor })
+    all.push(...page.items)
+    if (!page.has_more || !page.next_cursor || page.items.length === 0) break
+    cursor = page.next_cursor
+  }
+  return all
 }
 
 // GET /api/v1/initiatives/admin  (admin only — pending approval queue)
@@ -225,4 +248,16 @@ export async function rejectInitiative(id: string): Promise<void> {
 // PUT /api/v1/initiatives/{id}/status  (admin)
 export async function setInitiativeStatus(id: string, status: StatusIniciativa): Promise<void> {
   await api.put(`/api/v1/initiatives/${id}/status`, { status })
+}
+
+// --- Publish / Unpublish (owner toggle após aprovação) ---
+
+// POST /api/v1/initiatives/{id}/publish
+export async function publishInitiative(id: string): Promise<void> {
+  await api.post(`/api/v1/initiatives/${id}/publish`)
+}
+
+// POST /api/v1/initiatives/{id}/unpublish
+export async function unpublishInitiative(id: string): Promise<void> {
+  await api.post(`/api/v1/initiatives/${id}/unpublish`)
 }

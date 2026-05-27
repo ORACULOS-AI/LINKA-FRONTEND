@@ -95,7 +95,7 @@ export default async function LandingPage() {
               <Link href="/entrar?mode=cadastro" className="btn btn-primary btn-lg btn-pill">
                 Criar conta gratuita <ArrowRight size={18} />
               </Link>
-              <Link href="/negocios" className="btn btn-ghost btn-lg">
+              <Link href="/vitrines/laboratorios" className="btn btn-ghost btn-lg">
                 <PlayCircle size={18} /> Explorar vitrines
               </Link>
             </div>

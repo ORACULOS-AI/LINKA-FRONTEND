@@ -293,7 +293,7 @@ function FollowingRow({ item, onUnfollow }: { item: FollowedItem; onUnfollow: ()
   const meta = TYPE_META[item.target_type]
   const Icon = meta.Icon
 
-  const { data: nome } = useQuery({
+  const { data: nome, isLoading: loadingNome } = useQuery({
     queryKey: ['follow-target', item.target_type, item.target_id],
     queryFn: async () => {
       switch (item.target_type) {
@@ -324,7 +324,11 @@ function FollowingRow({ item, onUnfollow }: { item: FollowedItem; onUnfollow: ()
         </div>
       </Link>
       <div className="body">
-        <Link href={meta.href(item.target_id)} className="nm">{nome ?? '…'}</Link>
+        {loadingNome && !nome ? (
+          <div className="skeleton-line" style={{ width: '55%', height: 14, marginBottom: 4 }} />
+        ) : (
+          <Link href={meta.href(item.target_id)} className="nm">{nome ?? 'Indisponível'}</Link>
+        )}
         <div className="sub">{meta.label}</div>
       </div>
       <button className="btn btn-tertiary btn-sm" onClick={() => unfollowM.mutate()} disabled={unfollowM.isPending}>

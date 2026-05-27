@@ -10,9 +10,16 @@ export type Message = {
   updated_at: string
 }
 
+export type ThreadParticipant = {
+  uid: string
+  nome: string | null
+  foto_perfil: string | null
+  tipo_usuario: string | null
+}
+
 export type Thread = {
   id: string
-  participantes: string[]
+  participantes: ThreadParticipant[]
   last_message?: string | null
   last_message_at?: string | null
   created_at: string

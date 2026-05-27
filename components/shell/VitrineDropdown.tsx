@@ -2,18 +2,10 @@
 
 import { useRef, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Store, Briefcase, FlaskConical, Calendar, Lightbulb } from 'lucide-react'
+import { Store } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-
-const VITRINE_LINKS = [
-  { href: '/negocios',     label: 'Negócios',     icon: Briefcase },
-  { href: '/laboratorios', label: 'Laboratórios', icon: FlaskConical },
-  { href: '/projetos',     label: 'Projetos',      icon: Lightbulb },
-  { href: '/eventos',      label: 'Eventos',       icon: Calendar },
-]
-
-const VITRINE_MATCH = ['/vitrine', '/negocios', '/laboratorios', '/eventos', '/iniciativas', '/projetos']
+import { VITRINE_LINKS, VITRINE_MATCH } from './vitrineLinks'
 
 export function VitrineDropdown() {
   const pathname = usePathname()

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
 const PALETTE = ['#5C079E', '#0022FF', '#FF9E00', '#06070F', '#06F283']
@@ -45,8 +44,12 @@ export function Avatar({ nome, src, size = 40, className }: Props) {
   )
 
   if (src && !imgError) {
+    // <img> puro (não next/image): o otimizador do next/image quebra avatares
+    // remotos no deploy standalone, e o resto do app já usa <img>. Mantém o
+    // fallback de iniciais via onError. Ver #3a (avatar do autor sumindo no feed).
     return (
-      <Image
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
         src={src}
         alt={nome ?? ''}
         width={size}

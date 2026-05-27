@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Trash2, ImagePlus } from 'lucide-react'
-import { getLab, updateLab, deleteLab, updateLabFotos, updateLabCoverUrl } from '@/lib/api/labs'
+import { getLab, updateLab, deleteLab, updateLabFotos, updateLabCoverUrl, publishLab, unpublishLab } from '@/lib/api/labs'
 import { useAuth } from '@/lib/stores/auth'
 import { useEnum } from '@/lib/hooks/useEnum'
 import { toast, toastApiError } from '@/lib/toast'
@@ -31,7 +31,6 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
   const [tipo, setTipo] = useState('')
   const [campus, setCampus] = useState('')
   const [areas, setAreas] = useState('')
-  const [visivel, setVisivel] = useState(true)
   const [pendingPerfilFile, setPendingPerfilFile] = useState<File | null>(null)
 
   useEffect(() => {
@@ -46,7 +45,6 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
     setTipo(l.tipo)
     setCampus(l.campus ?? '')
     setAreas((l.areas_pesquisa ?? []).join(', '))
-    setVisivel(l.visivel)
   }, [q.data])
 
   const mut = useMutation({
@@ -61,7 +59,6 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
         tipo,
         campus: campus || null,
         areas_pesquisa: areas.split(',').map((a) => a.trim()).filter(Boolean),
-        visivel,
       }),
     onSuccess: () => {
       toast.success('Laboratório atualizado')
@@ -88,6 +85,15 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
       qc.invalidateQueries({ queryKey: ['lab', id] })
     },
     onError: (e) => toastApiError(e, 'Falha ao salvar capa.'),
+  })
+
+  const pubM = useMutation({
+    mutationFn: () => q.data?.visivel ? unpublishLab(id) : publishLab(id),
+    onSuccess: () => {
+      toast.success(q.data?.visivel ? 'Laboratório despublicado' : 'Laboratório publicado')
+      qc.invalidateQueries({ queryKey: ['lab', id] })
+    },
+    onError: (e) => toastApiError(e, 'Não foi possível alterar visibilidade. O lab precisa estar aprovado.'),
   })
 
   const delM = useMutation({
@@ -197,10 +203,30 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
         <Field label="Áreas de pesquisa (vírgula)">
           <input className="input" value={areas} onChange={(e) => setAreas(e.target.value)} />
         </Field>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={visivel} onChange={(e) => setVisivel(e.target.checked)} />
-          Visível na vitrine pública
-        </label>
+        {lab.status === 'APROVADO' && (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => pubM.mutate()}
+              disabled={pubM.isPending}
+              className={`inline-flex h-9 items-center rounded-md px-3 text-sm font-medium ${
+                lab.visivel
+                  ? 'border border-orange-300 text-orange-700 hover:bg-orange-50'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              } disabled:opacity-50`}
+            >
+              {pubM.isPending ? 'Alterando…' : lab.visivel ? 'Despublicar' : 'Publicar na vitrine'}
+            </button>
+            <span className="text-xs text-[var(--color-fg-3)]">
+              {lab.visivel ? 'Visível na vitrine pública' : 'Não visível na vitrine'}
+            </span>
+          </div>
+        )}
+        {lab.status !== 'APROVADO' && (
+          <p className="text-xs text-[var(--color-fg-3)]">
+            Visibilidade: aguardando aprovação do administrador (status: {lab.status})
+          </p>
+        )}
 
         <div className="flex items-center justify-between gap-2 pt-2">
           <button

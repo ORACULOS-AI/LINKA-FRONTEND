@@ -1,7 +1,7 @@
 import { api } from './client'
 import type { ApiResp } from './feed'
 
-export type NegocioStatus = 'pendente' | 'aprovado' | 'recusado'
+export type NegocioStatus = 'pendente' | 'aprovado' | 'recusado' | 'inativo'
 
 export type Negocio = {
   id: string
@@ -69,15 +69,39 @@ export async function getMyBusinesses(): Promise<Negocio[]> {
 
 // GET /api/v1/business/
 // Backend (business.py:60) suporta: categoria, tipo_negocio, status (alias).
-export async function listBusinesses(params?: {
+export type BusinessListParams = {
   limit?: number
-  offset?: number
+  /** Paginação é cursor-based no backend (CursorParams); `offset` é ignorado. */
+  cursor?: string
   categoria?: string
   tipo_negocio?: string
   status?: NegocioStatus
-}): Promise<PaginatedNegocios> {
+}
+
+export async function listBusinesses(params?: BusinessListParams): Promise<PaginatedNegocios> {
   const { data } = await api.get<PaginatedNegocios>('/api/v1/business/', { params })
   return data
+}
+
+/**
+ * Busca TODOS os negócios caminhando pelo cursor até `has_more` ser falso.
+ * A vitrine filtra/ordena no client, então precisa do conjunto completo — o
+ * limite fixo anterior (48) escondia o restante. Ver `listAllLabs` em labs.ts.
+ */
+export async function listAllBusinesses(
+  filters?: Omit<BusinessListParams, 'limit' | 'cursor'>,
+  pageSize = 100,
+  maxPages = 100,
+): Promise<Negocio[]> {
+  const all: Negocio[] = []
+  let cursor: string | undefined
+  for (let i = 0; i < maxPages; i++) {
+    const page = await listBusinesses({ ...filters, limit: pageSize, cursor })
+    all.push(...page.items)
+    if (!page.has_more || !page.next_cursor || page.items.length === 0) break
+    cursor = page.next_cursor
+  }
+  return all
 }
 
 // GET /api/v1/business/showcase
@@ -198,5 +222,19 @@ export async function rejectBusiness(id: string): Promise<Negocio> {
 // PUT /api/v1/business/admin/{id}/visibility  (sub-router admin montado em /business/admin)
 export async function setBusinessVisibility(id: string, visivel: boolean): Promise<Negocio> {
   const { data } = await api.put<ApiResp<Negocio>>(`/api/v1/business/admin/${id}/visibility`, { visivel })
+  return data.data
+}
+
+// --- Publish / Unpublish (owner toggle após aprovação) ---
+
+// POST /api/v1/business/{id}/publish
+export async function publishBusiness(id: string): Promise<Negocio> {
+  const { data } = await api.post<ApiResp<Negocio>>(`/api/v1/business/${id}/publish`)
+  return data.data
+}
+
+// POST /api/v1/business/{id}/unpublish
+export async function unpublishBusiness(id: string): Promise<Negocio> {
+  const { data } = await api.post<ApiResp<Negocio>>(`/api/v1/business/${id}/unpublish`)
   return data.data
 }

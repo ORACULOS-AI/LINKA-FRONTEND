@@ -5,12 +5,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, BadgeCheck,
+  MessageCircle, Share2, Bookmark, MoreHorizontal, Trash2, BadgeCheck, Pencil,
   Briefcase, FlaskConical, Lightbulb, Calendar,
 } from 'lucide-react'
 import {
   type FeedPost, type AutorInfo,
-  sharePost, bookmarkPost, unbookmarkPost, deletePost,
+  sharePost, bookmarkPost, unbookmarkPost, deletePost, editPost, listComments,
 } from '@/lib/api/feed'
 import { fetchUser } from '@/lib/api/users'
 import { getBusiness } from '@/lib/api/business'
@@ -41,6 +41,8 @@ export function PostCard({ post }: Props) {
   const isOwner = me?.id === post.autor_uid
   const [bookmarked, setBookmarked] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(post.conteudo ?? '')
 
   const postHref = `/feed/post/${post.id}`
 
@@ -102,6 +104,14 @@ export function PostCard({ post }: Props) {
     },
   })
 
+  // Principais comentários inline no feed (carrega só quando há comentários).
+  const topComments = useQuery({
+    queryKey: ['post-top-comments', post.id],
+    queryFn: () => listComments(post.id, 2, 0),
+    enabled: post.comments_count > 0,
+    staleTime: 60_000,
+  })
+
   const invalidateFeed = () => qc.invalidateQueries({ queryKey: ['feed'] })
 
   const bookmarkM = useMutation({
@@ -120,6 +130,12 @@ export function PostCard({ post }: Props) {
     void sharePostLink(post.id)
     shareM.mutate()
   }
+
+  const editM = useMutation({
+    mutationFn: (conteudo: string) => editPost(post.id, { conteudo }),
+    onSuccess: () => { setEditing(false); toast.success('Post atualizado'); invalidateFeed() },
+    onError: () => toast.error('Falha ao atualizar'),
+  })
 
   const deleteM = useMutation({
     mutationFn: () => deletePost(post.id),
@@ -214,6 +230,13 @@ export function PostCard({ post }: Props) {
                 <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-border bg-surface py-1 shadow-lg">
                   <button
                     type="button"
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); setDraft(post.conteudo ?? ''); setEditing(true) }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-surface-2"
+                  >
+                    <Pencil className="h-4 w-4" /> Editar
+                  </button>
+                  <button
+                    type="button"
                     onClick={(e) => { e.stopPropagation(); setMenuOpen(false); if (confirm('Remover post?')) deleteM.mutate() }}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#E5102E] hover:bg-surface-2"
                   >
@@ -225,11 +248,39 @@ export function PostCard({ post }: Props) {
           )}
         </header>
 
-        {post.conteudo && (
+        {editing ? (
+          <div className="mt-3" onClick={(e) => e.stopPropagation()}>
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={4}
+              autoFocus
+              maxLength={2000}
+              className="w-full resize-none rounded-md border border-border bg-surface-2 p-3 text-[15px] leading-relaxed focus:outline-none focus:border-border-strong"
+            />
+            <div className="mt-2 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setEditing(false); setDraft(post.conteudo ?? '') }}
+                className="rounded-md px-3 py-1.5 text-sm text-fg-2 hover:bg-surface-2"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={editM.isPending || !draft.trim() || draft.trim() === (post.conteudo ?? '').trim()}
+                onClick={() => editM.mutate(draft.trim())}
+                className="rounded-md bg-ink px-3 py-1.5 text-sm text-on-dark-1 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {editM.isPending ? 'Salvando…' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+        ) : post.conteudo ? (
           <p className="mt-3 whitespace-pre-wrap text-[15px] leading-relaxed text-fg-1 line-clamp-6">
             {post.conteudo}
           </p>
-        )}
+        ) : null}
 
         {post.midia && post.midia.length > 0 && (
           <div className={cn('mt-3 grid gap-1.5 overflow-hidden rounded-md', post.midia.length >= 2 && 'grid-cols-2')}>
@@ -284,6 +335,37 @@ export function PostCard({ post }: Props) {
             <Bookmark className={cn('h-4 w-4', bookmarked && 'fill-current')} />
           </button>
         </footer>
+
+        {post.comments_count > 0 && (topComments.data?.length ?? 0) > 0 && (
+          <div className="mt-3 space-y-2.5">
+            {topComments.data!.map((c) => (
+              <div key={c.id} className="flex items-start gap-2">
+                <Link href={`/perfil/${c.autor_uid}`} onClick={(e) => e.stopPropagation()} className="shrink-0">
+                  <Avatar nome={c.autor?.nome ?? '?'} src={c.autor?.foto ?? undefined} size={28} />
+                </Link>
+                <div className="min-w-0 flex-1 rounded-2xl bg-surface-2 px-3 py-2">
+                  <Link
+                    href={`/perfil/${c.autor_uid}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-[13px] font-semibold hover:underline"
+                  >
+                    {c.autor?.nome ?? 'Membro'}
+                  </Link>
+                  <p className="whitespace-pre-wrap break-words text-[13px] leading-snug text-fg-1 line-clamp-3">{c.conteudo}</p>
+                </div>
+              </div>
+            ))}
+            {post.comments_count > (topComments.data?.length ?? 0) && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); openDetail(0) }}
+                className="ml-9 text-[13px] font-medium text-fg-3 hover:text-fg-1 hover:underline"
+              >
+                Ver todos os {post.comments_count} comentários
+              </button>
+            )}
+          </div>
+        )}
       </article>
     </>
   )

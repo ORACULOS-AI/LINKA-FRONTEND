@@ -75,7 +75,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
       <TopNav />
-      <main className="min-w-0 pb-[calc(var(--nav-height-bottom)+24px)] lg:pb-8">
+      <main className="min-w-0 pb-[calc(var(--nav-height-bottom)+env(safe-area-inset-bottom)+24px)] lg:pb-8">
         {children}
       </main>
       <MobileTabBar />

@@ -30,8 +30,10 @@ export function FeedRightSidebar() {
   const { data: sugestoes = [] } = useQuery({
     queryKey: ['connections', 'suggestions'],
     queryFn: async () => {
-      const list = await getSuggestions(3)
-      return Array.isArray(list) ? list : []
+      const list = await getSuggestions(5)
+      // Trava no client: a sidebar mostra no máximo as 5 mais recomendadas,
+      // independente de quantas o backend retornar.
+      return Array.isArray(list) ? list.slice(0, 5) : []
     },
     staleTime: 2 * 60_000,
   })
@@ -39,7 +41,8 @@ export function FeedRightSidebar() {
   return (
     <aside
       className="col feed-col-right"
-      style={{ gap: 16, position: 'sticky', top: 'calc(var(--nav-height-top) + 16px)', maxHeight: 'calc(100vh - var(--nav-height-top) - 32px)', overflowY: 'auto' }}
+      // scrollbar sempre visível (ver #3c / FeedLeftSidebar).
+      style={{ gap: 16, position: 'sticky', top: 'calc(var(--nav-height-top) + 16px)', maxHeight: 'calc(100vh - var(--nav-height-top) - 32px)', overflowY: 'auto', scrollbarWidth: 'thin', scrollbarGutter: 'stable' }}
     >
       <form
         className="relative flex"
