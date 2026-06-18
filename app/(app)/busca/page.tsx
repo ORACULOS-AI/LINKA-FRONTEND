@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { Search, MapPin, Users, BadgeCheck, MessageCircle, UserPlus } from 'lucide-react'
-import { search as searchApi, type SearchHit, type SearchFilters } from '@/lib/api/search'
+import { Search, MapPin, BadgeCheck, MessageCircle, UserPlus } from 'lucide-react'
+import { search as searchApi, type SearchHit } from '@/lib/api/search'
 import { sendConnectionRequest } from '@/lib/api/connections'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -20,13 +21,22 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'posts',    label: 'Posts' },
 ]
 
-const TAB_TYPE_MAP: Record<TabId, SearchFilters['type']> = {
-  pessoas:  'user',
-  negocios: 'negocio',
-  labs:     'laboratorio',
-  projetos: 'iniciativa',
-  eventos:  'evento',
-  posts:    'all',
+const ENTITY_HREF: Partial<Record<SearchHit['tipo'], (id: string) => string>> = {
+  negocio: (id) => `/vitrine/negocios/${id}`,
+  laboratorio: (id) => `/vitrine/laboratorios/${id}`,
+  iniciativa: (id) => `/vitrine/projetos/${id}`,
+  evento: (id) => `/vitrine/eventos/${id}`,
+}
+
+function groupByTab(results: SearchHit[]): Record<TabId, SearchHit[]> {
+  return {
+    pessoas:  results.filter(r => r.tipo === 'user'),
+    negocios: results.filter(r => r.tipo === 'negocio'),
+    labs:     results.filter(r => r.tipo === 'laboratorio'),
+    projetos: results.filter(r => r.tipo === 'iniciativa'),
+    eventos:  results.filter(r => r.tipo === 'evento'),
+    posts:    results.filter(r => r.tipo === 'post'),
+  }
 }
 
 function PersonRow({ hit }: { hit: SearchHit }) {
@@ -72,7 +82,7 @@ function PersonRow({ hit }: { hit: SearchHit }) {
 }
 
 function EntityRow({ hit }: { hit: SearchHit }) {
-  const href = hit.tipo === 'negocio' ? `/negocios/${hit.id}` : hit.tipo === 'laboratorio' ? `/laboratorios/${hit.id}` : hit.tipo === 'iniciativa' ? `/iniciativas/${hit.id}` : hit.tipo === 'evento' ? `/eventos/${hit.id}` : '#'
+  const href = ENTITY_HREF[hit.tipo]?.(hit.id) ?? '#'
   return (
     <Link href={href} className="person-row" style={{ textDecoration: 'none' }}>
       <div style={{ width: 52, height: 52, borderRadius: 10, background: 'var(--color-blue-08)', color: 'var(--color-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 16px var(--font-display)', flex: 'none' }}>
@@ -87,37 +97,41 @@ function EntityRow({ hit }: { hit: SearchHit }) {
 }
 
 export default function BuscaPage() {
-  const [q, setQ] = useState('')
+  const searchParams = useSearchParams()
+  const initialQ = searchParams.get('q') ?? ''
+  const [q, setQ] = useState(initialQ)
   const [activeTab, setActiveTab] = useState<TabId>('pessoas')
-  const [debouncedQ, setDebouncedQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState(initialQ)
 
-  const handleSearch = useCallback((val: string) => {
-    setQ(val)
-    const t = setTimeout(() => setDebouncedQ(val), 350)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(q), 350)
     return () => clearTimeout(t)
-  }, [])
+  }, [q])
 
   const { data: results = [], isLoading } = useQuery({
-    queryKey: ['search', debouncedQ, activeTab],
-    queryFn: () => searchApi({ q: debouncedQ, type: TAB_TYPE_MAP[activeTab], limit: 30 }),
+    queryKey: ['search', debouncedQ],
+    queryFn: () => searchApi({ q: debouncedQ, type: 'all', limit: 50 }),
     enabled: debouncedQ.length >= 2,
   })
 
-  const byTab: Record<TabId, SearchHit[]> = {
-    pessoas:  results.filter(r => r.tipo === 'user'),
-    negocios: results.filter(r => r.tipo === 'negocio'),
-    labs:     results.filter(r => r.tipo === 'laboratorio'),
-    projetos: results.filter(r => r.tipo === 'iniciativa'),
-    eventos:  results.filter(r => r.tipo === 'evento'),
-    posts:    results.filter(r => r.tipo === 'post'),
-  }
+  const byTab = groupByTab(results)
+
+  useEffect(() => {
+    if (!debouncedQ || results.length === 0) return
+
+    setActiveTab((current) => {
+      const currentResults = groupByTab(results)[current]
+      if (currentResults.length > 0) return current
+      return TABS.find((tab) => groupByTab(results)[tab.id].length > 0)?.id ?? current
+    })
+  }, [debouncedQ, results])
 
   return (
     <div className="page page-narrow fade-in">
       <div className="page-header">
         <div>
-          <h1>Buscar pessoas</h1>
-          <div className="sub">Encontre pesquisadores, estudantes, técnicos administrativos e parceiros externos.</div>
+          <h1>Busca global</h1>
+          <div className="sub">Encontre pessoas, negócios, laboratórios, projetos, eventos e posts.</div>
         </div>
       </div>
 
@@ -127,7 +141,7 @@ export default function BuscaPage() {
         <input
           className="input"
           value={q}
-          onChange={e => handleSearch(e.target.value)}
+          onChange={e => setQ(e.target.value)}
           placeholder="Buscar por nome, área de pesquisa, palavra-chave, campus…"
           style={{ height: 52, fontSize: 15, paddingLeft: 48 }}
         />

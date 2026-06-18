@@ -1,4 +1,4 @@
-name: Deploy K8s — Frontend
+name: Deploy — Frontend
 
 on:
   push:
@@ -11,7 +11,7 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
-  build-and-push:
+  build:
     needs: ci
     runs-on: [self-hosted, frontend-runner]
     outputs:
@@ -30,10 +30,6 @@ jobs:
             | awk '{print $2}' \
             | xargs -r docker rmi -f || true
           docker image prune -f || true
-          sudo k3s ctr images ls -q \
-            | grep "linka-frontend" \
-            | grep -v ":develop\|:main" \
-            | xargs -r sudo k3s ctr images rm || true
 
       - name: Build frontend image
         run: |
@@ -44,62 +40,126 @@ jobs:
             --build-arg NEXT_PUBLIC_API_BASE_URL=${{ secrets.NEXT_PUBLIC_API_BASE_URL }} \
             -t linka-frontend:${{ steps.tag.outputs.tag }} \
             -t linka-frontend:${{ github.ref_name }} .
-          docker save linka-frontend:${{ steps.tag.outputs.tag }} | sudo k3s ctr images import -
-
-  deploy-staging:
-    needs: build-and-push
-    runs-on: [self-hosted, frontend-runner]
-    if: github.ref_name == 'develop'
-    environment: staging
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy to staging
-        run: |
-          kubectl apply -k k8s/overlays/staging/
-          kubectl set image deployment/linka-frontend \
-            linka-frontend=linka-frontend:${{ needs.build-and-push.outputs.image_tag }} \
-            -n linka-staging
-          kubectl rollout status deployment/linka-frontend -n linka-staging --timeout=300s
-
-      - name: Health check staging
-        run: |
-          sleep 15
-          kubectl run health-check --image=curlimages/curl --restart=Never --rm -i \
-            --namespace=linka-staging -- \
-            curl -f http://linka-frontend:3000/ || exit 1
-
-      - name: Summary
-        run: |
-          echo "## Frontend Staging Deploy K8s" >> $GITHUB_STEP_SUMMARY
-          echo "- Branch: develop" >> $GITHUB_STEP_SUMMARY
-          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Namespace: linka-staging" >> $GITHUB_STEP_SUMMARY
 
   deploy-prod:
-    needs: build-and-push
+    needs: build
     runs-on: [self-hosted, frontend-runner]
     if: github.ref_name == 'main'
     environment: production
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to prod
+      - name: Ensure shared external network
         run: |
-          kubectl apply -k k8s/overlays/prod/
-          kubectl set image deployment/linka-frontend \
-            linka-frontend=linka-frontend:${{ needs.build-and-push.outputs.image_tag }} \
-            -n linka-prod
-          kubectl rollout status deployment/linka-frontend -n linka-prod --timeout=300s
+          docker network inspect linka-prod-network >/dev/null 2>&1 \
+            || docker network create --driver bridge linka-prod-network
 
-      - name: Health check prod
+      - name: Wait for backend ready
         run: |
-          sleep 10
-          curl -f https://selinka.ufc.br/ || exit 1
+          # O BFF chama o backend pelo service name na rede compartilhada.
+          # Garante que o backend está de pé e pronto (DB+Redis) antes de subir,
+          # evitando janela em que o frontend aponta para um backend ausente
+          # (ex.: durante redeploy do backend). Checa via host (mesmo servidor).
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health/ready -o /dev/null; then
+              echo "backend ready"; exit 0
+            fi
+            echo "[$i/30] backend não pronto — aguardando 5s..."; sleep 5
+          done
+          echo "Backend não ficou ready a tempo."; exit 1
+
+      - name: Stop old container
+        run: |
+          docker stop linka-frontend-prod 2>/dev/null || true
+          docker rm linka-frontend-prod 2>/dev/null || true
+
+      - name: Start new container
+        run: |
+          docker run -d \
+            --name linka-frontend-prod \
+            --restart unless-stopped \
+            --network linka-prod-network \
+            -p 3000:3000 \
+            -e NODE_ENV=production \
+            -e LINKA_API_URL=http://linka-backend-prod:8000 \
+            linka-frontend:${{ needs.build.outputs.image_tag }}
+
+      - name: Apply k8s routing (Service + Endpoints + Ingress)
+        run: kubectl apply -k k8s/overlays/prod/
+
+      - name: Health check (local container)
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS http://localhost:3000/ -o /dev/null; then
+              echo "Container is healthy"; exit 0
+            fi
+            echo "Attempt $i: not ready yet, sleeping 5s..."; sleep 5
+          done
+          echo "Container failed health check"
+          docker logs --tail=80 linka-frontend-prod
+          exit 1
 
       - name: Summary
         run: |
-          echo "## Frontend Production Deploy K8s" >> $GITHUB_STEP_SUMMARY
-          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Namespace: linka-prod" >> $GITHUB_STEP_SUMMARY
+          echo "## Frontend Production Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag: ${{ needs.build.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Container: linka-frontend-prod (host port 3000)" >> $GITHUB_STEP_SUMMARY
           echo "- URL: https://selinka.ufc.br" >> $GITHUB_STEP_SUMMARY
+
+  deploy-staging:
+    needs: build
+    runs-on: [self-hosted, frontend-runner]
+    if: github.ref_name == 'develop'
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure shared external network
+        run: |
+          docker network inspect linka-prod-network >/dev/null 2>&1 \
+            || docker network create --driver bridge linka-prod-network
+
+      - name: Wait for backend ready
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health/ready -o /dev/null; then
+              echo "backend ready"; exit 0
+            fi
+            echo "[$i/30] backend não pronto — aguardando 5s..."; sleep 5
+          done
+          echo "Backend não ficou ready a tempo."; exit 1
+
+      - name: Stop old container
+        run: |
+          docker stop linka-frontend-staging 2>/dev/null || true
+          docker rm linka-frontend-staging 2>/dev/null || true
+
+      - name: Start new container
+        run: |
+          docker run -d \
+            --name linka-frontend-staging \
+            --restart unless-stopped \
+            --network linka-prod-network \
+            -p 3001:3000 \
+            -e NODE_ENV=production \
+            -e LINKA_API_URL=http://linka-backend-prod:8000 \
+            linka-frontend:${{ needs.build.outputs.image_tag }}
+
+      - name: Health check (local container)
+        run: |
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            if curl -fsS http://localhost:3001/ -o /dev/null; then
+              echo "Container is healthy"; exit 0
+            fi
+            echo "Attempt $i: not ready yet, sleeping 5s..."; sleep 5
+          done
+          echo "Container failed health check"
+          docker logs --tail=80 linka-frontend-staging
+          exit 1
+
+      - name: Summary
+        run: |
+          echo "## Frontend Staging Deploy" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: develop" >> $GITHUB_STEP_SUMMARY
+          echo "- Tag: ${{ needs.build.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Container: linka-frontend-staging (host port 3001)" >> $GITHUB_STEP_SUMMARY

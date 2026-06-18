@@ -10,6 +10,8 @@ import {
   updateInitiative,
   deleteInitiative,
   setInitiativeStatus,
+  publishInitiative,
+  unpublishInitiative,
   type StatusIniciativa,
   type TipoIniciativa,
 } from '@/lib/api/initiatives'
@@ -31,7 +33,6 @@ export default function EditarProjetoPage({ params }: { params: Promise<{ id: st
   const [descricao, setDescricao] = useState('')
   const [tipo, setTipo] = useState<TipoIniciativa>('PESQUISA')
   const [status, setStatus] = useState<StatusIniciativa>('ATIVA')
-  const [visivel, setVisivel] = useState(true)
 
   useEffect(() => {
     if (!q.data) return
@@ -39,12 +40,11 @@ export default function EditarProjetoPage({ params }: { params: Promise<{ id: st
     setDescricao(q.data.descricao)
     setTipo(q.data.tipo)
     setStatus(q.data.status)
-    setVisivel(q.data.visivel)
   }, [q.data])
 
   const mut = useMutation({
     mutationFn: async () => {
-      await updateInitiative(id, { titulo, descricao, tipo, visivel })
+      await updateInitiative(id, { titulo, descricao, tipo })
       if (q.data && status !== q.data.status) {
         await setInitiativeStatus(id, status)
       }
@@ -55,6 +55,15 @@ export default function EditarProjetoPage({ params }: { params: Promise<{ id: st
       router.push(`/vitrine/projetos/${id}`)
     },
     onError: (e) => toastApiError(e, 'Não foi possível salvar.'),
+  })
+
+  const pubM = useMutation({
+    mutationFn: () => q.data?.visivel ? unpublishInitiative(id) : publishInitiative(id),
+    onSuccess: () => {
+      toast.success(q.data?.visivel ? 'Projeto despublicado' : 'Projeto publicado')
+      qc.invalidateQueries({ queryKey: ['iniciativa', id] })
+    },
+    onError: (e) => toastApiError(e, 'Não foi possível alterar visibilidade. O projeto precisa estar ativo.'),
   })
 
   const delM = useMutation({
@@ -103,10 +112,30 @@ export default function EditarProjetoPage({ params }: { params: Promise<{ id: st
             </select>
           </Field>
         </div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={visivel} onChange={(e) => setVisivel(e.target.checked)} />
-          Visível na vitrine pública
-        </label>
+        {q.data?.status === 'ATIVA' && (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => pubM.mutate()}
+              disabled={pubM.isPending}
+              className={`inline-flex h-9 items-center rounded-md px-3 text-sm font-medium ${
+                q.data?.visivel
+                  ? 'border border-orange-300 text-orange-700 hover:bg-orange-50'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              } disabled:opacity-50`}
+            >
+              {pubM.isPending ? 'Alterando…' : q.data?.visivel ? 'Despublicar' : 'Publicar na vitrine'}
+            </button>
+            <span className="text-xs text-[var(--color-fg-3)]">
+              {q.data?.visivel ? 'Visível na vitrine pública' : 'Não visível na vitrine'}
+            </span>
+          </div>
+        )}
+        {q.data?.status !== 'ATIVA' && (
+          <p className="text-xs text-[var(--color-fg-3)]">
+            Visibilidade: aguardando aprovação do administrador (status: {q.data?.status})
+          </p>
+        )}
 
         <div className="flex items-center justify-between gap-2 pt-2">
           <button

@@ -27,7 +27,9 @@ export type AppConfig = {
   enums: EnumMap
 }
 
+// Usa o handler público /api/config (não o proxy autenticado /api/v1/*),
+// pois config é hidratado no boot — inclusive para usuários anônimos.
 export async function fetchConfig(): Promise<AppConfig> {
-  const { data } = await api.get<AppConfig>('/api/v1/config')
+  const { data } = await api.get<AppConfig>('/api/config')
   return data
 }

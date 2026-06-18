@@ -1,75 +1,145 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, MessageCircle, MoreHorizontal, Check, X, UserPlus } from 'lucide-react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import {
-  getMyConnections, getConnectionRequests,
-  acceptConnectionRequest, rejectConnectionRequest, cancelConnectionRequest,
-  type ConnectionUser,
-} from '@/lib/api/connections'
+  Search, MessageCircle, UserPlus, Users, Eye, UserCheck,
+  User, Briefcase, FlaskConical, Lightbulb, Calendar,
+} from 'lucide-react'
+import { getMyConnections, type ConnectionUser } from '@/lib/api/connections'
+import {
+  listFollowers, listMyFollowing, unfollow,
+  type FollowUser, type FollowedItem, type FollowTargetType,
+} from '@/lib/api/follow'
+import { getPresenceMap } from '@/lib/api/presence'
+import { fetchUser } from '@/lib/api/users'
+import { getBusiness } from '@/lib/api/business'
+import { getLab } from '@/lib/api/labs'
+import { getInitiative } from '@/lib/api/initiatives'
+import { getEvent } from '@/lib/api/events'
 import { useAuth } from '@/lib/stores/auth'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { PresenceDot } from '@/components/social/PresenceDot'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { PresenceDotBulk } from '@/components/social/PresenceDot'
+import { FollowButton } from '@/components/social/FollowButton'
 
-type Tab = 'conectados' | 'recebidas' | 'enviadas'
+type Tab = 'conexoes' | 'seguindo' | 'seguidores'
 
-type Request = {
-  connection_id: string
-  user: { uid: string; nome: string; foto_perfil?: string | null; tipo_usuario?: string }
-  mutual_count?: number
-  mensagem?: string
-  created_at?: string
+const TABS: { id: Tab; label: string; Icon: typeof Users }[] = [
+  { id: 'conexoes',   label: 'Conexões',   Icon: Users },
+  { id: 'seguindo',   label: 'Seguindo',   Icon: Eye },
+  { id: 'seguidores', label: 'Seguidores', Icon: UserCheck },
+]
+
+const TYPE_META: Record<FollowTargetType, { label: string; Icon: typeof User; href: (id: string) => string }> = {
+  user:        { label: 'Pessoa',       Icon: User,         href: (id) => `/perfil/${id}` },
+  negocio:     { label: 'Negócio',      Icon: Briefcase,    href: (id) => `/vitrine/negocios/${id}` },
+  laboratorio: { label: 'Laboratório',  Icon: FlaskConical, href: (id) => `/vitrine/laboratorios/${id}` },
+  iniciativa:  { label: 'Projeto',      Icon: Lightbulb,    href: (id) => `/vitrine/projetos/${id}` },
+  evento:      { label: 'Evento',       Icon: Calendar,     href: (id) => `/vitrine/eventos/${id}` },
 }
 
 function getInitials(nome: string) {
-  return nome.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
+  return nome.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase()
+}
+
+function PersonAvatar({ nome, foto, size = 48 }: { nome: string; foto?: string | null; size?: number }) {
+  if (foto) {
+    return (
+      <img
+        src={foto}
+        alt={nome}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }}
+      />
+    )
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: 'var(--color-purple)', color: '#fff',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      font: `700 ${Math.round(size * 0.36)}px var(--font-display)`,
+    }}>
+      {getInitials(nome)}
+    </div>
+  )
+}
+
+function SkeletonRows({ count = 4 }: { count?: number }) {
+  return (
+    <div className="col" style={{ gap: 12 }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="person-row skeleton-row">
+          <div className="skeleton-circle" style={{ width: 48, height: 48 }} />
+          <div className="body" style={{ gap: 6, display: 'flex', flexDirection: 'column' }}>
+            <div className="skeleton-line" style={{ width: '60%', height: 14 }} />
+            <div className="skeleton-line" style={{ width: '35%', height: 12 }} />
+          </div>
+          <div className="skeleton-line" style={{ width: 80, height: 32, borderRadius: 'var(--radius-md)' }} />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function ConexoesPage() {
-  const [tab, setTab] = useState<Tab>('conectados')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const initialTab = (searchParams.get('tab') as Tab) || 'conexoes'
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [search, setSearch] = useState('')
   const qc = useQueryClient()
-
   const myUid = useAuth((s) => s.me?.id ?? '')
-  const { data: connections = [] as ConnectionUser[] } = useQuery({
+
+  const handleTabChange = (t: Tab) => {
+    setTab(t)
+    router.replace(`/conexoes?tab=${t}`, { scroll: false })
+  }
+
+  const { data: connections = [], isLoading: loadingConns } = useQuery({
     queryKey: ['connections', 'mine', myUid],
     queryFn: () => getMyConnections(myUid),
     enabled: !!myUid,
   })
-  const { data: received = [] } = useQuery({
-    queryKey: ['connections', 'requests', 'received'],
-    queryFn: () => getConnectionRequests('received'),
+  const { data: followers = [], isLoading: loadingFollowers } = useQuery({
+    queryKey: ['follow', 'followers', myUid],
+    queryFn: () => listFollowers('user', myUid),
+    enabled: !!myUid,
   })
-  const { data: sent = [] } = useQuery({
-    queryKey: ['connections', 'requests', 'sent'],
-    queryFn: () => getConnectionRequests('sent'),
-  })
-
-  const acceptMut = useMutation({
-    mutationFn: (id: string) => acceptConnectionRequest(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['connections'] }); toast.success('Conexão aceita!') },
-    onError: () => toast.error('Erro ao aceitar'),
-  })
-  const rejectMut = useMutation({
-    mutationFn: (id: string) => rejectConnectionRequest(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['connections'] }); toast.success('Solicitação recusada') },
-    onError: () => toast.error('Erro ao recusar'),
-  })
-  const cancelMut = useMutation({
-    mutationFn: (id: string) => cancelConnectionRequest(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['connections'] }); toast.success('Solicitação cancelada') },
-    onError: () => toast.error('Erro ao cancelar'),
+  const { data: following = [], isLoading: loadingFollowing } = useQuery({
+    queryKey: ['follow', 'following', myUid],
+    queryFn: () => listMyFollowing(),
+    enabled: !!myUid,
   })
 
-  const filteredConnections = connections.filter((c: ConnectionUser) =>
-    !search || c.nome.toLowerCase().includes(search.toLowerCase())
+  // Batch presence for connections + followers
+  const allUserUids = useMemo(() => {
+    const uids = new Set<string>()
+    connections.forEach((c: ConnectionUser) => uids.add(c.uid))
+    followers.forEach((f: FollowUser) => uids.add(f.uid))
+    return Array.from(uids)
+  }, [connections, followers])
+
+  const { data: presenceMap } = useQuery({
+    queryKey: ['presence', 'bulk', ...allUserUids],
+    queryFn: () => getPresenceMap(allUserUids),
+    enabled: allUserUids.length > 0,
+    staleTime: 60_000,
+    refetchInterval: 90_000,
+  })
+
+  const filteredConnections = connections.filter(
+    (c: ConnectionUser) => !search || c.nome.toLowerCase().includes(search.toLowerCase()),
   )
 
-  const receivedList = received as Request[]
-  const sentList = sent as Request[]
+  const tabCounts = {
+    conexoes: connections.length,
+    seguindo: following.length,
+    seguidores: followers.length,
+  }
 
   return (
     <div className="page page-narrow fade-in">
@@ -77,7 +147,7 @@ export default function ConexoesPage() {
         <div>
           <h1>Conexões</h1>
           <div className="sub">
-            {connections.length} conexões ativas, {receivedList.length} solicitações recebidas e {sentList.length} pendentes.
+            {connections.length} conexões · seguindo {following.length} · {followers.length} seguidores
           </div>
         </div>
         <Link href="/conexoes/sugestoes" className="btn btn-primary btn-sm">
@@ -86,57 +156,62 @@ export default function ConexoesPage() {
       </div>
 
       <div className="tabs-bar">
-        {([
-          { id: 'conectados' as Tab, label: `Conectados · ${connections.length}` },
-          { id: 'recebidas'  as Tab, label: `Solicitações recebidas · ${receivedList.length}` },
-          { id: 'enviadas'   as Tab, label: `Solicitações enviadas · ${sentList.length}` },
-        ]).map(t => (
-          <button key={t.id} className={cn('tab', tab === t.id && 'active')} onClick={() => setTab(t.id)}>
-            {t.label}
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            className={cn('tab', tab === t.id && 'active')}
+            onClick={() => handleTabChange(t.id)}
+          >
+            <t.Icon size={14} />
+            {t.label} · {tabCounts[t.id]}
           </button>
         ))}
       </div>
 
-      {/* ─ conectados ─ */}
-      {tab === 'conectados' && (
+      {/* ─ Conexões (follows mútuos de pessoas) ─ */}
+      {tab === 'conexoes' && (
         <>
           <div className="row" style={{ gap: 8, marginBottom: 16 }}>
             <div className="input-affix" style={{ flex: 1 }}>
               <Search size={14} className="ix" />
-              <input className="input" placeholder="Filtrar suas conexões…" style={{ paddingLeft: 38 }} value={search} onChange={e => setSearch(e.target.value)} />
+              <input
+                className="input"
+                placeholder="Filtrar suas conexões…"
+                style={{ paddingLeft: 38 }}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
-            <select className="select" style={{ width: 'auto' }}>
-              <option>Mais recentes</option>
-              <option>A → Z</option>
-              <option>Por campus</option>
-            </select>
           </div>
-          {filteredConnections.length === 0 ? (
+          {loadingConns ? (
+            <SkeletonRows />
+          ) : filteredConnections.length === 0 ? (
             <div className="empty">
+              <Users size={32} style={{ color: 'var(--color-fg-3)', marginBottom: 8 }} />
+              <div className="eyebrow">CONEXÕES</div>
               <h3>Sem conexões ainda</h3>
-              <p>Explore sugestões para conectar com pesquisadores e parceiros.</p>
-              <Link href="/conexoes/sugestoes" className="btn btn-primary"><UserPlus size={14} />Ver sugestões</Link>
+              <p>Conexão acontece quando você e outra pessoa se seguem mutuamente.</p>
+              <Link href="/conexoes/sugestoes" className="btn btn-primary">
+                <UserPlus size={14} />Ver sugestões
+              </Link>
             </div>
           ) : (
             <div className="col" style={{ gap: 12 }}>
               {filteredConnections.map((c: ConnectionUser) => (
                 <div key={c.uid} className="person-row">
                   <div style={{ position: 'relative', flex: 'none' }}>
-                    <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--color-purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 18px var(--font-display)' }}>
-                      {getInitials(c.nome)}
-                    </div>
-                    <PresenceDot uid={c.uid} className="absolute right-0 bottom-0" />
+                    <Link href={`/perfil/${c.uid}`}>
+                      <PersonAvatar nome={c.nome} foto={c.foto_url} size={48} />
+                    </Link>
+                    <PresenceDotBulk uid={c.uid} presenceMap={presenceMap} className="absolute right-0 bottom-0" />
                   </div>
                   <div className="body">
-                    <div className="nm">{c.nome}</div>
-                    <div className="sub">{c.tipo_usuario ?? 'Membro'}</div>
+                    <Link href={`/perfil/${c.uid}`} className="nm">{c.nome}</Link>
+                    <div className="sub">{c.tipo_usuario?.replace('_', ' ') ?? 'Membro'}</div>
                   </div>
-                  <div className="row" style={{ gap: 8 }}>
-                    <Link href={`/mensagens?to=${c.uid}`} className="btn btn-tertiary btn-sm">
-                      <MessageCircle size={13} />Mensagem
-                    </Link>
-                    <button className="btn-icon"><MoreHorizontal size={16} /></button>
-                  </div>
+                  <Link href={`/mensagens?to=${c.uid}`} className="btn btn-tertiary btn-sm">
+                    <MessageCircle size={13} />Mensagem
+                  </Link>
                 </div>
               ))}
             </div>
@@ -144,63 +219,121 @@ export default function ConexoesPage() {
         </>
       )}
 
-      {/* ─ recebidas ─ */}
-      {tab === 'recebidas' && (
-        <div className="col" style={{ gap: 12 }}>
-          {receivedList.length === 0 ? (
-            <div className="empty"><h3>Nenhuma solicitação recebida</h3></div>
-          ) : receivedList.map(r => (
-            <div key={r.connection_id} className="person-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-              <div className="row" style={{ gap: 14 }}>
-                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--color-purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 18px var(--font-display)', flex: 'none' }}>
-                  {getInitials(r.user.nome)}
-                </div>
-                <div className="body">
-                  <div className="nm">{r.user.nome}</div>
-                  <div className="sub">{r.user.tipo_usuario ?? 'Membro'}</div>
-                  {r.mutual_count !== undefined && <div className="meta">{r.mutual_count} conexões em comum</div>}
-                </div>
-                <div className="row" style={{ gap: 8 }}>
-                  <button className="btn btn-tertiary btn-sm" onClick={() => rejectMut.mutate(r.connection_id)}>
-                    <X size={13} />Recusar
-                  </button>
-                  <button className="btn btn-primary btn-sm" onClick={() => acceptMut.mutate(r.connection_id)}>
-                    <Check size={13} />Aceitar
-                  </button>
-                </div>
-              </div>
-              {r.mensagem && (
-                <div style={{ marginLeft: 66, marginTop: 12, padding: 12, background: 'var(--color-surface-2)', borderRadius: 'var(--radius-md)', fontSize: 13.5, color: 'var(--color-fg-2)', fontStyle: 'italic' }}>
-                  &ldquo;{r.mensagem}&rdquo;
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+      {/* ─ Seguindo (polimórfico: pessoas + negócios + labs + projetos + eventos) ─ */}
+      {tab === 'seguindo' && (
+        loadingFollowing ? (
+          <SkeletonRows />
+        ) : following.length === 0 ? (
+          <div className="empty">
+            <Eye size={32} style={{ color: 'var(--color-fg-3)', marginBottom: 8 }} />
+            <div className="eyebrow">SEGUINDO</div>
+            <h3>Você ainda não segue ninguém</h3>
+            <p>Siga pessoas, laboratórios, projetos, negócios e eventos para acompanhá-los no feed.</p>
+            <Link href="/conexoes/sugestoes" className="btn btn-primary">
+              <UserPlus size={14} />Ver sugestões
+            </Link>
+          </div>
+        ) : (
+          <div className="col" style={{ gap: 12 }}>
+            {following.map((item) => (
+              <FollowingRow
+                key={`${item.target_type}:${item.target_id}`}
+                item={item}
+                onUnfollow={async () => {
+                  await unfollow(item.target_type, item.target_id)
+                  qc.invalidateQueries({ queryKey: ['follow', 'following', myUid] })
+                  qc.invalidateQueries({ queryKey: ['connections', 'mine', myUid] })
+                  toast.success('Deixou de seguir')
+                }}
+              />
+            ))}
+          </div>
+        )
       )}
 
-      {/* ─ enviadas ─ */}
-      {tab === 'enviadas' && (
-        <div className="col" style={{ gap: 12 }}>
-          {sentList.length === 0 ? (
-            <div className="empty"><h3>Nenhuma solicitação enviada</h3></div>
-          ) : sentList.map(r => (
-            <div key={r.connection_id} className="person-row">
-              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--color-purple)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 18px var(--font-display)', flex: 'none' }}>
-                {getInitials(r.user.nome)}
+      {/* ─ Seguidores (quem segue você) ─ */}
+      {tab === 'seguidores' && (
+        loadingFollowers ? (
+          <SkeletonRows />
+        ) : followers.length === 0 ? (
+          <div className="empty">
+            <UserCheck size={32} style={{ color: 'var(--color-fg-3)', marginBottom: 8 }} />
+            <div className="eyebrow">SEGUIDORES</div>
+            <h3>Nenhum seguidor ainda</h3>
+            <p>Participe de projetos e siga pessoas para aumentar sua visibilidade.</p>
+          </div>
+        ) : (
+          <div className="col" style={{ gap: 12 }}>
+            {followers.map((f) => (
+              <div key={f.uid} className="person-row">
+                <div style={{ position: 'relative', flex: 'none' }}>
+                  <Link href={`/perfil/${f.uid}`}>
+                    <PersonAvatar nome={f.nome} foto={f.foto_perfil} size={48} />
+                  </Link>
+                  <PresenceDotBulk uid={f.uid} presenceMap={presenceMap} className="absolute right-0 bottom-0" />
+                </div>
+                <div className="body">
+                  <Link href={`/perfil/${f.uid}`} className="nm">{f.nome}</Link>
+                  <div className="sub">{f.tipo_usuario?.replace('_', ' ') ?? 'Membro'}</div>
+                </div>
+                <div className="row" style={{ gap: 8 }}>
+                  <FollowButton type="user" id={f.uid} size="sm" />
+                  <Link href={`/perfil/${f.uid}`} className="btn btn-tertiary btn-sm">Ver perfil</Link>
+                </div>
               </div>
-              <div className="body">
-                <div className="nm">{r.user.nome}</div>
-                <div className="sub">{r.user.tipo_usuario ?? 'Membro'}</div>
-                <div className="meta" style={{ color: 'var(--color-fg-3)', fontSize: 12 }}>Pendente</div>
-              </div>
-              <button className="btn btn-tertiary btn-sm" onClick={() => cancelMut.mutate(r.connection_id)}>
-                Cancelar
-              </button>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
       )}
+    </div>
+  )
+}
+
+function FollowingRow({ item, onUnfollow }: { item: FollowedItem; onUnfollow: () => Promise<void> }) {
+  const meta = TYPE_META[item.target_type]
+  const Icon = meta.Icon
+
+  const { data: nome, isLoading: loadingNome } = useQuery({
+    queryKey: ['follow-target', item.target_type, item.target_id],
+    queryFn: async () => {
+      switch (item.target_type) {
+        case 'user':        return (await fetchUser(item.target_id)).nome
+        case 'negocio':     return (await getBusiness(item.target_id)).nome
+        case 'laboratorio': return (await getLab(item.target_id)).nome
+        case 'iniciativa':  return (await getInitiative(item.target_id)).titulo
+        case 'evento':      return (await getEvent(item.target_id)).titulo
+      }
+    },
+    staleTime: 5 * 60_000,
+  })
+
+  const unfollowM = useMutation({
+    mutationFn: onUnfollow,
+    onError: () => toast.error('Falha ao deixar de seguir'),
+  })
+
+  return (
+    <div className="person-row">
+      <Link href={meta.href(item.target_id)} style={{ flex: 'none' }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 'var(--radius-md)',
+          background: 'var(--color-surface-2)', color: 'var(--color-fg-2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon size={20} />
+        </div>
+      </Link>
+      <div className="body">
+        {loadingNome && !nome ? (
+          <div className="skeleton-line" style={{ width: '55%', height: 14, marginBottom: 4 }} />
+        ) : (
+          <Link href={meta.href(item.target_id)} className="nm">{nome ?? 'Indisponível'}</Link>
+        )}
+        <div className="sub">{meta.label}</div>
+      </div>
+      <button className="btn btn-tertiary btn-sm" onClick={() => unfollowM.mutate()} disabled={unfollowM.isPending}>
+        Seguindo
+      </button>
     </div>
   )
 }

@@ -101,7 +101,7 @@
 .nav-label { font-size: 11px; font-weight: 600; white-space: nowrap; line-height: 1; }
 
 /* Avatar com borda: preta no light, branca no dark */
-.avatar-ring { box-shadow: 0 0 0 2px var(--color-ink); transition: box-shadow var(--motion-fast); }
+.avatar-ring { box-shadow: 0 0 0 2px var(--color-ink); transition: box-shadow var(--motion-fast); border-radius: 9999px; }
 .avatar-ring:hover { box-shadow: 0 0 0 2px var(--color-mint); }
 [data-theme='dark'] .avatar-ring { box-shadow: 0 0 0 2px #ffffff; }
 [data-theme='dark'] .avatar-ring:hover { box-shadow: 0 0 0 2px var(--color-mint); }
@@ -142,10 +142,10 @@
   position: absolute; inset: 0;
   background:
     linear-gradient(180deg,
-      rgba(92,7,158,0.10) 0%,
-      rgba(92,7,158,0.10) 35%,
-      rgba(20,2,40,0.55) 65%,
-      rgba(20,2,40,0.82) 100%);
+      rgba(20,2,40,0.45) 0%,
+      rgba(20,2,40,0.55) 40%,
+      rgba(20,2,40,0.75) 70%,
+      rgba(20,2,40,0.92) 100%);
   z-index: 0;
 }
 .auth-pattern > * { position: relative; z-index: 1; }
@@ -327,6 +327,9 @@
   width: 100%;
   margin: 0 auto;
 }
+@media (max-width: 768px) {
+  .page { padding: 16px 16px 88px; }
+}
 .page-narrow { max-width: 920px; }
 .page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; gap: 20px; flex-wrap: wrap; }
 .page-header .crumbs { font-size: 12px; color: var(--color-fg-3); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
@@ -401,6 +404,23 @@
 /* colunas simétricas: col1 = col3 = 240px → mesma distância das bordas ao feed */
 .grid-feed-3 { display: grid; grid-template-columns: 240px minmax(0, 1fr) 240px; gap: 24px; align-items: start; }
 .grid-feed-3 > * { min-width: 0; }
+/* #3c: scrollbar visível nos sidebars do feed (fallback webkit; Firefox usa scrollbar-width
+   inline). No zoom o conteúdo rola internamente — com overlay scrollbar parecia cortado. */
+.feed-col-left::-webkit-scrollbar,
+.feed-col-right::-webkit-scrollbar { width: 8px; }
+.feed-col-left::-webkit-scrollbar-thumb,
+.feed-col-right::-webkit-scrollbar-thumb { background: #bfbfc6; border-radius: 8px; }
+.feed-col-left:hover::-webkit-scrollbar-thumb,
+.feed-col-right:hover::-webkit-scrollbar-thumb { background: #a6a6ad; }
+/* Responsivo estilo Twitter: <1024px esconde coluna direita, <768px só a central */
+@media (max-width: 1024px) {
+  .grid-feed-3 { grid-template-columns: 240px minmax(0, 1fr); }
+  .grid-feed-3 .feed-col-right { display: none; }
+}
+@media (max-width: 768px) {
+  .grid-feed-3 { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .grid-feed-3 .feed-col-left { display: none; }
+}
 .grid-detail { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; }
 
 /* ─── Empty state ───────────────────────────────────────────── */
@@ -606,9 +626,33 @@
 .notif-row .icon-wrap.purple { background: var(--color-purple-08); color: var(--color-purple); }
 .notif-row .icon-wrap.orange { background: var(--color-orange-15); color: #8c5500; }
 
-.notif-page-row { padding: 16px 20px; border-bottom: 1px solid var(--color-border); display: flex; gap: 14px; cursor: pointer; }
+.notif-page-row { position: relative; padding: 16px 20px; border-bottom: 1px solid var(--color-border); display: flex; gap: 14px; align-items: flex-start; cursor: pointer; transition: background var(--motion-fast); }
+.notif-page-row:last-child { border-bottom: 0; }
 .notif-page-row:hover { background: var(--color-surface-2); }
-.notif-page-row.unread { background: rgba(0,34,255,0.025); }
+.notif-page-row.unread { background: rgba(0,34,255,0.04); }
+
+/* Ícone por tipo (escopo próprio — antes herdava de .notif-row e ficava sem estilo). */
+.notif-page-row .icon-wrap { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; }
+.notif-page-row .icon-wrap.mint { background: var(--color-mint-15); color: #006a3c; }
+.notif-page-row .icon-wrap.blue { background: var(--color-blue-08); color: var(--color-blue); }
+.notif-page-row .icon-wrap.purple { background: var(--color-purple-08); color: var(--color-purple); }
+.notif-page-row .icon-wrap.orange { background: var(--color-orange-15); color: #8c5500; }
+.notif-page-row .icon-wrap.red { background: rgba(229,16,46,0.10); color: #c50e29; }
+
+/* Marcador de não lida + botão remover (revela no hover) */
+.notif-page-row .notif-dot { position: absolute; left: 8px; top: 24px; width: 6px; height: 6px; border-radius: 50%; background: var(--color-blue); }
+.notif-page-row .notif-del { width: 32px; height: 32px; opacity: 0; flex: none; }
+.notif-page-row:hover .notif-del, .notif-page-row:focus-within .notif-del { opacity: 1; }
+
+/* ─── Notificações: barra de filtros (visão + tipo) ─────────────── */
+.notif-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--color-surface-2); border-radius: var(--radius-md); }
+.seg-item { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; cursor: pointer; padding: 7px 14px; border-radius: calc(var(--radius-md) - 4px); font: 600 13.5px var(--font-body); color: var(--color-fg-2); transition: color var(--motion-fast), background var(--motion-fast); }
+.seg-item:hover { color: var(--color-fg-1); }
+.seg-item.active { background: var(--color-surface); color: var(--color-ink); box-shadow: var(--shadow-1); }
+.seg-count { font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: var(--radius-full); background: rgba(6,7,15,0.06); color: var(--color-fg-3); }
+.seg-item.active .seg-count { background: var(--color-ink); color: #fff; }
+.notif-tipo { width: auto; min-width: 180px; padding: 8px 12px; font-size: 13px; }
 
 /* ─── Filter pane (vitrines) ────────────────────────────────── */
 .filter-pane {
@@ -633,6 +677,12 @@
 }
 .filter-pane .chip:hover { background: #efeff2; }
 .filter-pane .chip.active { background: var(--color-ink); color: #fff; border-color: var(--color-ink); }
+
+/* Layout listagem vitrine: filtros à esquerda, resultados à direita. */
+@media (max-width: 768px) {
+  .vitrine-grid { grid-template-columns: 1fr !important; }
+  .vitrine-grid .filter-pane { position: static; }
+}
 
 /* ─── Vitrine card ──────────────────────────────────────────── */
 .vcard {
@@ -841,12 +891,47 @@
   word-wrap: break-word;
 }
 .msg-bubble.from-them { background: var(--color-surface); border: 1px solid var(--color-border); border-bottom-left-radius: 6px; align-self: flex-start; }
-.msg-bubble.from-me { background: var(--color-ink); color: #fff; border-bottom-right-radius: 6px; align-self: flex-end; }
+.msg-bubble.from-me { background: var(--color-mint); color: var(--color-ink); border-bottom-right-radius: 6px; align-self: flex-end; }
 .msg-bubble .ts { font-size: 11px; opacity: 0.6; margin-top: 4px; display: block; text-align: right; font-variant-numeric: tabular-nums; }
 
 .msg-pane .mp-foot { padding: 14px 22px; border-top: 1px solid var(--color-border); background: var(--color-surface); display: flex; gap: 10px; align-items: center; }
 .msg-pane .mp-foot input { flex: 1; height: 42px; padding: 0 16px; border-radius: var(--radius-full); border: 1px solid var(--color-border); background: var(--color-surface-2); font: 500 14px var(--font-body); outline: none; }
 .msg-pane .mp-foot input:focus { border-color: var(--color-blue); background: #fff; }
+
+/* Botão "voltar" do chat — só aparece no mobile (1 coluna). */
+.msg-pane .mp-head .mp-back { display: none; }
+
+/* Emoji picker leve (sem dependência). */
+.mp-foot .emoji-backdrop { position: fixed; inset: 0; z-index: 40; }
+.mp-foot .emoji-pop {
+  position: absolute; bottom: calc(100% + 8px); right: 0; z-index: 41;
+  display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
+  width: 296px; padding: 8px;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-2);
+}
+.mp-foot .emoji-item {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; font-size: 19px; line-height: 1;
+  border-radius: var(--radius-sm); background: transparent; border: 0; cursor: pointer;
+}
+.mp-foot .emoji-item:hover { background: var(--color-surface-2); }
+
+/* ─── Mensagens: responsivo (mobile = 1 coluna) ───────────────── */
+@media (max-width: 768px) {
+  .msg-grid {
+    grid-template-columns: 1fr;
+    height: calc(100dvh - var(--nav-height-top) - var(--nav-height-bottom, 0px) - env(safe-area-inset-bottom));
+  }
+  /* Sem conversa aberta: lista ocupa a tela; placeholder some. */
+  .msg-grid:not(.has-active) .msg-empty,
+  .msg-grid:not(.has-active) .msg-pane { display: none; }
+  /* Conversa aberta: esconde a lista e mostra só o chat. */
+  .msg-grid.has-active .msg-list { display: none; }
+  .msg-pane .mp-head .mp-back { display: inline-flex; }
+  .msg-bubble { max-width: 82%; }
+  .mp-foot .emoji-pop { width: calc(100vw - 32px); grid-template-columns: repeat(8, 1fr); }
+}
 
 /* ─── Person row ────────────────────────────────────────────── */
 .person-row {
@@ -877,6 +962,43 @@
 .sugg .sub { font-size: 12.5px; color: var(--color-fg-3); margin: 2px 0 8px; }
 .sugg .why { font-size: 12px; color: var(--color-fg-2); background: var(--color-surface-2); padding: 6px 10px; border-radius: var(--radius-sm); margin: 0 0 12px; line-height: 1.4; }
 .sugg .row { gap: 6px; width: 100%; }
+.sugg:hover { box-shadow: var(--shadow-2); }
+
+/* ─── Skeleton loading ─────────────────────────────────────── */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.15; }
+}
+.skeleton-circle {
+  border-radius: 50%;
+  background: var(--color-surface-2);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+.skeleton-line {
+  background: var(--color-surface-2);
+  border-radius: var(--radius-sm);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+.skeleton-row { pointer-events: none; }
+.skeleton-card { pointer-events: none; }
+
+/* ─── Tabs bar icon ────────────────────────────────────────── */
+.tabs-bar .tab { display: flex; align-items: center; gap: 6px; }
+
+/* ─── Responsive: conexões ─────────────────────────────────── */
+@media (max-width: 768px) {
+  .grid-3 { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .tabs-bar { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .tabs-bar::-webkit-scrollbar { display: none; }
+  .tabs-bar .tab { white-space: nowrap; flex-shrink: 0; }
+}
+@media (max-width: 480px) {
+  .person-row { flex-wrap: wrap; gap: 10px; padding: 12px 14px; }
+  .person-row .body { flex-basis: calc(100% - 62px); }
+  .person-row .row { width: 100%; justify-content: flex-end; }
+  .grid-3 { grid-template-columns: 1fr; }
+}
 
 /* ─── Admin table ───────────────────────────────────────────── */
 .admin-table {

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Check, X, FlaskConical, Briefcase, Lightbulb, Calendar } from 'lucide-react'
-import { listLabs, approveLab, rejectLab } from '@/lib/api/labs'
+import { listAllLabs, approveLab, rejectLab } from '@/lib/api/labs'
 import { listBusinesses, approveBusiness, rejectBusiness } from '@/lib/api/business'
 import { listAdminInitiatives, approveInitiative, rejectInitiative } from '@/lib/api/initiatives'
 import { listEvents, approveEvent, rejectEvent } from '@/lib/api/events'
@@ -16,7 +16,9 @@ export default function AprovacoesPage() {
 
   const labsQ = useQuery({
     queryKey: ['admin', 'labs-pending'],
-    queryFn: () => listLabs({ status: 'PENDENTE' as never }),
+    // status não é filtro server-side (CursorParams só lê limit/cursor); buscamos
+    // todos e filtramos PENDENTE no client, abaixo — senão pendentes além da 1ª página somem.
+    queryFn: () => listAllLabs(),
     enabled: !!me?.is_admin,
   })
   const bizQ = useQuery({
@@ -43,7 +45,7 @@ export default function AprovacoesPage() {
     return <div className="mx-auto max-w-2xl p-6 text-center text-sm">Acesso restrito.</div>
   }
 
-  const labsPend = (labsQ.data?.items ?? []).filter(
+  const labsPend = (labsQ.data ?? []).filter(
     (l) => l.status?.toUpperCase?.() === 'PENDENTE',
   )
   const bizPend = (bizQ.data?.items ?? []).filter((b) => b.status === 'pendente')

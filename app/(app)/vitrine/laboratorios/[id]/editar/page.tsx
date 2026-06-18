@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft, Trash2, ImagePlus } from 'lucide-react'
-import { getLab, updateLab, deleteLab, updateLabFotos } from '@/lib/api/labs'
+import { getLab, updateLab, deleteLab, updateLabFotos, updateLabCoverUrl, publishLab, unpublishLab } from '@/lib/api/labs'
 import { useAuth } from '@/lib/stores/auth'
 import { useEnum } from '@/lib/hooks/useEnum'
 import { toast, toastApiError } from '@/lib/toast'
+import { AvatarCropModal } from '@/components/ui/AvatarCropModal'
+import { CoverPatternPicker } from '@/components/ui/CoverPatternPicker'
 
 export default function EditarLabPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -29,7 +31,7 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
   const [tipo, setTipo] = useState('')
   const [campus, setCampus] = useState('')
   const [areas, setAreas] = useState('')
-  const [visivel, setVisivel] = useState(true)
+  const [pendingPerfilFile, setPendingPerfilFile] = useState<File | null>(null)
 
   useEffect(() => {
     const l = q.data
@@ -43,7 +45,6 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
     setTipo(l.tipo)
     setCampus(l.campus ?? '')
     setAreas((l.areas_pesquisa ?? []).join(', '))
-    setVisivel(l.visivel)
   }, [q.data])
 
   const mut = useMutation({
@@ -58,7 +59,6 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
         tipo,
         campus: campus || null,
         areas_pesquisa: areas.split(',').map((a) => a.trim()).filter(Boolean),
-        visivel,
       }),
     onSuccess: () => {
       toast.success('Laboratório atualizado')
@@ -76,6 +76,24 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
       qc.invalidateQueries({ queryKey: ['lab', id] })
     },
     onError: (e) => toastApiError(e, 'Falha ao enviar foto.'),
+  })
+
+  const coverUrlM = useMutation({
+    mutationFn: (url: string) => updateLabCoverUrl(id, url),
+    onSuccess: () => {
+      toast.success('Capa atualizada')
+      qc.invalidateQueries({ queryKey: ['lab', id] })
+    },
+    onError: (e) => toastApiError(e, 'Falha ao salvar capa.'),
+  })
+
+  const pubM = useMutation({
+    mutationFn: () => q.data?.visivel ? unpublishLab(id) : publishLab(id),
+    onSuccess: () => {
+      toast.success(q.data?.visivel ? 'Laboratório despublicado' : 'Laboratório publicado')
+      qc.invalidateQueries({ queryKey: ['lab', id] })
+    },
+    onError: (e) => toastApiError(e, 'Não foi possível alterar visibilidade. O lab precisa estar aprovado.'),
   })
 
   const delM = useMutation({
@@ -114,11 +132,22 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
       </Link>
       <h1 className="font-display text-2xl font-semibold">Editar laboratório</h1>
 
+      {pendingPerfilFile && (
+        <AvatarCropModal
+          file={pendingPerfilFile}
+          onConfirm={(blob) => {
+            setPendingPerfilFile(null)
+            fotosM.mutate({ perfil: new File([blob], 'perfil.jpg', { type: 'image/jpeg' }) })
+          }}
+          onCancel={() => setPendingPerfilFile(null)}
+        />
+      )}
+
       <section className="mt-6 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
         <h2 className="font-display text-base font-semibold flex items-center gap-2">
           <ImagePlus className="h-4 w-4" /> Fotos
         </h2>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mt-3 space-y-4">
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium">Foto de perfil</span>
             <input
@@ -127,26 +156,22 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
               disabled={fotosM.isPending}
               onChange={(e) => {
                 const f = e.target.files?.[0]
-                if (f) fotosM.mutate({ perfil: f })
+                if (f) { setPendingPerfilFile(f); e.target.value = '' }
               }}
               className="text-xs"
             />
           </label>
-          <label className="block text-sm">
-            <span className="mb-1.5 block font-medium">Foto de capa</span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg"
-              disabled={fotosM.isPending}
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) fotosM.mutate({ capa: f })
-              }}
-              className="text-xs"
+          <div className="text-sm">
+            <span className="mb-2 block font-medium">Capa do laboratório</span>
+            <CoverPatternPicker
+              value={(q.data as { foto_capa?: string | null } | undefined)?.foto_capa ?? null}
+              onChange={(url) => coverUrlM.mutate(url)}
             />
-          </label>
+          </div>
         </div>
-        {fotosM.isPending && <p className="mt-2 text-xs text-[var(--color-fg-3)]">Enviando…</p>}
+        {(fotosM.isPending || coverUrlM.isPending) && (
+          <p className="mt-2 text-xs text-[var(--color-fg-3)]">Enviando…</p>
+        )}
       </section>
 
       <form onSubmit={(e) => { e.preventDefault(); mut.mutate() }} className="mt-6 space-y-5">
@@ -178,10 +203,30 @@ export default function EditarLabPage({ params }: { params: Promise<{ id: string
         <Field label="Áreas de pesquisa (vírgula)">
           <input className="input" value={areas} onChange={(e) => setAreas(e.target.value)} />
         </Field>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={visivel} onChange={(e) => setVisivel(e.target.checked)} />
-          Visível na vitrine pública
-        </label>
+        {lab.status === 'APROVADO' && (
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => pubM.mutate()}
+              disabled={pubM.isPending}
+              className={`inline-flex h-9 items-center rounded-md px-3 text-sm font-medium ${
+                lab.visivel
+                  ? 'border border-orange-300 text-orange-700 hover:bg-orange-50'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              } disabled:opacity-50`}
+            >
+              {pubM.isPending ? 'Alterando…' : lab.visivel ? 'Despublicar' : 'Publicar na vitrine'}
+            </button>
+            <span className="text-xs text-[var(--color-fg-3)]">
+              {lab.visivel ? 'Visível na vitrine pública' : 'Não visível na vitrine'}
+            </span>
+          </div>
+        )}
+        {lab.status !== 'APROVADO' && (
+          <p className="text-xs text-[var(--color-fg-3)]">
+            Visibilidade: aguardando aprovação do administrador (status: {lab.status})
+          </p>
+        )}
 
         <div className="flex items-center justify-between gap-2 pt-2">
           <button

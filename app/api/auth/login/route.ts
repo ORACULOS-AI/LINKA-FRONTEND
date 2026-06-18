@@ -6,6 +6,7 @@ import { setAuthCookies } from '@/lib/auth/cookies'
 const bodySchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  remember_me: z.boolean().optional().default(true),
 })
 
 export async function POST(request: Request) {
@@ -49,6 +50,6 @@ export async function POST(request: Request) {
     user_type: payload.user_type ?? null,
     is_admin: payload.is_admin ?? false,
   })
-  setAuthCookies(res, { accessToken, refreshToken })
+  setAuthCookies(res, { accessToken, refreshToken, rememberMe: parsed.remember_me })
   return res
 }

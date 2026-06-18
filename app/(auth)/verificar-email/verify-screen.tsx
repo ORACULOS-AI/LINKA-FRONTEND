@@ -42,7 +42,7 @@ export function VerifyEmailScreen() {
         return
       }
       toast.success('E-mail confirmado! Faça login para continuar.')
-      router.push('/entrar')
+      router.push(`/entrar?email=${encodeURIComponent(email)}&verified=1`)
     } finally {
       setSubmitting(false)
     }

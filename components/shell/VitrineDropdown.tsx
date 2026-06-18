@@ -2,25 +2,10 @@
 
 import { useRef, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Store, Briefcase, FlaskConical, Calendar, Lightbulb, Cpu, BookOpen, type LucideIcon } from 'lucide-react'
+import { Store } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-
-type VitrineLink =
-  | { href: string; label: string; icon: LucideIcon; external?: false; disabled?: false }
-  | { href: string; label: string; icon: LucideIcon; external: true; disabled?: false }
-  | { label: string; icon: LucideIcon; disabled: true }
-
-const VITRINE_LINKS: VitrineLink[] = [
-  { href: '/negocios', label: 'Negócios', icon: Briefcase },
-  { href: '/laboratorios', label: 'Laboratórios', icon: FlaskConical },
-  { href: '/eventos', label: 'Eventos', icon: Calendar },
-  { href: '/iniciativas', label: 'Iniciativas', icon: Lightbulb },
-  { href: 'https://ufcinova.ufc.br/pt/vitrine-tecnologica/', label: 'Vitrine Tecnológica', icon: Cpu, external: true },
-  { label: 'Saberes (Em breve)', icon: BookOpen, disabled: true },
-]
-
-const VITRINE_MATCH = ['/vitrine', '/negocios', '/laboratorios', '/eventos', '/iniciativas', '/projetos']
+import { VITRINE_LINKS, VITRINE_MATCH } from './vitrineLinks'
 
 export function VitrineDropdown() {
   const pathname = usePathname()
@@ -46,7 +31,7 @@ export function VitrineDropdown() {
       onMouseLeave={() => setOpen(false)}
     >
       <Link
-        href="/vitrine"
+        href="/negocios"
         aria-current={active ? 'page' : undefined}
         className={cn('nav-item', active && 'nav-item--active')}
       >

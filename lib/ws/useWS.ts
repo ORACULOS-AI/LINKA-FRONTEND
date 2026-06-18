@@ -27,10 +27,36 @@ type WSMessage =
   // legacy fallthrough
   | { type: string; payload?: unknown }
 
-const WS_URL =
-  process.env.NEXT_PUBLIC_LINKA_WS_URL ?? 'ws://localhost:8000/api/v1/ws'
-
 const MAX_BACKOFF_MS = 30_000
+
+/**
+ * Resolve a URL do WebSocket espelhando a estratégia do cliente HTTP
+ * (`lib/api/client.ts` usa baseURL vazia = mesma origem, com o nginx/BFF
+ * roteando `/api/v1/*` para o backend).
+ *
+ * - **Produção** (`https://selinka.ufc.br`): `wss://selinka.ufc.br/api/v1/ws`
+ *   — mesma origem; o nginx faz o upgrade para o backend. NUNCA localhost.
+ * - **Dev** (`http://localhost:3000`): o dev server do Next não faz proxy de
+ *   WS, então conecta direto no backend em `:8000`.
+ *
+ * Um override em `NEXT_PUBLIC_LINKA_WS_URL` só é respeitado se NÃO apontar para
+ * localhost — assim um valor de dev acidentalmente embutido no build de produção
+ * não derruba o WS (era a causa de o prod tentar `ws://localhost:8000`).
+ */
+function resolveWsUrl(): string {
+  const override = process.env.NEXT_PUBLIC_LINKA_WS_URL
+  if (override && !/localhost|127\.0\.0\.1/.test(override)) return override
+  if (typeof window === 'undefined') return 'ws://localhost:8000/api/v1/ws'
+
+  const { protocol, hostname, host } = window.location
+  // Dev: frontend em :3000 (ou outra porta local) → backend direto em :8000.
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `ws://${hostname}:8000/api/v1/ws`
+  }
+  // Produção: mesma origem, nginx proxia o upgrade.
+  const wsProto = protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${wsProto}//${host}/api/v1/ws`
+}
 
 async function fetchWsToken(): Promise<string | null> {
   try {
@@ -52,23 +78,28 @@ export function useWS(enabled: boolean = true) {
   const wsRef = useRef<WebSocket | null>(null)
   const attemptRef = useRef(0)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const closedByUserRef = useRef(false)
 
   useEffect(() => {
     if (!enabled) return
 
-    closedByUserRef.current = false
+    // Cancelamento com escopo nesta execução do effect — sob React StrictMode
+    // o effect monta/desmonta/monta, e um ref compartilhado entre montagens
+    // deixa o estado de "fechado pelo usuário" não confiável.
+    let cancelled = false
 
     const connect = async () => {
       setStatus('connecting')
       const token = await fetchWsToken()
+      // Se desmontou durante o await, aborta antes de abrir um socket órfão.
+      if (cancelled) return
       if (!token) {
         // sem token → não tenta conectar agora; aguarda próximo ciclo
         setStatus('closed')
         return
       }
-      const sep = WS_URL.includes('?') ? '&' : '?'
-      const ws = new WebSocket(`${WS_URL}${sep}token=${encodeURIComponent(token)}`)
+      const wsUrl = resolveWsUrl()
+      const sep = wsUrl.includes('?') ? '&' : '?'
+      const ws = new WebSocket(`${wsUrl}${sep}token=${encodeURIComponent(token)}`)
       wsRef.current = ws
 
       ws.onopen = () => {
@@ -79,12 +110,24 @@ export function useWS(enabled: boolean = true) {
       ws.onmessage = (event) => {
         let msg: WSMessage
         try {
-          msg = JSON.parse(event.data) as WSMessage
+          // O backend (pubsub) emite o envelope `{ type, data, ts }`; este
+          // cliente sempre leu `payload`. Sem normalizar, todo handler recebia
+          // payload=undefined (thread_id sumia → conversa aberta não atualizava
+          // em tempo real). Aceita ambos os formatos.
+          const raw = JSON.parse(event.data) as { type?: string; payload?: unknown; data?: unknown }
+          msg = { type: raw.type, payload: raw.payload ?? raw.data } as WSMessage
         } catch {
           return
         }
 
         switch (msg.type) {
+          case 'ping': {
+            // SLK-293: o servidor envia ping a cada 30s e fecha a conexão (1001)
+            // se não receber pong em 10s. Sem esta resposta, o WS caía a cada
+            // ~40s e entrava em loop de reconexão.
+            try { wsRef.current?.send(JSON.stringify({ type: 'pong' })) } catch { /* socket já fechando */ }
+            break
+          }
           case 'notification.new':
           case 'notification': {
             const p = msg.payload as { titulo?: string; mensagem?: string } | undefined
@@ -124,18 +167,23 @@ export function useWS(enabled: boolean = true) {
             break
           }
           case 'presence.online':
-          case 'presence.offline': {
-            const p = msg.payload as { user_uid?: string; nome?: string } | undefined
-            if (p?.user_uid) {
-              const wasOnline = queryClient.getQueryData<boolean>(['presence', p.user_uid])
-              const isOnline = msg.type === 'presence.online'
-              queryClient.setQueryData(['presence', p.user_uid], isOnline)
+          case 'presence.offline':
+          case 'PRESENCE_ONLINE':
+          case 'PRESENCE_OFFLINE': {
+            // Backend emite PRESENCE_ONLINE/OFFLINE com {uid}; aceitamos também
+            // o formato dotted/legacy {user_uid}.
+            const p = msg.payload as { user_uid?: string; uid?: string; nome?: string } | undefined
+            const targetUid = p?.user_uid ?? p?.uid
+            if (targetUid) {
+              const wasOnline = queryClient.getQueryData<boolean>(['presence', targetUid])
+              const isOnline = msg.type === 'presence.online' || msg.type === 'PRESENCE_ONLINE'
+              queryClient.setQueryData(['presence', targetUid], isOnline)
               // Mostra toast só na transição offline→online (evita repetir em reconexões)
               if (isOnline && !wasOnline) {
                 // Verifica se é conexão mútua antes de notificar
-                const mutual = queryClient.getQueryData<boolean>(['is-mutual', p.user_uid])
+                const mutual = queryClient.getQueryData<boolean>(['is-mutual', targetUid])
                 if (mutual) {
-                  const nome = p.nome ?? 'Uma conexão sua'
+                  const nome = p?.nome ?? 'Uma conexão sua'
                   toast.info(`${nome} está online agora`)
                 }
               }
@@ -204,7 +252,7 @@ export function useWS(enabled: boolean = true) {
 
       ws.onclose = () => {
         setStatus('closed')
-        if (closedByUserRef.current) return
+        if (cancelled) return
         const attempt = attemptRef.current + 1
         attemptRef.current = attempt
         const backoff = Math.min(MAX_BACKOFF_MS, 1000 * 2 ** (attempt - 1))
@@ -220,8 +268,10 @@ export function useWS(enabled: boolean = true) {
     void connect()
 
     return () => {
-      closedByUserRef.current = true
+      cancelled = true
       if (timerRef.current) clearTimeout(timerRef.current)
+      // Fecha o socket desta execução mesmo se ainda estiver em CONNECTING,
+      // evitando o socket órfão e o erro "connection failed" no console.
       wsRef.current?.close()
     }
   }, [enabled, queryClient, setConfig])

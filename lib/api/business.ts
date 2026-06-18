@@ -1,7 +1,7 @@
 import { api } from './client'
 import type { ApiResp } from './feed'
 
-export type NegocioStatus = 'pendente' | 'aprovado' | 'recusado'
+export type NegocioStatus = 'pendente' | 'aprovado' | 'recusado' | 'inativo'
 
 export type Negocio = {
   id: string
@@ -26,6 +26,8 @@ export type Negocio = {
   razao_social?: string | null
   campus?: string | null
   endereco?: string | null
+  data_fundacao?: string | null
+  metricas?: Record<string, unknown> | null
   descricao_problema?: string | null
   solucao_proposta?: string | null
   likes_count?: number
@@ -65,10 +67,41 @@ export async function getMyBusinesses(): Promise<Negocio[]> {
   return data.data
 }
 
-// GET /api/v1/business
-export async function listBusinesses(params?: { limit?: number; offset?: number }): Promise<PaginatedNegocios> {
-  const { data } = await api.get<PaginatedNegocios>('/api/v1/business', { params })
+// GET /api/v1/business/
+// Backend (business.py:60) suporta: categoria, tipo_negocio, status (alias).
+export type BusinessListParams = {
+  limit?: number
+  /** Paginação é cursor-based no backend (CursorParams); `offset` é ignorado. */
+  cursor?: string
+  categoria?: string
+  tipo_negocio?: string
+  status?: NegocioStatus
+}
+
+export async function listBusinesses(params?: BusinessListParams): Promise<PaginatedNegocios> {
+  const { data } = await api.get<PaginatedNegocios>('/api/v1/business/', { params })
   return data
+}
+
+/**
+ * Busca TODOS os negócios caminhando pelo cursor até `has_more` ser falso.
+ * A vitrine filtra/ordena no client, então precisa do conjunto completo — o
+ * limite fixo anterior (48) escondia o restante. Ver `listAllLabs` em labs.ts.
+ */
+export async function listAllBusinesses(
+  filters?: Omit<BusinessListParams, 'limit' | 'cursor'>,
+  pageSize = 100,
+  maxPages = 100,
+): Promise<Negocio[]> {
+  const all: Negocio[] = []
+  let cursor: string | undefined
+  for (let i = 0; i < maxPages; i++) {
+    const page = await listBusinesses({ ...filters, limit: pageSize, cursor })
+    all.push(...page.items)
+    if (!page.has_more || !page.next_cursor || page.items.length === 0) break
+    cursor = page.next_cursor
+  }
+  return all
 }
 
 // GET /api/v1/business/showcase
@@ -143,26 +176,33 @@ export async function updateBusinessMemberRole(id: string, memberUid: string, pa
   await api.put(`/api/v1/business/${id}/members/${memberUid}`, { papel })
 }
 
-// --- Interactions ---
+// --- Interactions (grafo polimórfico) ---
+// As rotas legadas /business/{id}/like e /comment foram REMOVIDAS do backend.
+// Usar o grafo polimórfico: /like/negocio/{id} e /comments/negocio/{id}.
 
-// POST /api/v1/business/{id}/like
+// POST /api/v1/like/negocio/{id}
 export async function likeBusiness(id: string): Promise<void> {
-  await api.post(`/api/v1/business/${id}/like`)
+  await api.post(`/api/v1/like/negocio/${id}`)
 }
 
-// DELETE /api/v1/business/{id}/like
+// DELETE /api/v1/like/negocio/{id}
 export async function unlikeBusiness(id: string): Promise<void> {
-  await api.delete(`/api/v1/business/${id}/like`)
+  await api.delete(`/api/v1/like/negocio/${id}`)
 }
 
-// POST /api/v1/business/{id}/comment
+// POST /api/v1/comments/negocio/{id}
 export async function commentOnBusiness(id: string, conteudo: string): Promise<void> {
-  await api.post(`/api/v1/business/${id}/comment`, { conteudo })
+  await api.post(`/api/v1/comments/negocio/${id}`, { conteudo })
 }
 
-// DELETE /api/v1/business/{id}/comment/{comment_id}
-export async function deleteBusinessComment(id: string, commentId: string): Promise<void> {
-  await api.delete(`/api/v1/business/${id}/comment/${commentId}`)
+// DELETE /api/v1/comments/{comment_id}
+export async function deleteBusinessComment(_id: string, commentId: string): Promise<void> {
+  await api.delete(`/api/v1/comments/${commentId}`)
+}
+
+// PATCH /api/v1/business/{id}/cover-url
+export async function updateBusinessCoverUrl(id: string, foto_capa: string): Promise<void> {
+  await api.patch(`/api/v1/business/${id}/cover-url`, { foto_capa })
 }
 
 // --- Admin ---
@@ -179,8 +219,22 @@ export async function rejectBusiness(id: string): Promise<Negocio> {
   return data.data
 }
 
-// PUT /api/v1/business/{id}/visibility
+// PUT /api/v1/business/admin/{id}/visibility  (sub-router admin montado em /business/admin)
 export async function setBusinessVisibility(id: string, visivel: boolean): Promise<Negocio> {
-  const { data } = await api.put<ApiResp<Negocio>>(`/api/v1/business/${id}/visibility`, { visivel })
+  const { data } = await api.put<ApiResp<Negocio>>(`/api/v1/business/admin/${id}/visibility`, { visivel })
+  return data.data
+}
+
+// --- Publish / Unpublish (owner toggle após aprovação) ---
+
+// POST /api/v1/business/{id}/publish
+export async function publishBusiness(id: string): Promise<Negocio> {
+  const { data } = await api.post<ApiResp<Negocio>>(`/api/v1/business/${id}/publish`)
+  return data.data
+}
+
+// POST /api/v1/business/{id}/unpublish
+export async function unpublishBusiness(id: string): Promise<Negocio> {
+  const { data } = await api.post<ApiResp<Negocio>>(`/api/v1/business/${id}/unpublish`)
   return data.data
 }

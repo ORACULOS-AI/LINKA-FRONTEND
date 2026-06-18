@@ -28,7 +28,7 @@ export default function Page() {
         return
       }
       toast.success('Enviamos um código para o seu e-mail.')
-      router.push(`/resetar-senha?email=${encodeURIComponent(email)}`)
+      window.location.href = `/resetar-senha?email=${encodeURIComponent(email)}`
     } finally {
       setSubmitting(false)
     }

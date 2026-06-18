@@ -9,17 +9,19 @@ import {
   fetchEntityPosts,
   type FeedPage,
   type EntityFeedTarget,
+  type TipoPost,
 } from '@/lib/api/feed'
 import { EmptyState, SkeletonList } from '@/components/primitives'
 import { PostCard } from './PostCard'
 import { FeedEmptyState } from './FeedEmptyState'
 
 type Props = {
-  /** Quando setado, lista posts deste usuário (perfil); caso contrário, feed home. */
   userUid?: string
-  /** Quando setado junto com targetId, lista posts que referenciam essa entidade. */
   targetType?: EntityFeedTarget
   targetId?: string
+  tipo?: TipoPost
+  /** true = cronológico (padrão); false = relevância (reordena em memória no cliente) */
+  sortRecent?: boolean
   emptyText?: string
 }
 
@@ -27,6 +29,8 @@ export function FeedTimeline({
   userUid,
   targetType,
   targetId,
+  tipo,
+  sortRecent = true,
   emptyText = 'Nada por aqui ainda.',
 }: Props) {
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -36,11 +40,11 @@ export function FeedTimeline({
     ? ['feed', 'entity', targetType, targetId]
     : userUid
       ? ['feed', 'user', userUid]
-      : ['feed', 'home']
+      : ['feed', 'home', tipo ?? 'all']
   const queryFn = ({ pageParam }: { pageParam: string | null | undefined }): Promise<FeedPage> => {
     const params = { cursor: pageParam ?? null, limit: 20 }
     if (isEntity) return fetchEntityPosts(targetType!, targetId!, params)
-    return userUid ? fetchUserPosts(userUid, params) : fetchFeed(params)
+    return userUid ? fetchUserPosts(userUid, params) : fetchFeed({ ...params, tipo })
   }
 
   const q = useInfiniteQuery({
@@ -50,17 +54,26 @@ export function FeedTimeline({
     getNextPageParam: (last) => (last.has_more ? last.next_cursor : undefined),
   })
 
+  // Stable refs — observer created once, always reads latest state
+  const fetchNextRef = useRef(q.fetchNextPage)
+  const hasMoreRef = useRef(q.hasNextPage)
+  const fetchingRef = useRef(q.isFetchingNextPage)
+  fetchNextRef.current = q.fetchNextPage
+  hasMoreRef.current = q.hasNextPage
+  fetchingRef.current = q.isFetchingNextPage
+
   useEffect(() => {
     const el = sentinelRef.current
     if (!el) return
     const io = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting && q.hasNextPage && !q.isFetchingNextPage) {
-        q.fetchNextPage()
+      if (entries[0]?.isIntersecting && hasMoreRef.current && !fetchingRef.current) {
+        fetchNextRef.current()
       }
-    }, { rootMargin: '400px' })
+    }, { rootMargin: '600px' })
     io.observe(el)
     return () => io.disconnect()
-  }, [q])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (q.isLoading) {
     return <SkeletonList count={3} lines={3} />
@@ -77,7 +90,17 @@ export function FeedTimeline({
     )
   }
 
-  const posts = q.data?.pages.flatMap((p) => p.items) ?? []
+  const rawPosts = q.data?.pages.flatMap((p) => p.items) ?? []
+  // Modo relevância: reordena por engagement (likes*2 + comments*3 + shares*4) / idade
+  const posts = sortRecent
+    ? rawPosts
+    : [...rawPosts].sort((a, b) => {
+        const score = (p: typeof a) => {
+          const age = (Date.now() - new Date(p.created_at).getTime()) / 3_600_000 + 2
+          return (p.likes_count * 2 + p.comments_count * 3 + p.shares_count * 4 + 1) / Math.pow(age, 1.5)
+        }
+        return score(b) - score(a)
+      })
 
   if (posts.length === 0) {
     if (userUid || isEntity) {
