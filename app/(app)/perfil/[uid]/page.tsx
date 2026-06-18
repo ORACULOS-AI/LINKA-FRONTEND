@@ -3,7 +3,7 @@
 import { use, useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { BadgeCheck, MapPin, Mail, ExternalLink, Badge, Share2, MoreHorizontal, MessageCircle, BookOpen, Link as LinkIcon } from 'lucide-react'
+import { BadgeCheck, MapPin, Mail, ExternalLink, Share2, MoreHorizontal, MessageCircle, BookOpen, Link as LinkIcon } from 'lucide-react'
 import { fetchUser, TIPO_LABEL } from '@/lib/api/users'
 import { isMutual, isFollowing } from '@/lib/api/follow'
 import { useFollowersCount } from '@/lib/hooks/useFollow'
@@ -144,11 +144,6 @@ export default function PublicProfilePage({ params }: { params: Promise<{ uid: s
                   <a href={profile.lattes} target="_blank" rel="noopener" style={{ color: 'inherit' }}>
                     Lattes
                   </a>
-                </span>
-              )}
-              {profile.siape && (
-                <span className="row" style={{ gap: 4 }}>
-                  <Badge size={14} /> SIAPE {profile.siape}
                 </span>
               )}
             </div>

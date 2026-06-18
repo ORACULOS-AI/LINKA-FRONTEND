@@ -1,6 +1,12 @@
 import { Briefcase, FlaskConical, Calendar, Lightbulb, type LucideIcon } from 'lucide-react'
 
-export type VitrineLink = { href: string; label: string; icon: LucideIcon }
+export type VitrineLink = {
+  href: string
+  label: string
+  icon: LucideIcon
+  disabled?: boolean
+  external?: boolean
+}
 
 // Lista canônica das 4 vitrines — usada no dropdown do desktop (VitrineDropdown)
 // e no sheet do mobile (MobileTabBar).

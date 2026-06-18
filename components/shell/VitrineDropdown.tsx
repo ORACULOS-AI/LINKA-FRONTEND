@@ -40,21 +40,45 @@ export function VitrineDropdown() {
       </Link>
 
       {open && (
-        <div className="absolute left-1/2 top-full z-40 w-48 -translate-x-1/2 rounded-lg border border-border bg-surface shadow-lg">
-          {VITRINE_LINKS.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setOpen(false)}
-              className={cn(
-                'flex items-center gap-3 px-4 py-2.5 text-sm text-fg-2 transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-surface-2 hover:text-fg-1',
-                (pathname === href || pathname.startsWith(`${href}/`)) && 'bg-mint-15 font-semibold text-fg-1',
-              )}
-            >
-              <Icon size={16} aria-hidden />
-              {label}
-            </Link>
-          ))}
+        <div className="absolute left-1/2 top-full z-40 w-60 -translate-x-1/2 rounded-lg border border-border bg-surface shadow-lg">
+          {VITRINE_LINKS.map((item) => {
+            const Icon = item.icon
+            return item.disabled ? (
+              <span
+                key={item.label}
+                aria-disabled="true"
+                className="flex cursor-not-allowed items-center gap-3 px-4 py-2.5 text-sm text-fg-3 opacity-60 first:rounded-t-lg last:rounded-b-lg"
+              >
+                <Icon size={16} aria-hidden />
+                {item.label}
+              </span>
+            ) : item.external ? (
+              <a
+                key={item.href}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm text-fg-2 transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-surface-2 hover:text-fg-1"
+              >
+                <Icon size={16} aria-hidden />
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-2.5 text-sm text-fg-2 transition-colors first:rounded-t-lg last:rounded-b-lg hover:bg-surface-2 hover:text-fg-1',
+                  (pathname === item.href || pathname.startsWith(`${item.href}/`)) && 'bg-mint-15 font-semibold text-fg-1',
+                )}
+              >
+                <Icon size={16} aria-hidden />
+                {item.label}
+              </Link>
+            )
+          })}
         </div>
       )}
     </div>

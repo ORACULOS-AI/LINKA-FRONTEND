@@ -45,6 +45,24 @@ const METRICA_LABELS: Record<string, string> = {
 
 type MetricaItem = { label: string; value: string }
 
+type BusinessApiError = {
+  response?: {
+    status?: number
+    data?: { detail?: string | { message?: string } }
+  }
+}
+
+function getBusinessErrorMessage(error: unknown) {
+  const apiError = error as BusinessApiError
+  if (apiError.response?.status === 403) return 'Negócio não disponível'
+
+  const detail = apiError.response?.data?.detail
+  if (typeof detail === 'string' && detail.trim()) return detail
+  if (typeof detail === 'object' && detail?.message?.trim()) return detail.message
+
+  return 'Negócio não encontrado'
+}
+
 /** Extrai entradas escalares não vazias de `metricas`, na ordem dos rótulos conhecidos. */
 function scalarMetricas(metricas?: Record<string, unknown> | null): MetricaItem[] {
   if (!metricas) return []
@@ -83,9 +101,11 @@ export default function NegocioDetailPage({ params }: { params: Promise<{ id: st
     return <div className="mx-auto max-w-5xl px-4 py-6"><SkeletonCard lines={3} /></div>
   }
   if (!q.data) {
+    const detail = q.isError ? getBusinessErrorMessage(q.error) : null
+    const title = detail === 'Negócio não disponível' ? detail : 'Negócio não encontrado'
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
-        <EmptyState title="Negócio não encontrado" action={{ label: 'Voltar à Vitrine', href: '/vitrine' }} />
+        <EmptyState title={title} action={{ label: 'Voltar aos negócios', href: '/negocios' }} />
       </div>
     )
   }

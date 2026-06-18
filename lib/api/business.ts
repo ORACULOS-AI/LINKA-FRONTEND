@@ -116,9 +116,9 @@ export async function getBusiness(id: string): Promise<Negocio> {
   return data.data
 }
 
-// POST /api/v1/business/
+// POST /api/v1/business
 export async function createBusiness(payload: NegocioCreate): Promise<Negocio> {
-  const { data } = await api.post<ApiResp<Negocio>>('/api/v1/business/', payload)
+  const { data } = await api.post<ApiResp<Negocio>>('/api/v1/business', payload)
   return data.data
 }
 
