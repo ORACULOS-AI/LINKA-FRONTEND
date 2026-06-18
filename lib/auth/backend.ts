@@ -7,7 +7,7 @@ export const BACKEND_URL =
 
 export function backendUrl(path: string) {
   let base = BACKEND_URL.replace(/\/$/, '')
-  if (path.startsWith('/api/v1') && base.endsWith('/api/v1')) {
+  if ((path === '/api/v1' || path.startsWith('/api/v1/')) && base.endsWith('/api/v1')) {
     base = base.slice(0, -'/api/v1'.length)
   }
   return `${base}${path.startsWith('/') ? path : `/${path}`}`
