@@ -82,8 +82,8 @@ export default function NegocioDetailPage({ params }: { params: Promise<{ id: st
   if (q.isLoading) {
     return <div className="mx-auto max-w-5xl px-4 py-6"><SkeletonCard lines={3} /></div>
   }
-  if (q.isError || !q.data) {
-    const detail = getBusinessErrorMessage(q.error)
+  if (!q.data) {
+    const detail = q.isError ? getBusinessErrorMessage(q.error) : null
     const title = detail === 'Negócio não disponível' ? detail : 'Negócio não encontrado'
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
