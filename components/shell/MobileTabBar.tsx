@@ -120,7 +120,14 @@ function TabButton({ tab, active, onClick }: { tab: Tab; active: boolean; onClic
   )
 }
 
-type SheetItem = { label: string; icon: LucideIcon; href: string; desc?: string }
+type SheetItem = {
+  label: string
+  icon: LucideIcon
+  href?: string
+  desc?: string
+  disabled?: boolean
+  external?: boolean
+}
 
 const CREATE_ACTIONS: SheetItem[] = [
   { label: 'Publicar', icon: PenSquare, href: '/feed?compor=1', desc: 'Compartilhe uma atualização' },
@@ -130,7 +137,11 @@ const CREATE_ACTIONS: SheetItem[] = [
   { label: 'Reuniões', icon: Video, href: '/reunioes', desc: 'Entrar ou criar uma reunião de vídeo' },
 ]
 
-const VITRINE_ACTIONS: SheetItem[] = VITRINE_LINKS.map((l) => ({ label: l.label, icon: l.icon, href: l.href }))
+const VITRINE_ACTIONS: SheetItem[] = VITRINE_LINKS.map((l) => (
+  l.disabled
+    ? { label: l.label, icon: l.icon, disabled: true }
+    : { label: l.label, icon: l.icon, href: l.href, external: l.external }
+))
 
 function ActionSheet({
   title,
@@ -169,11 +180,23 @@ function ActionSheet({
         </div>
         <ul className="grid grid-cols-1 gap-1">
           {items.map((a) => (
-            <li key={a.href}>
+            <li key={a.href ?? a.label}>
               <button
                 type="button"
-                onClick={() => onGo(a.href)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm hover:bg-surface-2"
+                disabled={a.disabled}
+                onClick={() => {
+                  if (!a.href || a.disabled) return
+                  if (a.external) {
+                    setTimeout(() => window.open(a.href, '_blank', 'noopener,noreferrer'), 0)
+                    onClose()
+                    return
+                  }
+                  onGo(a.href)
+                }}
+                className={cn(
+                  'flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm hover:bg-surface-2',
+                  a.disabled && 'cursor-not-allowed opacity-60 hover:bg-transparent',
+                )}
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-md bg-surface-2 text-fg-1">
                   <a.icon className="h-5 w-5" aria-hidden />
