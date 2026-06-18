@@ -5,11 +5,22 @@ import { ACCESS_COOKIE } from '@/lib/auth/cookies'
 
 type Ctx = { params: Promise<{ path: string[] }> }
 
+// Recursos cujas listagens são públicas (backend usa get_optional_current_user).
+// Consumidos anonimamente pela landing/vitrines públicas em /vitrines/*.
+const PUBLIC_GET_RESOURCES = new Set(['laboratorios', 'business', 'initiatives', 'events'])
+// Sub-rotas que exigem usuário autenticado mesmo nesses recursos.
+const PRIVATE_SUBPATHS = new Set(['me', 'admin', 'participating'])
+
+function isPublicGet(method: string, path: string[]): boolean {
+  if (method !== 'GET') return false
+  return PUBLIC_GET_RESOURCES.has(path[0] ?? '') && !PRIVATE_SUBPATHS.has(path[1] ?? '')
+}
+
 async function proxy(req: NextRequest, { params }: Ctx, method: string) {
   const { path } = await params
   const store = await cookies()
   const accessToken = store.get(ACCESS_COOKIE)?.value
-  if (!accessToken) {
+  if (!accessToken && !isPublicGet(method, path)) {
     return NextResponse.json({ detail: 'Não autenticado.' }, { status: 401 })
   }
 
@@ -22,11 +33,13 @@ async function proxy(req: NextRequest, { params }: Ctx, method: string) {
 
   let body: BodyInit | undefined
   if (method !== 'GET' && method !== 'DELETE') {
-    body = await req.text()
-    if (!body) body = undefined
+    // Usar arrayBuffer() em vez de text() para preservar dados binários
+    // (multipart/form-data com imagens era corrompido por text())
+    const buf = await req.arrayBuffer()
+    if (buf.byteLength > 0) body = Buffer.from(buf)
   }
 
-  const backendRes = await backendFetch(url, { method, accessToken, headers, body })
+  const backendRes = await backendFetch(url, { method, accessToken, headers, body, redirect: 'manual' })
   const text = await backendRes.text()
   const isJson = backendRes.headers.get('content-type')?.includes('application/json')
   return new NextResponse(text || null, {

@@ -104,7 +104,8 @@ export type EventFilters = {
   q?: string
   is_online?: boolean
   limit?: number
-  offset?: number
+  /** Paginação é cursor-based no backend (CursorParams); `offset` é ignorado. */
+  cursor?: string
 }
 
 export type PaginatedEvents = {
@@ -123,6 +124,26 @@ export async function createEvent(payload: EventCreate): Promise<Event> {
 export async function listEvents(filters?: EventFilters): Promise<PaginatedEvents> {
   const { data } = await api.get<PaginatedEvents>('/api/v1/events/', { params: filters })
   return data
+}
+
+/**
+ * Busca TODOS os eventos caminhando pelo cursor até `has_more` ser falso.
+ * A vitrine filtra/ordena no client. Ver `listAllLabs` em labs.ts.
+ */
+export async function listAllEvents(
+  filters?: Omit<EventFilters, 'limit' | 'cursor'>,
+  pageSize = 100,
+  maxPages = 100,
+): Promise<EventSummary[]> {
+  const all: EventSummary[] = []
+  let cursor: string | undefined
+  for (let i = 0; i < maxPages; i++) {
+    const page = await listEvents({ ...filters, limit: pageSize, cursor })
+    all.push(...page.items)
+    if (!page.has_more || !page.next_cursor || page.items.length === 0) break
+    cursor = page.next_cursor
+  }
+  return all
 }
 
 // GET /api/v1/events/me
@@ -237,9 +258,13 @@ export async function getEventCertificate(id: string): Promise<unknown> {
   return data.data
 }
 
-// POST /api/v1/events/{id}/validar-presenca
+// POST /api/v1/events/{id}/validar-presenca?uid_usuario= — uid vai na QUERY, não no body
 export async function validatePresence(id: string, participanteUid: string): Promise<Participante> {
-  const { data } = await api.post<ApiResp<Participante>>(`/api/v1/events/${id}/validar-presenca`, { uid_usuario: participanteUid })
+  const { data } = await api.post<ApiResp<Participante>>(
+    `/api/v1/events/${id}/validar-presenca`,
+    null,
+    { params: { uid_usuario: participanteUid } },
+  )
   return data.data
 }
 

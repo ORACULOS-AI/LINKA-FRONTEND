@@ -47,7 +47,10 @@ export function NewThreadModal({ open, onClose, initialTarget, onCreated }: Prop
   const send = useMutation({
     mutationFn: async () => {
       if (!selected || !msg.trim()) throw new Error('preencha')
-      return createThread({ participantes: [selected], mensagem_inicial: msg.trim() })
+      // O backend exige >= 2 participantes (a validação roda antes de ele
+      // mesmo se incluir). Enviamos o destinatário + o usuário atual.
+      const participantes = me?.id ? [selected, me.id] : [selected]
+      return createThread({ participantes, mensagem_inicial: msg.trim() })
     },
     onSuccess: (t) => {
       toast.success('Conversa iniciada')
@@ -107,10 +110,7 @@ export function NewThreadModal({ open, onClose, initialTarget, onCreated }: Prop
                     )}
                   >
                     <Avatar nome={u.nome} src={u.foto_perfil ?? u.foto_url ?? undefined} size={36} />
-                    <span className="min-w-0 flex-1 truncate">
-                      <span className="block font-medium">{u.nome}</span>
-                      <span className="block text-xs text-[var(--color-fg-3)]">{u.tipo_usuario}</span>
-                    </span>
+                    <span className="min-w-0 flex-1 truncate font-medium">{u.nome}</span>
                   </button>
                 </li>
               ))}

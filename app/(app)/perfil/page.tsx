@@ -2,15 +2,19 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { BadgeCheck, MapPin, Mail, ExternalLink, Badge, Share2, MoreHorizontal, Image, BookOpen, Link } from 'lucide-react'
-import { fetchMyProfile, updateMyProfile, TIPO_LABEL, type UserProfile } from '@/lib/api/users'
+import { BadgeCheck, MapPin, Mail, ExternalLink, Badge, Share2, MoreHorizontal, Image } from 'lucide-react'
+import { fetchMyProfile, updateMyProfile, TIPO_LABEL } from '@/lib/api/users'
 import { getMyConnections, getFollowCounts, type ConnectionUser } from '@/lib/api/connections'
-import { fetchFeed } from '@/lib/api/feed'
 import { getInitiativesByUser } from '@/lib/api/initiatives'
+import { getLabsByUser } from '@/lib/api/labs'
+import { getUserBusinesses } from '@/lib/api/business'
+import { Avatar } from '@/components/ui/avatar'
 import { EditProfileModal } from '@/components/profile/EditProfileModal'
+import { FeedTimeline } from '@/components/feed/FeedTimeline'
+import { FollowListModal, type FollowModalMode } from '@/components/social/FollowListModal'
 import { cn } from '@/lib/utils'
 
-type ProfileTab = 'atividade' | 'sobre' | 'projetos' | 'labs' | 'negocios' | 'publicacoes'
+type ProfileTab = 'atividade' | 'sobre' | 'projetos' | 'labs' | 'negocios'
 
 function getInitials(nome: string) {
   return nome.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
@@ -20,6 +24,7 @@ export default function MyProfilePage() {
   const qc = useQueryClient()
   const [tab, setTab] = useState<ProfileTab>('atividade')
   const [editing, setEditing] = useState(false)
+  const [modal, setModal] = useState<FollowModalMode | null>(null)
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile', 'me'],
@@ -38,17 +43,22 @@ export default function MyProfilePage() {
     enabled: !!profile?.uid,
   })
 
-  const { data: feedData } = useQuery({
-    queryKey: ['feed', 'profile', profile?.uid],
-    queryFn: () => fetchFeed({ limit: 10 }),
-    enabled: !!profile?.uid,
-  })
-  const posts = feedData?.items?.filter((p) => p.autor_uid === profile?.uid) ?? []
-
   const { data: meusProjetos = [], isLoading: projetosLoading } = useQuery({
     queryKey: ['profile', 'me', 'projetos', profile?.uid],
     queryFn: () => getInitiativesByUser(profile!.uid),
     enabled: !!profile?.uid && tab === 'projetos',
+  })
+
+  const { data: meusLabs = [], isLoading: labsLoading } = useQuery({
+    queryKey: ['profile', 'me', 'labs', profile?.uid],
+    queryFn: () => getLabsByUser(profile!.uid),
+    enabled: !!profile?.uid && tab === 'labs',
+  })
+
+  const { data: meusNegocios = [], isLoading: negociosLoading } = useQuery({
+    queryKey: ['profile', 'me', 'negocios', profile?.uid],
+    queryFn: () => getUserBusinesses(profile!.uid),
+    enabled: !!profile?.uid && tab === 'negocios',
   })
 
   const updateM = useMutation({
@@ -84,9 +94,7 @@ export default function MyProfilePage() {
 
       <div className="profile-meta">
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <div className="av-lg" style={{ background: 'var(--color-purple)', color: '#fff' }}>
-            {initials}
-          </div>
+          <Avatar nome={profile.nome} src={profile.foto_perfil ?? undefined} size={96} />
         </div>
         <div className="head-row">
           <div style={{ minWidth: 0 }}>
@@ -125,10 +133,15 @@ export default function MyProfilePage() {
         </div>
 
         <div className="stats">
-          <div className="stat"><div className="n">{connCount}</div><div className="l">Conexões</div></div>
-          <div className="stat"><div className="n">{followers}</div><div className="l">Seguidores</div></div>
-          <div className="stat"><div className="n">{following}</div><div className="l">Seguindo</div></div>
-          <div className="stat"><div className="n">—</div><div className="l">Projetos ativos</div></div>
+          <button className="stat" onClick={() => setModal('conexoes')} style={{ cursor: 'pointer', background: 'none', border: 0 }}>
+            <div className="n">{connCount}</div><div className="l">Conexões</div>
+          </button>
+          <button className="stat" onClick={() => setModal('seguidores')} style={{ cursor: 'pointer', background: 'none', border: 0 }}>
+            <div className="n">{followers}</div><div className="l">Seguidores</div>
+          </button>
+          <button className="stat" onClick={() => setModal('seguindo')} style={{ cursor: 'pointer', background: 'none', border: 0 }}>
+            <div className="n">{following}</div><div className="l">Seguindo</div>
+          </button>
         </div>
 
         <div style={{ borderTop: '1px solid var(--color-border)', margin: '18px 0 0' }} />
@@ -139,7 +152,6 @@ export default function MyProfilePage() {
             { id: 'projetos' as ProfileTab, l: 'Projetos' },
             { id: 'labs' as ProfileTab, l: 'Laboratórios' },
             { id: 'negocios' as ProfileTab, l: 'Negócios' },
-            { id: 'publicacoes' as ProfileTab, l: 'Publicações' },
           ]).map(t => (
             <button key={t.id} className={cn('tab', tab === t.id && 'active')} onClick={() => setTab(t.id)}>
               {t.l}
@@ -181,18 +193,7 @@ export default function MyProfilePage() {
               <div className="eyebrow" style={{ marginBottom: 4 }}>
                 Publicações recentes de {profile.nome.split(' ')[0]}
               </div>
-              {posts.length === 0 ? (
-                <div className="empty">
-                  <h3>Nenhuma publicação ainda</h3>
-                  <p>Suas publicações aparecerão aqui.</p>
-                </div>
-              ) : posts.slice(0, 5).map((p) => (
-                <div key={p.id} className="post">
-                  <div className="post-body">
-                    <p>{p.conteudo}</p>
-                  </div>
-                </div>
-              ))}
+              <FeedTimeline userUid={profile.uid} emptyText="Nenhuma publicação ainda." />
             </>
           )}
 
@@ -208,15 +209,10 @@ export default function MyProfilePage() {
               <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {meusProjetos.map((p) => (
                   <li key={p.uid}>
-                    <a
-                      href={`/vitrine/projetos/${p.uid}`}
-                      className="block rounded-md border border-border bg-surface p-4 transition-colors duration-fast ease-standard hover:bg-surface-2"
-                    >
+                    <a href={`/vitrine/projetos/${p.uid}`} className="block rounded-md border border-border bg-surface p-4 transition-colors duration-fast ease-standard hover:bg-surface-2">
                       <div className="text-xs uppercase tracking-wide text-fg-3">{p.tipo}</div>
                       <div className="mt-1 truncate text-sm font-semibold text-fg-1">{p.titulo}</div>
-                      {p.descricao && (
-                        <p className="mt-1 line-clamp-2 text-xs text-fg-2">{p.descricao}</p>
-                      )}
+                      {p.descricao && <p className="mt-1 line-clamp-2 text-xs text-fg-2">{p.descricao}</p>}
                     </a>
                   </li>
                 ))}
@@ -224,26 +220,52 @@ export default function MyProfilePage() {
             )
           )}
 
-          {(tab === 'labs' || tab === 'negocios') && (
-            <div className="empty">
-              <h3>Listagem por usuário pendente</h3>
-              <p>O backend ainda não expõe {tab === 'labs' ? 'laboratórios' : 'negócios'} filtrados por membro. Sinalizado para o time de API.</p>
-            </div>
+          {tab === 'labs' && (
+            labsLoading ? (
+              <div className="empty"><p>Carregando laboratórios…</p></div>
+            ) : meusLabs.length === 0 ? (
+              <div className="empty">
+                <h3>Nenhum laboratório</h3>
+                <p>Você não administra laboratórios.</p>
+              </div>
+            ) : (
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {meusLabs.map((l) => (
+                  <li key={l.uid}>
+                    <a href={`/vitrine/laboratorios/${l.uid}`} className="block rounded-md border border-border bg-surface p-4 transition-colors duration-fast ease-standard hover:bg-surface-2">
+                      <div className="text-xs uppercase tracking-wide text-fg-3">{l.unidade}</div>
+                      <div className="mt-1 truncate text-sm font-semibold text-fg-1">{l.nome}</div>
+                      {l.areas_pesquisa?.length ? (
+                        <p className="mt-1 line-clamp-2 text-xs text-fg-2">{l.areas_pesquisa.join(', ')}</p>
+                      ) : null}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )
           )}
 
-          {tab === 'publicacoes' && (
-            <div className="card">
-              <div className="card-body">
-                <div className="empty" style={{ border: 0, padding: 0 }}>
-                  <BookOpen size={28} style={{ color: 'var(--color-fg-3)' }} />
-                  <h3>Importar do Lattes</h3>
-                  <p>Conecte sua conta Lattes para listar suas publicações automaticamente.</p>
-                  <button className="btn btn-secondary btn-sm">
-                    <Link size={13} />Conectar Lattes
-                  </button>
-                </div>
+          {tab === 'negocios' && (
+            negociosLoading ? (
+              <div className="empty"><p>Carregando negócios…</p></div>
+            ) : meusNegocios.length === 0 ? (
+              <div className="empty">
+                <h3>Nenhum negócio</h3>
+                <p>Você não administra negócios.</p>
               </div>
-            </div>
+            ) : (
+              <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {meusNegocios.map((n) => (
+                  <li key={n.id}>
+                    <a href={`/vitrine/negocios/${n.id}`} className="block rounded-md border border-border bg-surface p-4 transition-colors duration-fast ease-standard hover:bg-surface-2">
+                      <div className="text-xs uppercase tracking-wide text-fg-3">{n.categoria ?? n.tipo_negocio}</div>
+                      <div className="mt-1 truncate text-sm font-semibold text-fg-1">{n.nome}</div>
+                      {n.descricao && <p className="mt-1 line-clamp-2 text-xs text-fg-2">{n.descricao}</p>}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )
           )}
         </div>
 
@@ -262,7 +284,9 @@ export default function MyProfilePage() {
                     </div>
                   ))}
                 </div>
-                <div className="muted" style={{ marginTop: 10 }}>{connCount} conexões</div>
+                <button className="muted" onClick={() => setModal('conexoes')} style={{ marginTop: 10, background: 'none', border: 0, cursor: 'pointer', padding: 0 }}>
+                  Ver todas ({connCount})
+                </button>
               </div>
             </div>
           )}
@@ -301,6 +325,10 @@ export default function MyProfilePage() {
           onSave={(patch) => updateM.mutate(patch)}
           saving={updateM.isPending}
         />
+      )}
+
+      {modal && (
+        <FollowListModal mode={modal} uid={profile.uid} onClose={() => setModal(null)} />
       )}
     </div>
   )

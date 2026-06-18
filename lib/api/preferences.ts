@@ -1,11 +1,15 @@
 import { api } from './client'
 import type { ApiResp } from './feed'
 
+// Campos espelham app/db/models.py::UserPreferences (B-FE4).
 export type UserPreferences = {
-  notificacoes_email?: boolean
-  notificacoes_push?: boolean
-  idioma?: string
-  tema?: string
+  notif_types_muted?: string[]
+  email_digest_optin?: boolean
+  profile_public?: boolean
+  searchable?: boolean
+  sound_enabled?: boolean
+  theme?: 'light' | 'dark' | 'system'
+  locale?: string
   [key: string]: unknown
 }
 

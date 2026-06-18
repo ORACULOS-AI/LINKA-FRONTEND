@@ -11,6 +11,7 @@ export type UserProfile = {
   campus?: string | null
   /** Backend field name */
   foto_perfil?: string | null
+  foto_capa?: string | null
   /** Alias kept for backward compat in components */
   foto_url?: string | null
   is_verified?: boolean
@@ -18,6 +19,7 @@ export type UserProfile = {
   onboarding_complete?: boolean
   bio?: string | null
   telefone?: string | null
+  ods_interesse?: string[] | null
   // pesquisador
   lattes?: string | null
   siape?: string | null
@@ -26,6 +28,7 @@ export type UserProfile = {
   // estudante
   curso?: string | null
   matricula?: string | null
+  semestre?: string | null
   // técnico
   setor?: string | null
   cargo?: string | null
@@ -67,34 +70,30 @@ export async function deleteProfileImage(): Promise<void> {
   await api.delete('/api/v1/users/profile-image')
 }
 
-// POST /api/v1/users/change-password
+// POST /api/v1/users/change-password — backend espera old_password/new_password
 export async function changePassword(senhaAtual: string, novaSenha: string): Promise<void> {
-  await api.post('/api/v1/users/change-password', { senha_atual: senhaAtual, nova_senha: novaSenha })
+  await api.post('/api/v1/users/change-password', { old_password: senhaAtual, new_password: novaSenha })
 }
 
-// GET /api/v1/users/{uid}/followers
-export async function getUserFollowers(uid: string): Promise<UserProfile[]> {
-  const { data } = await api.get<ApiResp<UserProfile[]>>(`/api/v1/users/${uid}/followers`)
-  return data.data
-}
-
-// GET /api/v1/users/{uid}/following
-export async function getUserFollowing(uid: string): Promise<UserProfile[]> {
-  const { data } = await api.get<ApiResp<UserProfile[]>>(`/api/v1/users/${uid}/following`)
-  return data.data
+// GET /api/v1/follow/user/{uid}/followers — grafo polimórfico de follow (não há rota em /users)
+export async function getUserFollowers(uid: string): Promise<Array<{ uid: string; nome: string; foto_perfil?: string | null }>> {
+  const { data } = await api.get<ApiResp<Array<{ uid: string; nome: string; foto_perfil?: string | null }>>>(
+    `/api/v1/follow/user/${uid}/followers`,
+  )
+  return data.data ?? []
 }
 
 // --- Admin ---
 
-// GET /api/v1/users/  (admin) — listagem geral
+// GET /api/v1/users/all  (admin) — listagem geral
 export async function listAllUsers(): Promise<UserProfile[]> {
-  const { data } = await api.get<ApiResp<UserProfile[]>>('/api/v1/users/')
+  const { data } = await api.get<ApiResp<UserProfile[]>>('/api/v1/users/all')
   return data.data
 }
 
-// GET /api/v1/users/tipo/{tipo}  (admin)
+// GET /api/v1/users/by-tipo/{tipo}  (admin)
 export async function listUsersByTipo(tipo: UserTipo): Promise<UserProfile[]> {
-  const { data } = await api.get<ApiResp<UserProfile[]>>(`/api/v1/users/tipo/${tipo}`)
+  const { data } = await api.get<ApiResp<UserProfile[]>>(`/api/v1/users/by-tipo/${tipo}`)
   return data.data
 }
 
@@ -108,6 +107,11 @@ export async function setUserVerified(uid: string, is_verified: boolean): Promis
 export async function setUserAdmin(uid: string, is_admin: boolean): Promise<UserProfile> {
   const { data } = await api.patch<ApiResp<UserProfile>>(`/api/v1/users/${uid}/admin`, { is_admin })
   return data.data
+}
+
+// PATCH /api/v1/users/me/cover
+export async function updateMyCoverUrl(foto_capa: string): Promise<void> {
+  await api.patch('/api/v1/users/me/cover', { foto_capa })
 }
 
 export const TIPO_LABEL: Record<UserTipo, string> = {

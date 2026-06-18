@@ -22,7 +22,7 @@ type NavItem = { href: string; label: string; icon: LucideIcon; match?: string[]
 
 const primary: NavItem[] = [
   { href: '/feed', label: 'Feed', icon: Home, match: ['/feed', '/inicio'] },
-  { href: '/vitrine', label: 'Vitrine', icon: Store, match: ['/vitrine', '/negocios', '/laboratorios', '/eventos', '/iniciativas', '/projetos'] },
+  { href: '/negocios', label: 'Vitrine', icon: Store, match: ['/vitrine', '/negocios', '/laboratorios', '/eventos', '/iniciativas', '/projetos'] },
   { href: '/conexoes', label: 'Conexões', icon: Users },
   { href: '/mensagens', label: 'Mensagens', icon: MessageCircle },
   { href: '/reunioes', label: 'Reuniões', icon: Video },

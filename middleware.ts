@@ -12,7 +12,7 @@ const PROTECTED = [
   '/admin',
 ]
 
-const AUTH_ROUTES = ['/entrar', '/cadastrar', '/verificar-email', '/esqueci-senha', '/resetar-senha']
+const AUTH_ROUTES = ['/entrar', '/verificar-email', '/esqueci-senha', '/resetar-senha']
 
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl
@@ -41,6 +41,7 @@ export function middleware(request: NextRequest) {
   if (pathname === '/' && isAuthed) {
     const url = request.nextUrl.clone()
     url.pathname = '/feed'
+    url.search = ''
     return NextResponse.redirect(url)
   }
 

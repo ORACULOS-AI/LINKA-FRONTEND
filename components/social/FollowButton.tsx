@@ -46,6 +46,28 @@ export function FollowButton({
     'inline-flex items-center justify-center rounded-md font-medium transition-colors',
     SIZE_CLS[size],
   )
+
+  // Enquanto o status de follow ainda não chegou, não comprometemos um rótulo:
+  // mostramos um estado neutro de carregamento para evitar o flicker "Seguir" → "Seguindo".
+  if (isLoading && !disabled) {
+    return (
+      <button
+        type="button"
+        disabled
+        aria-busy="true"
+        aria-label="Carregando"
+        className={cn(
+          base,
+          'border border-[var(--color-border)] bg-transparent text-[var(--color-fg-3)] cursor-progress opacity-70',
+          className,
+        )}
+      >
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>…</span>
+      </button>
+    )
+  }
+
   const styles = isFollowing
     ? variant === 'solid'
       ? 'border border-[var(--color-border)] bg-transparent text-[var(--color-fg-1)] hover:bg-[var(--color-surface-2)]'

@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import { Bell, Home, Users } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/lib/stores/auth'
+import { Avatar } from '@/components/ui/avatar'
 import { fetchUnreadCount } from '@/lib/api/notifications'
 import { NotifPanel } from '@/components/notifs/NotifPanel'
 import { VitrineDropdown } from '@/components/shell/VitrineDropdown'
@@ -117,10 +118,10 @@ export function TopNav() {
           {me ? (
             <Link
               href={`/perfil/${me.id}`}
-              className="avatar-ring ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mint/20 font-display text-sm font-semibold"
+              className="avatar-ring ml-2 shrink-0"
               aria-label={`Perfil de ${me.nome}`}
             >
-              {me.nome.slice(0, 1).toUpperCase()}
+              <Avatar nome={me.nome} src={me.avatar_url ?? undefined} size={36} />
             </Link>
           ) : null}
         </div>

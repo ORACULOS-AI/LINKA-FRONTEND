@@ -23,6 +23,8 @@ export type Lab = LabSummary & {
   telefone: string
   email: string
   visivel: boolean
+  descricao?: string | null
+  equipamentos?: string[]
   pesquisadores?: string[]
   [key: string]: unknown
 }
@@ -61,18 +63,39 @@ export type LabFilters = {
   unidade?: string
   campus?: string
   tipo?: TipoLaboratorio
-  status?: StatusLaboratorio
-  area_pesquisa?: string
-  responsavel?: string
   visivel?: boolean
   limit?: number
-  offset?: number
+  /** Paginação é cursor-based no backend (CursorParams). `next_cursor` da página anterior. */
+  cursor?: string
 }
 
 // GET /api/v1/laboratorios/
 export async function listLabs(filters?: LabFilters): Promise<PaginatedLabs> {
   const { data } = await api.get<PaginatedLabs>('/api/v1/laboratorios/', { params: filters })
   return data
+}
+
+/**
+ * Busca TODOS os laboratórios caminhando pelo cursor até `has_more` ser falso.
+ * A vitrine faz busca/facetas/ordenação no client, então precisa do conjunto
+ * completo (+300 labs) — o limite fixo anterior (48) escondia a maioria.
+ * Paginação é cursor-based no backend (CursorParams: limit ≤ 100 + cursor).
+ * `maxPages` é uma trava de segurança contra loops em caso de cursor inconsistente.
+ */
+export async function listAllLabs(
+  filters?: Omit<LabFilters, 'limit' | 'cursor'>,
+  pageSize = 100,
+  maxPages = 100,
+): Promise<LabSummary[]> {
+  const all: LabSummary[] = []
+  let cursor: string | undefined
+  for (let i = 0; i < maxPages; i++) {
+    const page = await listLabs({ ...filters, limit: pageSize, cursor })
+    all.push(...page.items)
+    if (!page.has_more || !page.next_cursor || page.items.length === 0) break
+    cursor = page.next_cursor
+  }
+  return all
 }
 
 // GET /api/v1/laboratorios/stats
@@ -84,6 +107,12 @@ export async function getLabStats(): Promise<LabStats> {
 // GET /api/v1/laboratorios/me
 export async function getMyLabs(): Promise<LabSummary[]> {
   const { data } = await api.get<ApiResp<LabSummary[]>>('/api/v1/laboratorios/me')
+  return data.data
+}
+
+// GET /api/v1/laboratorios/user/{uid} — labs administrados por um usuário (perfil de terceiros)
+export async function getLabsByUser(uid: string): Promise<LabSummary[]> {
+  const { data } = await api.get<ApiResp<LabSummary[]>>(`/api/v1/laboratorios/user/${uid}`)
   return data.data
 }
 
@@ -146,6 +175,25 @@ export async function approveLab(uid: string): Promise<Lab> {
 // PUT /api/v1/laboratorios/{uid}/reject  (admin)
 export async function rejectLab(uid: string): Promise<Lab> {
   const { data } = await api.put<ApiResp<Lab>>(`/api/v1/laboratorios/${uid}/reject`)
+  return data.data
+}
+
+// PATCH /api/v1/laboratorios/{uid}/cover-url
+export async function updateLabCoverUrl(uid: string, foto_capa: string): Promise<void> {
+  await api.patch(`/api/v1/laboratorios/${uid}/cover-url`, { foto_capa })
+}
+
+// --- Publish / Unpublish (owner toggle após aprovação) ---
+
+// POST /api/v1/laboratorios/{uid}/publish
+export async function publishLab(uid: string): Promise<Lab> {
+  const { data } = await api.post<ApiResp<Lab>>(`/api/v1/laboratorios/${uid}/publish`)
+  return data.data
+}
+
+// POST /api/v1/laboratorios/{uid}/unpublish
+export async function unpublishLab(uid: string): Promise<Lab> {
+  const { data } = await api.post<ApiResp<Lab>>(`/api/v1/laboratorios/${uid}/unpublish`)
   return data.data
 }
 

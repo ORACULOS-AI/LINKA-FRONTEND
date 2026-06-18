@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: linka-ingress
+  namespace: linka-prod
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: selinka.ufc.br
+      http:
+        paths:
+          # Next.js é o BFF: serve UI + handles /api/* via API routes (cookies
+          # httpOnly + proxy para backend interno). Backend Python NÃO deve
+          # ser exposto publicamente.
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: linka-frontend
+                port:
+                  number: 3000
+  tls:
+    - hosts:
+        - selinka.ufc.br
+      secretName: selinka-tls

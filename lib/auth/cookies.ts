@@ -9,11 +9,12 @@ const REFRESH_MAX_AGE = 7 * 24 * 60 * 60
 type SetTokensInput = {
   accessToken: string
   refreshToken: string
+  rememberMe?: boolean
 }
 
 const isProd = process.env.NODE_ENV === 'production'
 
-export function setAuthCookies(res: NextResponse, { accessToken, refreshToken }: SetTokensInput) {
+export function setAuthCookies(res: NextResponse, { accessToken, refreshToken, rememberMe = true }: SetTokensInput) {
   res.cookies.set(ACCESS_COOKIE, accessToken, {
     httpOnly: true,
     secure: isProd,
@@ -26,7 +27,7 @@ export function setAuthCookies(res: NextResponse, { accessToken, refreshToken }:
     secure: isProd,
     sameSite: 'lax',
     path: '/',
-    maxAge: REFRESH_MAX_AGE,
+    ...(rememberMe ? { maxAge: REFRESH_MAX_AGE } : {}),
   })
 }
 

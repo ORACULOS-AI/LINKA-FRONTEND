@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -33,15 +33,41 @@ type Detected =
   | { kind: 'externo'; domain: 'externo' }
   | { kind: null }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+function isValidEmail(email: string): boolean {
+  return EMAIL_RE.test((email || '').trim())
+}
+
 function detectPersona(email: string): Detected {
   const e = (email || '').toLowerCase().trim()
   if (!e || !e.includes('@')) return { kind: null }
   if (/@alu\.ufc\.br$/.test(e)) return { kind: 'estudante', domain: 'alu' }
   if (/@ufc\.br$/.test(e)) return { kind: 'ufc', domain: 'ufc' }
+  if (!isValidEmail(e)) return { kind: null }
   return { kind: 'externo', domain: 'externo' }
 }
 
 type Mode = 'login' | 'cadastro'
+
+interface PublicNums { negocios: number; laboratorios: number; iniciativas: number; eventos: number }
+
+async function fetchPublicNums(): Promise<PublicNums | null> {
+  try {
+    const res = await fetch('/api/dashboard/public', { cache: 'no-store' })
+    if (!res.ok) return null
+    const body = await res.json()
+    const d = body?.data ?? body
+    return {
+      negocios: d?.numeros?.total_negocios ?? 0,
+      laboratorios: d?.numeros?.total_laboratorios ?? 0,
+      iniciativas: d?.numeros?.total_iniciativas ?? 0,
+      eventos: d?.numeros?.total_eventos ?? 0,
+    }
+  } catch {
+    return null
+  }
+}
 
 export function AuthScreen() {
   const router = useRouter()
@@ -50,12 +76,17 @@ export function AuthScreen() {
   const initialMode: Mode = params.get('mode') === 'cadastro' ? 'cadastro' : 'login'
 
   const [mode, setMode] = useState<Mode>(initialMode)
+  const [nums, setNums] = useState<PublicNums | null>(null)
+
+  useEffect(() => {
+    fetchPublicNums().then(setNums)
+  }, [])
 
   return (
     <div className="auth fade-in">
       {/* Left: pattern + brand pitch */}
       <div className="auth-pattern">
-        <div className="brand">
+        <Link href="/" className="brand" style={{ textDecoration: 'none', color: 'inherit' }}>
           <Image
             src="/selinka/logo-selinka.png"
             alt="SeLinka"
@@ -68,7 +99,7 @@ export function AuthScreen() {
             <span className="nm">SeLinka</span>
             <span className="sub">UFC · 2026</span>
           </div>
-        </div>
+        </Link>
 
         <div className="hero-block">
           <div className="eyebrow">Plataforma de conexão · UFC</div>
@@ -77,23 +108,19 @@ export function AuthScreen() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, maxWidth: 360 }}>
             {[
-              { Icon: Briefcase, n: '47', l: 'Negócios' },
-              { Icon: FlaskConical, n: '28', l: 'Laboratórios' },
-              { Icon: Lightbulb, n: '36', l: 'Projetos' },
-              { Icon: Calendar, n: '12', l: 'Eventos' },
+              { Icon: Briefcase, n: nums?.negocios, l: 'Negócios' },
+              { Icon: FlaskConical, n: nums?.laboratorios, l: 'Laboratórios' },
+              { Icon: Lightbulb, n: nums?.iniciativas, l: 'Projetos' },
+              { Icon: Calendar, n: nums?.eventos, l: 'Eventos' },
             ].map((s, i) => (
               <div key={i} style={{ padding: '14px 16px', background: 'rgba(6,7,15,0.88)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 'var(--radius-md)' }}>
                 <s.Icon size={16} style={{ color: 'var(--color-mint)' }} />
-                <div style={{ font: '700 22px var(--font-display)', marginTop: 8, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{s.n}</div>
+                <div style={{ font: '700 22px var(--font-display)', marginTop: 8, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                  {s.n != null ? s.n.toLocaleString('pt-BR') : '—'}
+                </div>
                 <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>{s.l}</div>
               </div>
             ))}
-          </div>
-
-          <div className="marks">
-            <span>PRPPG</span>
-            <span>PADETEC</span>
-            <span>FUNCAP</span>
           </div>
         </div>
       </div>
@@ -119,7 +146,7 @@ export function AuthScreen() {
             <button className={'tab' + (mode === 'cadastro' ? ' active' : '')} onClick={() => setMode('cadastro')}>Criar conta</button>
           </div>
 
-          {mode === 'login' ? <LoginPanel onSuccess={() => router.push(next)} /> : <SignupPanel router={router} />}
+          {mode === 'login' ? <LoginPanel onSuccess={() => router.push(next)} /> : <SignupPanel />}
         </div>
       </div>
     </div>
@@ -128,28 +155,35 @@ export function AuthScreen() {
 
 function LoginPanel({ onSuccess }: { onSuccess: () => void }) {
   const router = useRouter()
-  const [email, setEmail] = useState('')
+  const params = useSearchParams()
+  // Vem de /verificar-email: prefill do e-mail confirmado para o login fluir direto
+  // (evita form em branco e digitação repetida — fonte comum de "não consigo entrar").
+  const [email, setEmail] = useState(params.get('email') ?? '')
   const [pwd, setPwd] = useState('')
   const [showPwd, setShowPwd] = useState(false)
+  const [remember, setRemember] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [unverified, setUnverified] = useState(false)
-  const [resending, setResending] = useState(false)
+
+  useEffect(() => {
+    if (params.get('verified') === '1') {
+      toast.success('E-mail confirmado. Entre com sua senha para continuar.')
+    }
+  }, [params])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!email || !pwd) return
     setSubmitting(true)
-    setUnverified(false)
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password: pwd }),
+        body: JSON.stringify({ email, password: pwd, remember_me: remember }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         if (res.status === 403 && /verific/i.test(data?.detail ?? '')) {
-          setUnverified(true)
+          router.push(`/verificar-email?email=${encodeURIComponent(email)}`)
           return
         }
         toast.error(res.status === 401 ? 'E-mail ou senha incorretos.' : data?.detail ?? 'Não foi possível entrar.')
@@ -161,30 +195,9 @@ function LoginPanel({ onSuccess }: { onSuccess: () => void }) {
     }
   }
 
-  async function resendCode() {
-    if (!email || resending) return
-    setResending(true)
-    try {
-      const res = await fetch('/api/auth/resend-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        toast.error(data?.detail ?? 'Não foi possível reenviar.')
-        return
-      }
-      toast.success('Código reenviado. Verifique seu e-mail.')
-      router.push(`/verificar-email?email=${encodeURIComponent(email)}`)
-    } finally {
-      setResending(false)
-    }
-  }
-
   return (
     <form onSubmit={submit} noValidate>
-      <h2>Bem-vinda de volta 👋</h2>
+      <h2>Bem-vindo(a) de volta 👋</h2>
       <p className="lead">Use seu e-mail institucional ou o cadastrado como parceiro externo.</p>
 
       <div className="col" style={{ gap: 14 }}>
@@ -200,7 +213,7 @@ function LoginPanel({ onSuccess }: { onSuccess: () => void }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="voce@ufc.br"
-              autoFocus
+              autoFocus={!email}
             />
           </div>
         </div>
@@ -220,6 +233,7 @@ function LoginPanel({ onSuccess }: { onSuccess: () => void }) {
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
               placeholder="Sua senha"
+              autoFocus={!!email}
               style={{ paddingRight: 44 }}
             />
             <button
@@ -234,25 +248,9 @@ function LoginPanel({ onSuccess }: { onSuccess: () => void }) {
         </div>
 
         <label className="check">
-          <input type="checkbox" defaultChecked />
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
           <span>Manter conectada neste dispositivo</span>
         </label>
-
-        {unverified && (
-          <div style={{ padding: '12px 14px', background: 'var(--color-orange-15)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <p style={{ margin: 0, fontSize: 13, color: '#8c5500', fontWeight: 500 }}>
-              Confirme seu e-mail antes de entrar.
-            </p>
-            <button
-              type="button"
-              onClick={resendCode}
-              disabled={resending || !email}
-              style={{ alignSelf: 'flex-start', background: 'none', border: 0, padding: 0, cursor: 'pointer', fontWeight: 600, fontSize: 13, color: '#8c5500', textDecoration: 'underline' }}
-            >
-              {resending ? 'Reenviando…' : 'Reenviar código'}
-            </button>
-          </div>
-        )}
 
         <button type="submit" className="btn btn-primary btn-lg" disabled={submitting || !email || !pwd}>
           {submitting ? 'Entrando…' : 'Entrar'} <ArrowRight size={16} />
@@ -268,7 +266,7 @@ function LoginPanel({ onSuccess }: { onSuccess: () => void }) {
 
 type UfcRole = 'pesquisador' | 'tecnico_admin'
 
-function SignupPanel({ router }: { router: ReturnType<typeof useRouter> }) {
+function SignupPanel() {
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [pwd, setPwd] = useState('')
@@ -299,7 +297,8 @@ function SignupPanel({ router }: { router: ReturnType<typeof useRouter> }) {
         return
       }
       toast.success('Conta criada. Enviamos um código para o seu e-mail.')
-      router.push(`/verificar-email?email=${encodeURIComponent(email)}&tipo=${finalTipo}`)
+      window.location.href = `/verificar-email?email=${encodeURIComponent(email)}&tipo=${finalTipo}`
+      return
     } finally {
       setSubmitting(false)
     }

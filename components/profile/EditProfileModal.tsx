@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useEnum } from '@/lib/hooks/useEnum'
 import type { UserProfile } from '@/lib/api/users'
 
 type Props = {
@@ -22,13 +23,23 @@ export function EditProfileModal({ profile, onClose, onSave, saving }: Props) {
     palavras_chave: profile.palavras_chave ?? [],
     curso: profile.curso ?? '',
     matricula: profile.matricula ?? '',
+    semestre: profile.semestre ?? '',
     setor: profile.setor ?? '',
     cargo: profile.cargo ?? '',
     empresa: profile.empresa ?? '',
   })
 
-  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }))
+
+  const campi = useEnum('campus')
+  const cursos = useEnum('curso')
+  // Curso oferecido no campus selecionado (metadata.campus é a lista de campi).
+  const cursosDoCampus = cursos.filter((c) => {
+    const list = c.metadata?.campus
+    if (!form.campus || !Array.isArray(list)) return true
+    return (list as string[]).includes(form.campus as string)
+  })
 
   function buildPatchAndSave() {
     const patch: Partial<UserProfile> = { ...form }
@@ -60,7 +71,19 @@ export function EditProfileModal({ profile, onClose, onSave, saving }: Props) {
           </Field>
 
           <Field label="Campus / Unidade">
-            <input type="text" value={form.campus as string} onChange={set('campus')} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none" />
+            <select
+              value={form.campus as string}
+              onChange={(e) => {
+                const v = e.target.value
+                setForm((f) => ({ ...f, campus: v, ...(profile.tipo_usuario === 'estudante' ? { curso: '' } : {}) }))
+              }}
+              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none"
+            >
+              <option value="">Selecione…</option>
+              {campi.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
           </Field>
 
           <Field label="Telefone">
@@ -89,10 +112,26 @@ export function EditProfileModal({ profile, onClose, onSave, saving }: Props) {
           {profile.tipo_usuario === 'estudante' && (
             <>
               <Field label="Curso">
-                <input type="text" value={form.curso as string} onChange={set('curso')} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none" />
+                <select value={form.curso as string} onChange={set('curso')} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none">
+                  <option value="">Selecione…</option>
+                  {cursosDoCampus.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
               </Field>
               <Field label="Matrícula">
                 <input type="text" value={form.matricula as string} onChange={set('matricula')} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none" />
+              </Field>
+              <Field label="Semestre">
+                <input type="text" value={form.semestre as string} onChange={set('semestre')} placeholder="Ex.: 5º" className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none" />
+              </Field>
+              <Field label="Áreas de interesse (separadas por vírgula)">
+                <input
+                  type="text"
+                  value={Array.isArray(form.palavras_chave) ? form.palavras_chave.join(', ') : ''}
+                  onChange={(e) => setForm((f) => ({ ...f, palavras_chave: e.target.value.split(',').map((s) => s.trim()) }))}
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none"
+                />
               </Field>
             </>
           )}
@@ -109,9 +148,22 @@ export function EditProfileModal({ profile, onClose, onSave, saving }: Props) {
           )}
 
           {profile.tipo_usuario === 'externo' && (
-            <Field label="Empresa">
-              <input type="text" value={form.empresa as string} onChange={set('empresa')} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none" />
-            </Field>
+            <>
+              <Field label="Empresa">
+                <input type="text" value={form.empresa as string} onChange={set('empresa')} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none" />
+              </Field>
+              <Field label="Cargo">
+                <input type="text" value={form.cargo as string} onChange={set('cargo')} className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none" />
+              </Field>
+              <Field label="Áreas de interesse (separadas por vírgula)">
+                <input
+                  type="text"
+                  value={Array.isArray(form.palavras_chave) ? form.palavras_chave.join(', ') : ''}
+                  onChange={(e) => setForm((f) => ({ ...f, palavras_chave: e.target.value.split(',').map((s) => s.trim()) }))}
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm focus:border-ink/30 focus:outline-none"
+                />
+              </Field>
+            </>
           )}
         </form>
 

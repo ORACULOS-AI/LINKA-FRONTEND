@@ -3,7 +3,7 @@
 import { use } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Calendar, MapPin, Users, ExternalLink, Pencil, Share2, MoreHorizontal, Settings } from 'lucide-react'
+import { Calendar, MapPin, Users, ExternalLink, Pencil, Share2, Settings } from 'lucide-react'
 import { getEvent, getEventParticipants } from '@/lib/api/events'
 import { useFollowersCount } from '@/lib/hooks/useFollow'
 import { EntityProfileShell } from '@/components/entity/EntityProfileShell'
@@ -97,7 +97,6 @@ export default function EventoDetailPage({ params }: { params: Promise<{ id: str
             </>
           )}
           <ShareButton />
-          <button className="btn-icon" aria-label="Mais opções"><MoreHorizontal size={16} /></button>
         </>
       }
       stats={[

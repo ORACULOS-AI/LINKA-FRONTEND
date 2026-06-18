@@ -3,7 +3,7 @@
 import { use } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Calendar, Target, Pencil, Share2, MoreHorizontal } from 'lucide-react'
+import { Calendar, Target, Pencil, Share2 } from 'lucide-react'
 import { getInitiative, type ParticipanteIniciativa } from '@/lib/api/initiatives'
 import { fetchUser } from '@/lib/api/users'
 import { useFollowersCount } from '@/lib/hooks/useFollow'
@@ -85,7 +85,6 @@ export default function ProjetoDetailPage({ params }: { params: Promise<{ id: st
             </Link>
           )}
           <ShareButton />
-          <button className="btn-icon" aria-label="Mais opções"><MoreHorizontal size={16} /></button>
         </>
       }
       stats={[
