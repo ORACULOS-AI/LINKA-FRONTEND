@@ -3,6 +3,7 @@
 import { use } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import { BadgeCheck, MapPin, Mail, Globe, Pencil, Share2, MoreHorizontal, ShieldAlert } from 'lucide-react'
 import { getBusiness, getBusinessMembers } from '@/lib/api/business'
 import { listInitiatives } from '@/lib/api/initiatives'
@@ -20,6 +21,13 @@ import { useAuth } from '@/lib/stores/auth'
 
 function initials(nome: string) {
   return nome.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('')
+}
+
+function getBusinessErrorMessage(error: unknown) {
+  if (isAxiosError<{ detail?: string }>(error)) {
+    return error.response?.data?.detail
+  }
+  return null
 }
 
 export default function NegocioDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,10 +55,12 @@ export default function NegocioDetailPage({ params }: { params: Promise<{ id: st
   if (q.isLoading) {
     return <div className="mx-auto max-w-5xl px-4 py-6"><SkeletonCard lines={3} /></div>
   }
-  if (!q.data) {
+  if (q.isError || !q.data) {
+    const detail = getBusinessErrorMessage(q.error)
+    const title = detail === 'Negócio não disponível' ? detail : 'Negócio não encontrado'
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
-        <EmptyState title="Negócio não encontrado" action={{ label: 'Voltar à Vitrine', href: '/vitrine' }} />
+        <EmptyState title={title} action={{ label: 'Voltar aos negócios', href: '/negocios' }} />
       </div>
     )
   }

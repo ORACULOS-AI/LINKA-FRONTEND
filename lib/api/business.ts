@@ -65,9 +65,9 @@ export async function getMyBusinesses(): Promise<Negocio[]> {
   return data.data
 }
 
-// GET /api/v1/business/
+// GET /api/v1/business
 export async function listBusinesses(params?: { limit?: number; offset?: number }): Promise<PaginatedNegocios> {
-  const { data } = await api.get<PaginatedNegocios>('/api/v1/business/', { params })
+  const { data } = await api.get<PaginatedNegocios>('/api/v1/business', { params })
   return data
 }
 
@@ -83,9 +83,9 @@ export async function getBusiness(id: string): Promise<Negocio> {
   return data.data
 }
 
-// POST /api/v1/business/
+// POST /api/v1/business
 export async function createBusiness(payload: NegocioCreate): Promise<Negocio> {
-  const { data } = await api.post<ApiResp<Negocio>>('/api/v1/business/', payload)
+  const { data } = await api.post<ApiResp<Negocio>>('/api/v1/business', payload)
   return data.data
 }
 

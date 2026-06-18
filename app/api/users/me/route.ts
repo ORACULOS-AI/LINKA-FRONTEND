@@ -12,7 +12,7 @@ export async function PUT(request: Request) {
 
   const payload = await request.json().catch(() => ({}))
 
-  const backendRes = await backendFetch('/api/v1/users/', {
+  const backendRes = await backendFetch('/api/v1/users', {
     method: 'PUT',
     accessToken,
     headers: { 'Content-Type': 'application/json' },

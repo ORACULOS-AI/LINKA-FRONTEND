@@ -1,10 +1,15 @@
 export const BACKEND_URL =
+  process.env.INTERNAL_API_URL ??
   process.env.LINKA_API_URL ??
   process.env.NEXT_PUBLIC_LINKA_API_URL ??
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
   'http://localhost:8000'
 
 export function backendUrl(path: string) {
-  const base = BACKEND_URL.replace(/\/$/, '')
+  let base = BACKEND_URL.replace(/\/$/, '')
+  if (path.startsWith('/api/v1') && base.endsWith('/api/v1')) {
+    base = base.slice(0, -'/api/v1'.length)
+  }
   return `${base}${path.startsWith('/') ? path : `/${path}`}`
 }
 

@@ -46,7 +46,7 @@ export async function fetchMyProfile(): Promise<UserProfile> {
 }
 
 export async function updateMyProfile(patch: Partial<UserProfile>): Promise<UserProfile> {
-  const { data } = await api.put<ApiResp<UserProfile>>('/api/v1/users/', { user: patch })
+  const { data } = await api.put<ApiResp<UserProfile>>('/api/v1/users', { user: patch })
   return data.data
 }
 

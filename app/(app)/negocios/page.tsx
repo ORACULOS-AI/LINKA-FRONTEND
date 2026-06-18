@@ -128,7 +128,7 @@ export default function NegociosPage() {
         </div>
         <div className="row" style={{ gap: 8 }}>
           <button className="btn btn-tertiary btn-sm"><Upload size={14} />Exportar</button>
-          <Link href="/negocios/novo" className="btn btn-primary btn-sm"><Plus size={14} />Cadastrar negócio</Link>
+          <Link href="/vitrine/negocios/novo" className="btn btn-primary btn-sm"><Plus size={14} />Cadastrar negócio</Link>
         </div>
       </div>
 
@@ -261,14 +261,14 @@ export default function NegociosPage() {
               <div className="eyebrow">Sem resultados</div>
               <h3>Nenhum negócio encontrado</h3>
               <p>Tente ajustar os filtros ou cadastre um novo negócio.</p>
-              <Link href="/negocios/novo" className="btn btn-primary"><Plus size={14} />Cadastrar negócio</Link>
+              <Link href="/vitrine/negocios/novo" className="btn btn-primary"><Plus size={14} />Cadastrar negócio</Link>
             </div>
           ) : (
             <div className={view === 'grid' ? 'grid-3' : 'col'} style={view === 'grid' ? { gap: 16 } : { gap: 12 }}>
               {filtered.map((n, i) => (
                 view === 'grid'
-                  ? <NegocioCard key={n.id} negocio={n} idx={i} href={`/negocios/${n.id}`} />
-                  : <NegocioRow  key={n.id} negocio={n} idx={i} href={`/negocios/${n.id}`} />
+                  ? <NegocioCard key={n.id} negocio={n} idx={i} href={`/vitrine/negocios/${n.id}`} />
+                  : <NegocioRow  key={n.id} negocio={n} idx={i} href={`/vitrine/negocios/${n.id}`} />
               ))}
             </div>
           )}
