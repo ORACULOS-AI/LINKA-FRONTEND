@@ -139,7 +139,7 @@ export default function LaboratorioDetailPage({ params }: { params: Promise<{ id
               <div className="card-body">
                 <div className="space-y-2 text-sm" style={{ color: 'var(--color-fg-1)' }}>
                   <p><strong>Responsável:</strong> {l.responsavel}</p>
-                  <p><strong>Unidade:</strong> {l.subunidade}</p>
+                  <p><strong>Subunidade:</strong> {l.subunidade}</p>
                   {l.campus && <p><strong>Campus:</strong> {l.campus}</p>}
                 </div>
                 {l.areas_pesquisa?.length ? (
