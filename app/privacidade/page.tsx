@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import styles from './privacy.module.css'
+import BackButton from './back-button'
 
 export const metadata: Metadata = {
   title: 'Aviso de Privacidade',
@@ -43,9 +44,7 @@ export default function PrivacyPage() {
   return (
     <main className={`${styles.page} min-h-screen`}>
       <div className="mx-auto w-full max-w-5xl px-5 py-10 sm:px-8 sm:py-16">
-      {/* Full reload lets the existing home page theme initializer run again. */}
-      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-      <a href="/" className="inline-flex items-center gap-2 text-sm underline underline-offset-4">← Voltar ao início</a>
+      <BackButton />
       <article className="mt-8 space-y-10 text-base leading-relaxed">
         <header className="space-y-3 border-b border-slate-200 pb-8">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Aviso de Privacidade — SeLinka</h1>
