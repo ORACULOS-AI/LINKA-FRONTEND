@@ -1,0 +1,9 @@
+.page {
+  background: #fff;
+  color: #06070f;
+  color-scheme: light;
+  --color-fg-1: #06070f;
+  --color-fg-2: #334155;
+  --color-surface: #fff;
+  --color-border: #e2e8f0;
+}

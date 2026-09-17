@@ -180,7 +180,7 @@ export default async function LandingPage() {
         <span>© 2026 Universidade Federal do Ceará · SeLinka · selinka.ufc.br</span>
         <div className="row">
           <a href="#">Termos</a>
-          <a href="#">Privacidade</a>
+          <a href="/privacidade">Privacidade</a>
           <a href="#">Acessibilidade</a>
           <a href="#">Contato</a>
         </div>

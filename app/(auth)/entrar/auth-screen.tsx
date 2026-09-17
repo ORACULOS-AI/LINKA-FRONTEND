@@ -376,7 +376,7 @@ function SignupPanel() {
 
         <label className="check">
           <input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} />
-          <span>Li e aceito os <a href="#">Termos de uso</a> e a <a href="#">Política de privacidade</a> da UFC.</span>
+          <span>Li e aceito os <a href="#">Termos de uso</a> e a <a href="/privacidade">Política de privacidade</a> da UFC.</span>
         </label>
 
         <button
